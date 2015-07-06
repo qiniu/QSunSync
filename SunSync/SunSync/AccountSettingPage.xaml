@@ -1,0 +1,52 @@
+﻿<Page x:Class="SunSync.AccountSettingPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      mc:Ignorable="d" 
+      d:DesignHeight="560" d:DesignWidth="680"
+	Title="AccountSettingPage">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="70"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0">
+            <Border BorderBrush="#FF1986D1" BorderThickness="0 0 0 2">
+                <StackPanel Orientation="Horizontal" Margin="10">
+                    <Image Height="48" Width="48" Source="Pictures/back.png" 
+                           VerticalAlignment="Center" Cursor="Hand"
+                           MouseLeftButtonUp="BackToHome_MouseLeftButtonUp"
+                           />
+                    <TextBlock Text="帐号设置" FontSize="32" VerticalAlignment="Center" Margin="10 0"></TextBlock>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+        <StackPanel Grid.Row="1" Margin="10">
+            <StackPanel Width="450" Margin="40">
+            <StackPanel>
+                <Label Content="Access Key (AK)" FontSize="16" Margin="0 10"></Label>
+                    <TextBox FontSize="16" Height="48" VerticalContentAlignment="Center" Foreground="Green"
+                             TextChanged="AccountSettingChange_EventHandler" Name="AccessKeyTextBox"
+                        ></TextBox>
+                </StackPanel>
+            
+            <StackPanel>
+                <Label Content="Secret Key (SK)" FontSize="16" Margin="0 10"></Label>
+                <TextBox FontSize="16" Height="48" VerticalContentAlignment="Center" Foreground="Green"
+                         TextChanged="AccountSettingChange_EventHandler" Name="SecretKeyTextBox"
+                         ></TextBox>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0 10">
+                <TextBlock Text="查看我的 AK &amp; SK" TextDecorations="Underline"
+                           HorizontalAlignment="Left" VerticalAlignment="Center"
+                           Foreground="Blue"
+                           Cursor="Hand"
+                           MouseLeftButtonUp="ViewMyAKSK_MouseLeftButtonUp"
+                           ></TextBlock>
+            </StackPanel>
+        </StackPanel>
+        </StackPanel>
+    </Grid>
+</Page>

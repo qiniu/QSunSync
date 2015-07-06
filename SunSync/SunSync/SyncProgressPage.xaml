@@ -1,0 +1,49 @@
+﻿<Page x:Class="SunSync.SyncProgressPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      mc:Ignorable="d" 
+      d:DesignHeight="560" d:DesignWidth="680"
+	Title="SyncProgressPage">
+    <Page.Resources>
+    <SolidColorBrush x:Key="RedGridLine" Color="Gray" />
+    <SolidColorBrush x:Key="BlueGridLine" Color="Gray"/>
+    </Page.Resources>
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="68"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0">
+            <StackPanel Orientation="Horizontal" Margin="10">
+                <Image Height="48" Width="48" Source="Pictures/cloud.png" VerticalAlignment="Center"/>
+                <TextBlock Text="同步进度" FontSize="32" VerticalAlignment="Center" Margin="10 0"></TextBlock>
+            </StackPanel>
+        </StackPanel>
+        <StackPanel Grid.Row="1">
+            <DataGrid Height="380" Name="UploadProgressDataGrid" ItemsSource="{Binding}" 
+                      AutoGenerateColumns="false" IsReadOnly="True"
+                       VerticalGridLinesBrush="{StaticResource RedGridLine}"
+                       HorizontalGridLinesBrush="{StaticResource BlueGridLine}"
+                     >
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="本地文件名" Binding="{Binding LocalPath}" Width="235"></DataGridTextColumn>
+                    <DataGridTextColumn Header="空间文件名" Binding="{Binding FileKey}" Width="235"></DataGridTextColumn>
+                    <DataGridTextColumn Header="上传进度" Binding="{Binding Progress}" Width="100"></DataGridTextColumn>
+                    <DataGridTextColumn Header="上传速度" Binding="{Binding Speed}" Width="100"></DataGridTextColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+            <StackPanel Height="40" HorizontalAlignment="Center">
+                <TextBlock Name="UploadProgressTextBlock" FontSize="16" VerticalAlignment="Center" Margin="10"></TextBlock>
+            </StackPanel>
+            <StackPanel Margin="0 10">
+                <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                <Button Content="暂停" Width="60" Height="32" Margin="10 0"></Button>
+                <Button Content="结束" Width="60" Height="32" Margin="10 0"></Button>
+                </StackPanel>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</Page>

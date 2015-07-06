@@ -1,0 +1,75 @@
+﻿<Page x:Class="SunSync.QuickStartPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      mc:Ignorable="d" 
+      d:DesignHeight="560" d:DesignWidth="680"
+	Title="QuickStartPage">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="100"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0">
+            <Image Source="Pictures/logo.jpg" Height="100"></Image>
+        </StackPanel>
+        <Grid Grid.Row="2">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"></ColumnDefinition>
+            <ColumnDefinition Width="*"></ColumnDefinition>
+        </Grid.ColumnDefinitions>
+        <StackPanel Grid.Column="0" Orientation="Vertical">
+            <StackPanel Margin="20">
+                <Label Content="最近同步任务" FontSize="24"></Label>
+                    <ListBox>
+                        <ListBoxItem>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="2014-07-02"></TextBlock>
+                                    <TextBlock Text="if-pbl" HorizontalAlignment="Right" Margin="80 0"></TextBlock>
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="C:\\www\xxx\wwww"></TextBlock>
+                                </StackPanel>
+                            </StackPanel>
+                        </ListBoxItem>
+                        <ListBoxItem Margin="0 10">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="2014-07-02"></TextBlock>
+                                    <TextBlock Text="if-pbl" HorizontalAlignment="Right" Margin="80 0"></TextBlock>
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="C:\\www\xxx\wwww"></TextBlock>
+                                </StackPanel>
+                            </StackPanel>
+                        </ListBoxItem>
+                    </ListBox>
+                </StackPanel>
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Vertical">
+            <StackPanel Margin="20">
+               <Label Content="快速开始" FontSize="24"></Label>
+               <TextBlock TextDecorations="Underline" 
+                          Text="新建同步任务" Margin="0 5"
+                          FontSize="16"
+                          Foreground="MediumBlue"
+                          Cursor="Hand"
+                          MouseLeftButtonUp="CreateNewSyncJob_EventHandler"
+                          ></TextBlock>
+               <TextBlock TextDecorations="Underline" 
+                          Text="帐号设置" Margin="0 5"
+                          FontSize="16"
+                          Foreground="MediumBlue"
+                          MouseLeftButtonUp="SetAccount_EventHandler"
+                          Cursor="Hand"
+                          ></TextBlock>
+                   
+                </StackPanel>
+
+        </StackPanel>
+        </Grid>
+    </Grid>
+</Page>
