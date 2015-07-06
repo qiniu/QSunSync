@@ -14,6 +14,9 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Forms;
 using SunSync.Models;
+using Qiniu.Storage;
+using Qiniu.Util;
+using Qiniu.Storage.Model;
 namespace SunSync
 {
     /// <summary>
@@ -76,13 +79,35 @@ namespace SunSync
             }
 
             if (this.SyncTargetBucketTextBox.Text.Trim().Length == 0)
-            { 
-            //todo
+            {
+                //todo
+                return;
+            }
+            this.syncLocalDir = this.SyncLocalFolderTextBox.Text.Trim();
+            if (!Directory.Exists(this.syncLocalDir))
+            {
+                //directory not found
+                this.SettingsErrorTextBlock.Text = "本地待同步目录不存在";
                 return;
             }
 
-            this.syncLocalDir = this.SyncLocalFolderTextBox.Text.Trim();
             this.syncTargetBucket = this.SyncTargetBucketTextBox.Text.Trim();
+            //check ak & sk and bucket
+            Mac mac = new Mac(SystemConfig.ACCESS_KEY, SystemConfig.SECRET_KEY);
+            BucketManager bucketManager = new BucketManager(mac);
+            StatResult statResult = bucketManager.stat(this.syncTargetBucket, "WHOCAREYOU");
+            if (statResult.ResponseInfo.StatusCode == 401)
+            {
+                //ak & sk not right
+                this.SettingsErrorTextBlock.Text = "AK 或 SK 不正确";
+                return;
+            }
+            else if (statResult.ResponseInfo.StatusCode == 631)
+            {
+                //bucket not exist
+                this.SettingsErrorTextBlock.Text = "指定空间不存在";
+                return;
+            }
 
             //optional settings
             this.syncPrefix = this.PrefixTextBox.Text.Trim();

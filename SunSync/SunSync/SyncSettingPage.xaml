@@ -45,6 +45,10 @@
                                          Name="SyncTargetBucketTextBox"
                                          HorizontalAlignment="Left" VerticalContentAlignment="Center"></TextBox>
                             </StackPanel>
+                            
+                            <StackPanel>
+                                <TextBlock Name="SettingsErrorTextBlock" Text="" Margin="0 10" Foreground="Red"></TextBlock>
+                            </StackPanel>
                         </StackPanel>
                     </TabItem>
                     <TabItem Header="高级设置" FontSize="16">
