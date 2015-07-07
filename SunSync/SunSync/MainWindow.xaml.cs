@@ -26,6 +26,7 @@ namespace SunSync
         private AccountSettingPage accountSettingPage;
         private SyncSettingPage syncSettingPage;
         private SyncProgressPage syncProgressPage;
+        private SyncResultPage syncResultPage;
 
         public MainWindow()
         {
@@ -34,7 +35,33 @@ namespace SunSync
             this.accountSettingPage = new AccountSettingPage(this);
             this.syncSettingPage = new SyncSettingPage(this);
             this.syncProgressPage = new SyncProgressPage(this);
+            this.syncResultPage = new SyncResultPage(this);
             this.loadAccountInfo();
+        }
+
+        private void loadAccountInfo()
+        {
+            string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string accPath = System.IO.Path.Combine(myDocPath, "qsunbox", "account.json");
+            if (File.Exists(accPath))
+            {
+                byte[] accData = null;
+                try
+                {
+                    using (FileStream fs = new FileStream(accPath, FileMode.Open, FileAccess.Read))
+                    {
+                        accData = new byte[fs.Length];
+                        fs.Read(accData, 0, (int)fs.Length);
+                    }
+                    Account acct = JsonConvert.DeserializeObject<Account>(Encoding.UTF8.GetString(accData));
+                    SystemConfig.ACCESS_KEY = acct.AccessKey;
+                    SystemConfig.SECRET_KEY = acct.SecretKey;
+                }
+                catch (Exception)
+                {
+                    //todo
+                }
+            }
         }
 
         private void MainWindow_Loaded_EventHandler(object sender, RoutedEventArgs e)
@@ -63,29 +90,14 @@ namespace SunSync
             this.syncProgressPage.LoadSyncSettingAndRun(syncSetting);
         }
 
-        private void loadAccountInfo()
+        internal void GotoSyncResultPage(bool fileOverwrite,List<string> fileExistsLog, List<string> fileOverwriteLog, List<string> fileNotOverwriteLog,
+            List<string> fileUploadErrorLog, List<string> fileUploadSuccessLog)
         {
-            string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string accPath = System.IO.Path.Combine(myDocPath, "qsunbox", "account.json");
-            if (File.Exists(accPath))
+            Dispatcher.Invoke(new Action(delegate
             {
-                byte[] accData = null;
-                try
-                {
-                    using (FileStream fs = new FileStream(accPath, FileMode.Open, FileAccess.Read))
-                    {
-                        accData = new byte[fs.Length];
-                        fs.Read(accData, 0, (int)fs.Length);
-                    }
-                    Account acct = JsonConvert.DeserializeObject<Account>(Encoding.UTF8.GetString(accData));
-                    SystemConfig.ACCESS_KEY = acct.AccessKey;
-                    SystemConfig.SECRET_KEY = acct.SecretKey;
-                }
-                catch (Exception)
-                {
-                    //todo
-                }
-            }
+                this.MainHostFrame.Content = this.syncResultPage;
+                this.syncResultPage.LoadSyncResult(fileOverwrite,fileExistsLog, fileOverwriteLog, fileNotOverwriteLog, fileUploadErrorLog, fileUploadSuccessLog);
+            }));
         }
     }
 }

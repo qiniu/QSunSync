@@ -131,7 +131,7 @@ namespace SunSync
                     this.defaultChunkSize = 2 * 1024 * 1024;//2MB
                     break;
                 case 5:
-                    this.defaultChunkSize = 4 * 1024 * 1024;
+                    this.defaultChunkSize = 4 * 1024 * 1024; //4MB
                     break;
                 default:
                     this.defaultChunkSize = 512 * 1024;//512KB
@@ -192,15 +192,26 @@ namespace SunSync
             if (this.syncSetting == null)
             {
                 //use defaults for ui
-                this.ChunkDefaultSizeComboBox.SelectedIndex = 2; //512KB
-                this.ChunkUploadThresholdSlider.Value = 10;//10MB
-                this.ThreadCountSlider.Value = 1;
-                this.UploadEntryDomainComboBox.SelectedIndex = 1;
-                this.ThreadCountLabel.Content = "1";
+                this.makeBasicSettingsDefault();
+                this.makeAdvancedSettingsDefault();
             }
         }
 
-         
+        private void makeBasicSettingsDefault()
+        {
+            this.SyncLocalFolderTextBox.Text = "";
+            this.SyncTargetBucketTextBox.Text = "";
+        }
+
+        private void makeAdvancedSettingsDefault()
+        {
+            this.ChunkDefaultSizeComboBox.SelectedIndex = 2; //512KB
+            this.ChunkUploadThresholdSlider.Value = 10;//10MB
+            this.ThreadCountSlider.Value = 1;
+            this.UploadEntryDomainComboBox.SelectedIndex = 1;
+            this.ThreadCountLabel.Content = "1";
+        }
+
     }
 
 }

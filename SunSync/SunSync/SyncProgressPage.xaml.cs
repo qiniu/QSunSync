@@ -29,15 +29,41 @@ namespace SunSync
     {
         private SyncSetting syncSetting;
         private MainWindow mainWindow;
+        private object progressLock = new object();
 
-        private object locker = new object();
         private int doneCount;
         private int totalCount;
         private UploadInfo[] uploadInfos;
+
+        private List<string> fileExistsLog;
+        private object fileExistsLock;
+
+        private List<string> fileOverwriteLog;
+        private object fileOverwriteLock;
+
+        private List<string> fileNotOverwriteLog;
+        private object fileNotOverwriteLock;
+
+        private List<string> fileUploadErrorLog;
+        private object fileUploadErrorLock;
+
+        private List<string> fileUploadSuccessLog;
+        private object fileUploadSuccessLock;
+
         public SyncProgressPage(MainWindow mainWindow)
         {
             InitializeComponent();
             this.mainWindow = mainWindow;
+            this.fileExistsLog = new List<string>();
+            this.fileExistsLock = new object();
+            this.fileOverwriteLog = new List<string>();
+            this.fileOverwriteLock = new object();
+            this.fileNotOverwriteLog = new List<string>();
+            this.fileNotOverwriteLock = new object();
+            this.fileUploadErrorLog = new List<string>();
+            this.fileUploadErrorLock = new object();
+            this.fileUploadSuccessLog = new List<string>();
+            this.fileUploadSuccessLock = new object();
         }
 
         internal void LoadSyncSettingAndRun(SyncSetting syncSetting)
@@ -123,13 +149,24 @@ namespace SunSync
                     ThreadPool.QueueUserWorkItem(new WaitCallback(fu.uploadFile), fileList[fileIndex]);
                 }
 
-                WaitHandle.WaitAll(doneEvents);
+                try
+                {
+                    WaitHandle.WaitAll(doneEvents);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
             }
+
+            //job finish, jump to result page
+            this.mainWindow.GotoSyncResultPage(this.syncSetting.OverwriteFile, fileExistsLog, fileOverwriteLog, fileNotOverwriteLog,
+                fileUploadErrorLog, fileUploadSuccessLog);
         }
 
         public void updateTotalUploadProgress()
         {
-            lock (locker)
+            lock (progressLock)
             {
                 this.doneCount += 1;
             }
@@ -151,6 +188,47 @@ namespace SunSync
                 }
                 this.UploadProgressDataGrid.DataContext = dataSource;
             }));
+        }
+
+        public void addFileExistsLog(string log)
+        {
+            lock (this.fileExistsLock)
+            {
+                this.fileExistsLog.Add(log);
+            }
+        }
+
+        public void addFileOverwriteLog(string log)
+        {
+            lock (this.fileOverwriteLock)
+            {
+                this.fileOverwriteLog.Add(log);
+            }
+        }
+
+        public void addFileNotOverwriteLog(string log)
+        {
+            lock (this.fileNotOverwriteLock)
+            {
+                this.fileNotOverwriteLog.Add(log);
+            }
+        }
+
+        public void addFileUploadErrorLog(string log)
+        {
+            lock (this.fileUploadErrorLock)
+            {
+                this.fileUploadErrorLog.Add(log);
+            }
+        }
+
+
+        public void addFileUploadSuccessLog(string log)
+        {
+            lock (this.fileUploadSuccessLock)
+            {
+                this.fileUploadSuccessLog.Add(log);
+            }
         }
 
         class FileUploader
@@ -220,6 +298,9 @@ namespace SunSync
                     if (statResult.Hash.Equals(localHash))
                     {
                         //same file, no need to upload
+                        this.syncProgressPage.addFileExistsLog(this.syncSetting.SyncTargetBucket + "\t" +
+                            fileFullPath + "\t" + fileKey);
+                        doneEvent.Set();
                         return;
                     }
                     else
@@ -227,10 +308,14 @@ namespace SunSync
                         if (this.syncSetting.OverwriteFile)
                         {
                             overwriteKey = true;
+                            this.syncProgressPage.addFileOverwriteLog(this.syncSetting.SyncTargetBucket + "\t" +
+                                fileFullPath + "\t" + fileKey);
                         }
                         else
                         {
-                            //todo error, file with name already exists
+                            this.syncProgressPage.addFileNotOverwriteLog(this.syncSetting.SyncTargetBucket + "\t" +
+                                fileFullPath + "\t" + fileKey);
+                            doneEvent.Set();
                             return;
                         }
                     }
@@ -250,6 +335,7 @@ namespace SunSync
                 }
                 putPolicy.SetExpires(24 * 30 * 3600);
                 string uptoken = Auth.createUploadToken(putPolicy, mac);
+                long fileLength = new FileInfo(fileFullPath).Length;
                 uploadManger.uploadFile(fileFullPath, fileKey, uptoken, new UploadOptions(null, null, false,
                     new UpProgressHandler(delegate(string key, double percent)
                 {
@@ -265,14 +351,26 @@ namespace SunSync
                 }))
                     , new UpCompletionHandler(delegate(string key, ResponseInfo respInfo, string response)
                 {
-                    //update ui
+                    if (respInfo.StatusCode != 200)
+                    {
+                        this.syncProgressPage.addFileUploadErrorLog(this.syncSetting.SyncTargetBucket + "\t" +
+                                fileFullPath + "\t" + fileKey);
+                    }
+                    else
+                    {
+                        this.syncProgressPage.addFileUploadSuccessLog(this.syncSetting.SyncTargetBucket + "\t" +
+                                fileFullPath + "\t" + fileKey);
+                    }
                     this.syncProgressPage.updateTotalUploadProgress();
                     doneEvent.Set();
                 }));
 
             }
-
-
         }
+
+
+
+
+       
     }
 }
