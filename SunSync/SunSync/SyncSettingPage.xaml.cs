@@ -192,6 +192,7 @@ namespace SunSync
             if (this.syncSetting == null)
             {
                 //use defaults for ui
+                this.SyncSettingTabControl.SelectedIndex = 0;
                 this.makeBasicSettingsDefault();
                 this.makeAdvancedSettingsDefault();
             }
@@ -205,6 +206,9 @@ namespace SunSync
 
         private void makeAdvancedSettingsDefault()
         {
+            this.PrefixTextBox.Text = "";
+            this.OverwriteFileCheckBox.IsChecked = false;
+            this.IgnoreRelativePathCheckBox.IsChecked = false;
             this.ChunkDefaultSizeComboBox.SelectedIndex = 2; //512KB
             this.ChunkUploadThresholdSlider.Value = 10;//10MB
             this.ThreadCountSlider.Value = 1;

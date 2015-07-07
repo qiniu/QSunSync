@@ -24,7 +24,7 @@
         </StackPanel>
         <StackPanel Grid.Row="1" Margin="10">
             <StackPanel Orientation="Vertical">
-                <TabControl Height="420">
+                <TabControl Height="420" Name="SyncSettingTabControl">
                     <TabItem Header="基本设置" FontSize="16">
                         <StackPanel Orientation="Vertical" Width="500" Margin="10">
                             <StackPanel>
