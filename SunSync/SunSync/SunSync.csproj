@@ -90,6 +90,7 @@
       <DependentUpon>AccountSettingPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Models\Account.cs" />
+    <Compile Include="Models\SyncRecord.cs" />
     <Compile Include="Models\SyncSetting.cs" />
     <Compile Include="Models\UploadInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">

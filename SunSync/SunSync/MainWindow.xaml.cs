@@ -3,17 +3,8 @@ using SunSync.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace SunSync
 {
@@ -27,7 +18,6 @@ namespace SunSync
         private SyncSettingPage syncSettingPage;
         private SyncProgressPage syncProgressPage;
         private SyncResultPage syncResultPage;
-
         public MainWindow()
         {
             InitializeComponent();
@@ -37,6 +27,7 @@ namespace SunSync
             this.syncProgressPage = new SyncProgressPage(this);
             this.syncResultPage = new SyncResultPage(this);
             this.loadAccountInfo();
+            this.loadRecentSyncJobs();
         }
 
         private void loadAccountInfo()
@@ -64,6 +55,41 @@ namespace SunSync
             }
         }
 
+        private List<SyncRecord> loadRecentSyncJobs()
+        {
+            List<SyncRecord> syncRecords = new List<SyncRecord>();
+            string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string jobsDir = System.IO.Path.Combine(myDocPath, "qsunbox", "jobs");
+            if (Directory.Exists(jobsDir))
+            {
+                string[] jobNamePaths=Directory.GetFiles(jobsDir);
+                foreach (string jobNamePath in jobNamePaths)
+                {
+                    string jobName = System.IO.Path.GetFileName(jobNamePath);
+                    try
+                    {
+                        string[] items = Encoding.UTF8.GetString(Convert.FromBase64String(jobName)).Split('\t');
+                        if (items.Length == 3)
+                        {
+                            string localDir = items[0];
+                            string targetBucket = items[1];
+                            string binaryDate = items[2];
+                            DateTime syncDate = DateTime.FromBinary(Convert.ToInt64(binaryDate));
+                            SyncRecord syncRecord = new SyncRecord();
+                            syncRecord.FilePath = jobNamePath;
+                            syncRecord.SyncLocalDir = localDir;
+                            syncRecord.SyncTargetBucket = targetBucket;
+                            syncRecord.SyncDateTime = syncDate;
+                            syncRecord.SyncDateTimeStr = syncDate.ToString("yyy-MM-dd HH:mm:ss");
+                            syncRecords.Add(syncRecord);
+                        }
+                    }
+                    catch (Exception) { }
+                }
+            }
+            return syncRecords;
+        }
+
         private void MainWindow_Loaded_EventHandler(object sender, RoutedEventArgs e)
         {
             this.GotoHomePage();
@@ -76,12 +102,15 @@ namespace SunSync
 
         internal void GotoHomePage()
         {
+            List<SyncRecord> syncRecords = loadRecentSyncJobs();
+            this.quickStartPage.LoadSyncRecords(syncRecords);
             this.MainHostFrame.Content = this.quickStartPage;
         }
 
-        internal void GotoSyncSettingPage()
+        internal void GotoSyncSettingPage(SyncSetting syncSetting)
         {
             this.MainHostFrame.Content = this.syncSettingPage;
+            this.syncSettingPage.LoadSyncSetting(syncSetting);
         }
 
         internal void GotoSyncProgress(Models.SyncSetting syncSetting)

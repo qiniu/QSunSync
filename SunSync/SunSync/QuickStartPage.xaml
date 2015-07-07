@@ -6,7 +6,7 @@
       mc:Ignorable="d" 
       d:DesignHeight="560" d:DesignWidth="680"
 	Title="QuickStartPage">
-
+    
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="100"></RowDefinition>
@@ -17,50 +17,29 @@
         </StackPanel>
         <Grid Grid.Row="2">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"></ColumnDefinition>
+            <ColumnDefinition Width="360"></ColumnDefinition>
             <ColumnDefinition Width="*"></ColumnDefinition>
         </Grid.ColumnDefinitions>
         <StackPanel Grid.Column="0" Orientation="Vertical">
-            <StackPanel Margin="20">
-                <Label Content="最近同步任务" FontSize="24"></Label>
-                    <ListBox>
-                        <ListBoxItem>
-                            <StackPanel>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="2014-07-02"></TextBlock>
-                                    <TextBlock Text="if-pbl" HorizontalAlignment="Right" Margin="80 0"></TextBlock>
-                                </StackPanel>
-                                <StackPanel>
-                                    <TextBlock Text="C:\\www\xxx\wwww"></TextBlock>
-                                </StackPanel>
-                            </StackPanel>
-                        </ListBoxItem>
-                        <ListBoxItem Margin="0 10">
-                            <StackPanel>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="2014-07-02"></TextBlock>
-                                    <TextBlock Text="if-pbl" HorizontalAlignment="Right" Margin="80 0"></TextBlock>
-                                </StackPanel>
-                                <StackPanel>
-                                    <TextBlock Text="C:\\www\xxx\wwww"></TextBlock>
-                                </StackPanel>
-                            </StackPanel>
-                        </ListBoxItem>
+            <StackPanel Margin="20 5">
+                    <Label Content="最近同步任务" FontSize="24" Margin="0 10"></Label>
+                    <ListBox Name="SyncHistoryListBox" Height="380" >
+                       
                     </ListBox>
                 </StackPanel>
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Vertical">
-            <StackPanel Margin="20">
-               <Label Content="快速开始" FontSize="24"></Label>
+            <StackPanel Margin="20 5">
+               <Label Content="快速开始" FontSize="24" Margin="0 10"></Label>
                <TextBlock TextDecorations="Underline" 
-                          Text="新建同步任务" Margin="0 5"
+                          Text="新建同步任务" Margin="0"
                           FontSize="16"
                           Foreground="MediumBlue"
                           Cursor="Hand"
                           MouseLeftButtonUp="CreateNewSyncJob_EventHandler"
                           ></TextBlock>
                <TextBlock TextDecorations="Underline" 
-                          Text="帐号设置" Margin="0 5"
+                          Text="帐号设置" Margin="0 10"
                           FontSize="16"
                           Foreground="MediumBlue"
                           MouseLeftButtonUp="SetAccount_EventHandler"

@@ -39,8 +39,8 @@
             </StackPanel>
             <StackPanel Margin="0 10">
                 <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                <Button Content="暂停" Width="60" Height="32" Margin="10 0"></Button>
-                <Button Content="结束" Width="60" Height="32" Margin="10 0"></Button>
+                <Button Content="暂停" Width="120" Height="32" Margin="10 0"></Button>
+                <Button Content="结束" Width="120" Height="32" Margin="10 0"></Button>
                 </StackPanel>
             </StackPanel>
         </StackPanel>

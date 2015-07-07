@@ -59,7 +59,7 @@
                                         <StackPanel Orientation="Horizontal" Margin="5">
                                             <Label FontSize="16" Content="附加前缀" VerticalAlignment="Center"></Label>
                                             <TextBox Width="400" Height="48" Margin="10 0" VerticalContentAlignment="Center"
-                                                     Name="PrefixTextBox"></TextBox>
+                                                     Name="PrefixTextBox" Foreground="Green"></TextBox>
                                         </StackPanel>
                                         <StackPanel Margin="5">
                                             <CheckBox Content="忽略文件名相对路径" FontSize="16" Name="IgnoreRelativePathCheckBox"></CheckBox>

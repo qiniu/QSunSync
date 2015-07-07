@@ -71,7 +71,7 @@ namespace SunSync
             this.syncSetting = syncSetting;
             //write the sync settings to config file
 
-            string jobName = string.Join(":", new string[] { syncSetting.SyncLocalDir, syncSetting.SyncTargetBucket });
+            string jobName = string.Join("\t", new string[] { syncSetting.SyncLocalDir, syncSetting.SyncTargetBucket, System.DateTime.Now.ToBinary().ToString() });
             string jobFileName = Convert.ToBase64String(Encoding.UTF8.GetBytes(jobName)).Replace("+", "-").Replace("/", "_");
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             string jobsDir = System.IO.Path.Combine(myDocPath, "qsunbox/jobs");

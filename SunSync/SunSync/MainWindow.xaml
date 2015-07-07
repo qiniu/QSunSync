@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="七牛云数据同步" Width="700" Height="600" Loaded="MainWindow_Loaded_EventHandler" WindowStartupLocation="CenterScreen" 
         ResizeMode="CanMinimize" Icon="sunsync.ico">
+    
     <Grid>
         <DockPanel>
             <Frame x:Name="MainHostFrame" Background="WhiteSmoke" NavigationUIVisibility="Hidden"></Frame>

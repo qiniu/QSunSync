@@ -7,7 +7,7 @@ using System.Text;
 namespace SunSync.Models
 {
     [JsonObject(MemberSerialization.OptIn)]
-    class SyncSetting
+    public class SyncSetting
     {
         //local dir to sync
         [JsonProperty("sync_local_dir")]
