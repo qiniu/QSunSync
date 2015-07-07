@@ -55,8 +55,11 @@ namespace SunSync
         public void LoadSyncSetting(SyncSetting syncSetting)
         {
             this.syncSetting = syncSetting;
-            this.SyncLocalFolderTextBox.Text = syncSetting.SyncLocalDir;
-            this.SyncTargetBucketTextBox.Text = syncSetting.SyncTargetBucket;
+            if (this.syncSetting != null)
+            {
+                this.SyncLocalFolderTextBox.Text = syncSetting.SyncLocalDir;
+                this.SyncTargetBucketTextBox.Text = syncSetting.SyncTargetBucket;
+            }
         }
 
         private void BackToHome_EventHandler(object sender, MouseButtonEventArgs e)

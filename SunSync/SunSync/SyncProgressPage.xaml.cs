@@ -54,16 +54,7 @@ namespace SunSync
         {
             InitializeComponent();
             this.mainWindow = mainWindow;
-            this.fileExistsLog = new List<string>();
-            this.fileExistsLock = new object();
-            this.fileOverwriteLog = new List<string>();
-            this.fileOverwriteLock = new object();
-            this.fileNotOverwriteLog = new List<string>();
-            this.fileNotOverwriteLock = new object();
-            this.fileUploadErrorLog = new List<string>();
-            this.fileUploadErrorLock = new object();
-            this.fileUploadSuccessLog = new List<string>();
-            this.fileUploadSuccessLock = new object();
+            this.resetSyncProgress();
         }
 
         internal void LoadSyncSettingAndRun(SyncSetting syncSetting)
@@ -105,6 +96,24 @@ namespace SunSync
 
         }
 
+        private void SyncProgressPageLoaded_EventHandler(object sender, RoutedEventArgs e)
+        {
+            this.resetSyncProgress();
+        }
+
+        private void resetSyncProgress()
+        {
+            this.fileExistsLog = new List<string>();
+            this.fileExistsLock = new object();
+            this.fileOverwriteLog = new List<string>();
+            this.fileOverwriteLock = new object();
+            this.fileNotOverwriteLog = new List<string>();
+            this.fileNotOverwriteLock = new object();
+            this.fileUploadErrorLog = new List<string>();
+            this.fileUploadErrorLock = new object();
+            this.fileUploadSuccessLog = new List<string>();
+            this.fileUploadSuccessLock = new object();
+        }
 
         internal void processDir(string rootDir, string targetDir, List<string> fileList)
         {
@@ -367,9 +376,6 @@ namespace SunSync
 
             }
         }
-
-
-
 
        
     }
