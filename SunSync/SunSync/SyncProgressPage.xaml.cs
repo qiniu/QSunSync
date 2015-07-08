@@ -50,11 +50,16 @@ namespace SunSync
         private List<string> fileUploadSuccessLog;
         private object fileUploadSuccessLock;
 
+        private bool cancelSignal;
+        private bool finishSignal;
+
         public SyncProgressPage(MainWindow mainWindow)
         {
             InitializeComponent();
             this.mainWindow = mainWindow;
             this.resetSyncProgress();
+            this.cancelSignal = false;
+            this.finishSignal = false;
         }
 
         internal void LoadSyncSettingAndRun(SyncSetting syncSetting)
@@ -131,6 +136,14 @@ namespace SunSync
 
         internal void runSyncJob()
         {
+            //set before run status
+            this.finishSignal = false;
+            this.cancelSignal = false;
+
+            Dispatcher.Invoke(new Action(delegate{
+                this.ManualFinishButton.IsEnabled = false;
+            }));
+
             //list dirs
             string localSyncDir = syncSetting.SyncLocalDir;
             List<string> fileList = new List<string>();
@@ -166,14 +179,24 @@ namespace SunSync
                 {
                     Console.WriteLine(ex);
                 }
+
+                if (this.cancelSignal)
+                {
+                    break;
+                }
             }
 
-            //job finish, jump to result page
-            this.mainWindow.GotoSyncResultPage(this.syncSetting.OverwriteFile, fileExistsLog, fileOverwriteLog, fileNotOverwriteLog,
-                fileUploadErrorLog, fileUploadSuccessLog);
+            //set finish signal
+            this.finishSignal = true;
+            if (!this.cancelSignal)
+            {
+                //job finish, jump to result page
+                this.mainWindow.GotoSyncResultPage(this.syncSetting.OverwriteFile, fileExistsLog, fileOverwriteLog, fileNotOverwriteLog,
+                    fileUploadErrorLog, fileUploadSuccessLog);
+            }
         }
 
-        public void updateTotalUploadProgress()
+        internal void updateTotalUploadProgress()
         {
             lock (progressLock)
             {
@@ -186,20 +209,23 @@ namespace SunSync
             }));
         }
 
-        public void updateSingleFileProgress()
+        internal void updateSingleFileProgress()
         {
             Dispatcher.Invoke(new Action(delegate
             {
                 ObservableCollection<UploadInfo> dataSource = new ObservableCollection<UploadInfo>();
                 foreach (UploadInfo uploadInfo in this.uploadInfos)
                 {
-                    dataSource.Add(uploadInfo);
+                    if (!string.IsNullOrEmpty(uploadInfo.Progress))
+                    {
+                        dataSource.Add(uploadInfo);
+                    }
                 }
                 this.UploadProgressDataGrid.DataContext = dataSource;
             }));
         }
 
-        public void addFileExistsLog(string log)
+        internal void addFileExistsLog(string log)
         {
             lock (this.fileExistsLock)
             {
@@ -207,7 +233,7 @@ namespace SunSync
             }
         }
 
-        public void addFileOverwriteLog(string log)
+        internal void addFileOverwriteLog(string log)
         {
             lock (this.fileOverwriteLock)
             {
@@ -215,7 +241,7 @@ namespace SunSync
             }
         }
 
-        public void addFileNotOverwriteLog(string log)
+        internal void addFileNotOverwriteLog(string log)
         {
             lock (this.fileNotOverwriteLock)
             {
@@ -223,7 +249,7 @@ namespace SunSync
             }
         }
 
-        public void addFileUploadErrorLog(string log)
+        internal void addFileUploadErrorLog(string log)
         {
             lock (this.fileUploadErrorLock)
             {
@@ -232,12 +258,17 @@ namespace SunSync
         }
 
 
-        public void addFileUploadSuccessLog(string log)
+        internal void addFileUploadSuccessLog(string log)
         {
             lock (this.fileUploadSuccessLock)
             {
                 this.fileUploadSuccessLog.Add(log);
             }
+        }
+
+        internal bool checkCancelSignal()
+        {
+            return this.cancelSignal;
         }
 
         class FileUploader
@@ -254,9 +285,13 @@ namespace SunSync
                 this.taskId = taskId;
             }
 
-
             public void uploadFile(object file)
             {
+                if (syncProgressPage.checkCancelSignal())
+                {
+                    doneEvent.Set();
+                    return;
+                }
                 string fileFullPath = file.ToString();
                 //check ignore dir
                 string fileKey = "";
@@ -356,7 +391,7 @@ namespace SunSync
 
                 }), new UpCancellationSignal(delegate()
                 {
-                    return false;
+                    return this.syncProgressPage.checkCancelSignal();
                 }))
                     , new UpCompletionHandler(delegate(string key, ResponseInfo respInfo, string response)
                 {
@@ -377,6 +412,41 @@ namespace SunSync
             }
         }
 
-       
+        private void UploadActionButton_EventHandler(object sender, RoutedEventArgs e)
+        {
+            this.UploadActionButton.IsEnabled = false;
+            if (this.cancelSignal)
+            {
+                //resume upload
+                Thread jobThread = new Thread(new ThreadStart(this.runSyncJob));
+                jobThread.Start();
+                this.UploadActionButton.IsEnabled = true;
+                this.UploadActionButton.Content = "取消";
+            }
+            else
+            {
+                this.cancelSignal = true;
+                Thread checkThread = new Thread(new ThreadStart(delegate
+                {
+                    while (!this.finishSignal)
+                    {
+                        Thread.Sleep(1000);
+                    }
+                    Dispatcher.Invoke(new Action(delegate
+                    {
+                        this.UploadActionButton.IsEnabled = true;
+                        this.UploadActionButton.Content = "恢复";
+                        this.ManualFinishButton.IsEnabled = true;
+                    }));
+                }));
+                checkThread.Start();
+            }
+        }
+
+        private void ManualFinishButton_EventHandler(object sender, RoutedEventArgs e)
+        {
+            this.mainWindow.GotoSyncResultPage(this.syncSetting.OverwriteFile, this.fileExistsLog, this.fileOverwriteLog, 
+                this.fileNotOverwriteLog, this.fileUploadErrorLog, this.fileUploadSuccessLog);
+        }
     }
 }

@@ -24,7 +24,7 @@ namespace SunSync
     /// </summary>
     public partial class SyncSettingPage : Page
     {
-        
+
         //local dir to sync
         private string syncLocalDir;
         //target bucket
@@ -56,9 +56,9 @@ namespace SunSync
             this.defaultChunkDict.Add(128 * 1024, 0);
             this.defaultChunkDict.Add(256 * 1024, 1);
             this.defaultChunkDict.Add(512 * 1024, 2);
-            this.defaultChunkDict.Add(1 *1024 * 1024, 3);
-            this.defaultChunkDict.Add(2*1024 * 1024, 4);
-            this.defaultChunkDict.Add(4*1024 * 1024, 5);
+            this.defaultChunkDict.Add(1 * 1024 * 1024, 3);
+            this.defaultChunkDict.Add(2 * 1024 * 1024, 4);
+            this.defaultChunkDict.Add(4 * 1024 * 1024, 5);
             this.defaultUploadEntryDict = new Dictionary<string, int>();
             this.defaultUploadEntryDict.Add("http://up.qiniu.com", 0);
             this.defaultUploadEntryDict.Add("http://upload.qiniu.com", 1);
@@ -206,7 +206,7 @@ namespace SunSync
 
 
         private void SyncSettingPageLoaded_EventHandler(object sender, RoutedEventArgs e)
-        { 
+        {
             this.SyncSettingTabControl.SelectedIndex = 0;
             if (this.syncSetting == null)
             {
@@ -224,7 +224,7 @@ namespace SunSync
                 this.OverwriteFileCheckBox.IsChecked = syncSetting.OverwriteFile;
                 this.IgnoreRelativePathCheckBox.IsChecked = syncSetting.IgnoreDir;
                 this.ThreadCountSlider.Value = syncSetting.SyncThreadCount;
-                this.ChunkUploadThresholdSlider.Value = syncSetting.ChunkUploadThreshold/1024/1024;
+                this.ChunkUploadThresholdSlider.Value = syncSetting.ChunkUploadThreshold / 1024 / 1024;
                 int defaultChunkSizeIndex = 2;
                 int defaultUploadEntryIndex = 1;
                 if (this.defaultChunkDict.ContainsKey(syncSetting.DefaultChunkSize))
