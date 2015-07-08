@@ -49,10 +49,9 @@ namespace SunSync
             foreach (SyncRecord record in syncRecords)
             {
                 ListBoxItem listBoxItem = new ListBoxItem();
-
-                ControlTemplate ctlTemp = Application.Current.TryFindResource("jobListItemTempl") as ControlTemplate;
+                Style ctlStyle = Application.Current.TryFindResource("jobListItemResource") as Style;
                 listBoxItem.DataContext = record;
-                listBoxItem.Template = ctlTemp;
+                listBoxItem.Style = ctlStyle;
                 listBoxItem.MouseDoubleClick += listBoxItem_MouseDoubleClick;
                 this.syncRecordDict.Add(index, record.FilePath);
                 this.SyncHistoryListBox.Items.Add(listBoxItem);
