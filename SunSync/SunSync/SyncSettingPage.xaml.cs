@@ -44,22 +44,30 @@ namespace SunSync
         //upload entry domain
         private string uploadEntryDomain;
 
+        private Dictionary<int, int> defaultChunkDict;
+        private Dictionary<string, int> defaultUploadEntryDict;
         private MainWindow mainWindow;
         private SyncSetting syncSetting;
         public SyncSettingPage(MainWindow mainWindow)
         {
             InitializeComponent();
             this.mainWindow = mainWindow;
+            this.defaultChunkDict = new Dictionary<int, int>();
+            this.defaultChunkDict.Add(128 * 1024, 0);
+            this.defaultChunkDict.Add(256 * 1024, 1);
+            this.defaultChunkDict.Add(512 * 1024, 2);
+            this.defaultChunkDict.Add(1 *1024 * 1024, 3);
+            this.defaultChunkDict.Add(2*1024 * 1024, 4);
+            this.defaultChunkDict.Add(4*1024 * 1024, 5);
+            this.defaultUploadEntryDict = new Dictionary<string, int>();
+            this.defaultUploadEntryDict.Add("http://up.qiniu.com", 0);
+            this.defaultUploadEntryDict.Add("http://upload.qiniu.com", 1);
+            this.defaultUploadEntryDict.Add("http://up.qiniug.com", 2);
         }
 
         public void LoadSyncSetting(SyncSetting syncSetting)
         {
             this.syncSetting = syncSetting;
-            if (this.syncSetting != null)
-            {
-                this.SyncLocalFolderTextBox.Text = syncSetting.SyncLocalDir;
-                this.SyncTargetBucketTextBox.Text = syncSetting.SyncTargetBucket;
-            }
         }
 
         private void BackToHome_EventHandler(object sender, MouseButtonEventArgs e)
@@ -198,13 +206,37 @@ namespace SunSync
 
 
         private void SyncSettingPageLoaded_EventHandler(object sender, RoutedEventArgs e)
-        {
+        { 
+            this.SyncSettingTabControl.SelectedIndex = 0;
             if (this.syncSetting == null)
             {
-                //use defaults for ui
-                this.SyncSettingTabControl.SelectedIndex = 0;
                 this.makeBasicSettingsDefault();
                 this.makeAdvancedSettingsDefault();
+            }
+            else
+            {
+                //basic settings
+                this.SyncLocalFolderTextBox.Text = syncSetting.SyncLocalDir;
+                this.SyncTargetBucketTextBox.Text = syncSetting.SyncTargetBucket;
+
+                //advanced settings
+                this.PrefixTextBox.Text = syncSetting.SyncPrefix;
+                this.OverwriteFileCheckBox.IsChecked = syncSetting.OverwriteFile;
+                this.IgnoreRelativePathCheckBox.IsChecked = syncSetting.IgnoreDir;
+                this.ThreadCountSlider.Value = syncSetting.SyncThreadCount;
+                this.ChunkUploadThresholdSlider.Value = syncSetting.ChunkUploadThreshold/1024/1024;
+                int defaultChunkSizeIndex = 2;
+                int defaultUploadEntryIndex = 1;
+                if (this.defaultChunkDict.ContainsKey(syncSetting.DefaultChunkSize))
+                {
+                    defaultChunkSizeIndex = this.defaultChunkDict[syncSetting.DefaultChunkSize];
+                }
+                this.ChunkDefaultSizeComboBox.SelectedIndex = defaultChunkSizeIndex;
+                if (this.defaultUploadEntryDict.ContainsKey(syncSetting.UploadEntryDomain))
+                {
+                    defaultUploadEntryIndex = this.defaultUploadEntryDict[syncSetting.UploadEntryDomain];
+                }
+                this.UploadEntryDomainComboBox.SelectedIndex = defaultUploadEntryIndex;
             }
         }
 
@@ -223,7 +255,6 @@ namespace SunSync
             this.ChunkUploadThresholdSlider.Value = 10;//10MB
             this.ThreadCountSlider.Value = 1;
             this.UploadEntryDomainComboBox.SelectedIndex = 1;
-            this.ThreadCountLabel.Content = "1";
         }
 
     }
