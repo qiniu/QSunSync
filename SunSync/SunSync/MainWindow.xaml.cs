@@ -62,7 +62,7 @@ namespace SunSync
             string jobsDir = System.IO.Path.Combine(myDocPath, "qsunbox", "jobs");
             if (Directory.Exists(jobsDir))
             {
-                string[] jobNamePaths=Directory.GetFiles(jobsDir);
+                string[] jobNamePaths = Directory.GetFiles(jobsDir);
                 foreach (string jobNamePath in jobNamePaths)
                 {
                     string jobName = System.IO.Path.GetFileName(jobNamePath);
@@ -87,6 +87,10 @@ namespace SunSync
                     catch (Exception) { }
                 }
             }
+            syncRecords.Sort(new Comparison<SyncRecord>(delegate(SyncRecord a, SyncRecord b)
+            {
+                return (int)(b.SyncDateTime.Subtract(a.SyncDateTime).TotalSeconds);
+            }));
             return syncRecords;
         }
 
