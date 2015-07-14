@@ -29,7 +29,8 @@ namespace SunSync
     {
         private SyncSetting syncSetting;
         private MainWindow mainWindow;
-        private object progressLock = new object();
+        private object progressLock;
+        private object uploadLogLock;
 
         private int doneCount;
         private int totalCount;
@@ -58,14 +59,12 @@ namespace SunSync
             InitializeComponent();
             this.mainWindow = mainWindow;
             this.resetSyncProgress();
-            this.cancelSignal = false;
-            this.finishSignal = false;
         }
 
         internal void LoadSyncSettingAndRun(SyncSetting syncSetting)
         {
             this.syncSetting = syncSetting;
-            //write the sync settings to config file
+            
             string jobName = string.Join("\t", new string[] { syncSetting.SyncLocalDir, syncSetting.SyncTargetBucket, System.DateTime.Now.ToBinary().ToString() });
             string jobFileName = Convert.ToBase64String(Encoding.UTF8.GetBytes(jobName)).Replace("+", "-").Replace("/", "_");
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
@@ -80,7 +79,7 @@ namespace SunSync
                 //todo
                 //check duplicate sync job
 
-                //write
+                //write sync settings to file
                 using (FileStream fs = new FileStream(jobPathName, FileMode.Create, FileAccess.Write))
                 {
                     string syncSettingsJson = JsonConvert.SerializeObject(syncSetting);
@@ -107,6 +106,8 @@ namespace SunSync
 
         private void resetSyncProgress()
         {
+            this.progressLock = new object();
+            this.uploadLogLock = new object();
             this.fileExistsLog = new List<string>();
             this.fileExistsLock = new object();
             this.fileOverwriteLog = new List<string>();
@@ -118,8 +119,13 @@ namespace SunSync
             this.fileUploadSuccessLog = new List<string>();
             this.fileUploadSuccessLock = new object();
             this.cancelSignal = false;
+            this.finishSignal = false;
             this.UploadActionButton.Content = "暂停";
             this.ManualFinishButton.IsEnabled = false;
+            this.UploadProgressTextBlock.Text = "";
+            this.UploadProgressLogTextBlock.Text = "";
+            ObservableCollection<UploadInfo> dataSource = new ObservableCollection<UploadInfo>();
+            this.UploadProgressDataGrid.DataContext = dataSource;
         }
 
         internal void processDir(string rootDir, string targetDir, List<string> fileList)
@@ -136,6 +142,7 @@ namespace SunSync
             }
         }
 
+        //main job scheduler
         internal void runSyncJob()
         {
             //set before run status
@@ -163,7 +170,7 @@ namespace SunSync
                 }
                 doneEvents = new ManualResetEvent[taskMax];
                 uploadInfos = new UploadInfo[taskMax];
-                //ThreadPool.SetMinThreads(taskMax, taskMax);
+
                 for (int taskId = 0; taskId < taskMax; taskId++)
                 {
                     uploadInfos[taskId] = new UploadInfo();
@@ -173,6 +180,7 @@ namespace SunSync
                     ThreadPool.QueueUserWorkItem(new WaitCallback(fu.uploadFile), fileList[fileIndex]);
                 }
 
+                //wait for all jobs to finish
                 try
                 {
                     WaitHandle.WaitAll(doneEvents);
@@ -182,6 +190,7 @@ namespace SunSync
                     Console.WriteLine(ex);
                 }
 
+                //if cancel signalled
                 if (this.cancelSignal)
                 {
                     break;
@@ -195,6 +204,17 @@ namespace SunSync
                 //job finish, jump to result page
                 this.mainWindow.GotoSyncResultPage(this.syncSetting.OverwriteFile, fileExistsLog, fileOverwriteLog, fileNotOverwriteLog,
                     fileUploadErrorLog, fileUploadSuccessLog);
+            }
+        }
+
+        internal void updateUploadLog(string log)
+        {
+            lock (uploadLogLock)
+            {
+                Dispatcher.Invoke(new Action(delegate
+                {
+                    this.UploadProgressLogTextBlock.Text = log;
+                }));
             }
         }
 
@@ -317,7 +337,7 @@ namespace SunSync
                 }
                 //add prefix
                 fileKey = this.syncSetting.SyncPrefix + fileKey;
-
+                this.syncProgressPage.updateUploadLog("准备上传文件 "+fileFullPath);
                 //set upload params
                 Qiniu.Common.Config.UPLOAD_HOST = this.syncSetting.UploadEntryDomain;
                 Qiniu.Common.Config.UP_HOST = this.syncSetting.UploadEntryDomain;
@@ -349,6 +369,7 @@ namespace SunSync
                         //same file, no need to upload
                         this.syncProgressPage.addFileExistsLog(this.syncSetting.SyncTargetBucket + "\t" +
                             fileFullPath + "\t" + fileKey);
+                        this.syncProgressPage.updateUploadLog("空间已存在，跳过文件 "+fileFullPath);
                         doneEvent.Set();
                         return;
                     }
@@ -357,11 +378,13 @@ namespace SunSync
                         if (this.syncSetting.OverwriteFile)
                         {
                             overwriteKey = true;
+                            this.syncProgressPage.updateUploadLog("空间已存在，将覆盖 " + fileFullPath);
                             this.syncProgressPage.addFileOverwriteLog(this.syncSetting.SyncTargetBucket + "\t" +
                                 fileFullPath + "\t" + fileKey);
                         }
                         else
                         {
+                            this.syncProgressPage.updateUploadLog("空间已存在，不覆盖 "+fileFullPath);
                             this.syncProgressPage.addFileNotOverwriteLog(this.syncSetting.SyncTargetBucket + "\t" +
                                 fileFullPath + "\t" + fileKey);
                             doneEvent.Set();
@@ -402,11 +425,13 @@ namespace SunSync
                 {
                     if (respInfo.StatusCode != 200)
                     {
+                        this.syncProgressPage.updateUploadLog("上传失败 "+fileFullPath+"，"+respInfo.Error);
                         this.syncProgressPage.addFileUploadErrorLog(this.syncSetting.SyncTargetBucket + "\t" +
                                 fileFullPath + "\t" + fileKey);
                     }
                     else
                     {
+                        this.syncProgressPage.updateUploadLog("上传成功 "+fileFullPath);
                         this.syncProgressPage.addFileUploadSuccessLog(this.syncSetting.SyncTargetBucket + "\t" +
                                 fileFullPath + "\t" + fileKey);
                     }

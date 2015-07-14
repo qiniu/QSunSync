@@ -92,19 +92,20 @@ namespace SunSync
             //save config to job record
             if (this.SyncLocalFolderTextBox.Text.Trim().Length == 0)
             {
-                //todo 
+                this.SyncSettingTabControl.SelectedIndex = 0;
                 return;
             }
 
             if (this.SyncTargetBucketTextBox.Text.Trim().Length == 0)
             {
-                //todo
+                this.SyncSettingTabControl.SelectedIndex = 0;
                 return;
             }
             this.syncLocalDir = this.SyncLocalFolderTextBox.Text.Trim();
             if (!Directory.Exists(this.syncLocalDir))
             {
                 //directory not found
+                this.SyncSettingTabControl.SelectedIndex = 0;
                 this.SettingsErrorTextBlock.Text = "本地待同步目录不存在";
                 return;
             }
@@ -117,12 +118,14 @@ namespace SunSync
             if (statResult.ResponseInfo.StatusCode == 401)
             {
                 //ak & sk not right
+                this.SyncSettingTabControl.SelectedIndex = 0;
                 this.SettingsErrorTextBlock.Text = "AK 或 SK 不正确";
                 return;
             }
             else if (statResult.ResponseInfo.StatusCode == 631)
             {
                 //bucket not exist
+                this.SyncSettingTabControl.SelectedIndex = 0;
                 this.SettingsErrorTextBlock.Text = "指定空间不存在";
                 return;
             }

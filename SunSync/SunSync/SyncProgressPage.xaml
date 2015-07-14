@@ -34,13 +34,15 @@
                 </DataGrid.Columns>
             </DataGrid>
             <StackPanel Height="40">
-                <TextBlock Name="UploadProgressLogTextBlock" Margin="10" FontSize="16" Text="###"></TextBlock>
+                <TextBlock Name="UploadProgressLogTextBlock" Margin="5" Height="40" FontSize="14" Text="###" TextWrapping="WrapWithOverflow">
+                    
+                </TextBlock>
             </StackPanel>
-            <StackPanel Height="40" HorizontalAlignment="Center" Orientation="Horizontal">
+            <StackPanel Height="40" HorizontalAlignment="Center" Orientation="Horizontal" Margin="0 5">
                 <TextBlock Name="UploadProgressTextBlock" FontSize="16" 
                            VerticalAlignment="Center" Margin="10" Text="###"></TextBlock>
             </StackPanel>
-            <StackPanel Margin="0 10">
+            <StackPanel Margin="5">
                 <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
                 <Button Content="暂停" FontSize="14" Width="120" Height="32" Margin="10 0" Click="UploadActionButton_EventHandler" x:Name="UploadActionButton"></Button>
                 <Button Content="结束" FontSize="14" Width="120" Height="32" Margin="10 0" Click="ManualFinishButton_EventHandler" x:Name="ManualFinishButton"></Button>
