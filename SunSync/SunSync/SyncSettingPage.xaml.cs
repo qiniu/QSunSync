@@ -208,6 +208,7 @@ namespace SunSync
         private void SyncSettingPageLoaded_EventHandler(object sender, RoutedEventArgs e)
         {
             this.SyncSettingTabControl.SelectedIndex = 0;
+            this.SettingsErrorTextBlock.Text = "";
             if (this.syncSetting == null)
             {
                 this.makeBasicSettingsDefault();
@@ -224,6 +225,7 @@ namespace SunSync
                 this.OverwriteFileCheckBox.IsChecked = syncSetting.OverwriteFile;
                 this.IgnoreRelativePathCheckBox.IsChecked = syncSetting.IgnoreDir;
                 this.ThreadCountSlider.Value = syncSetting.SyncThreadCount;
+                this.ThreadCountLabel.Content = syncSetting.SyncThreadCount.ToString();
                 this.ChunkUploadThresholdSlider.Value = syncSetting.ChunkUploadThreshold / 1024 / 1024;
                 int defaultChunkSizeIndex = 2;
                 int defaultUploadEntryIndex = 1;
@@ -253,7 +255,8 @@ namespace SunSync
             this.IgnoreRelativePathCheckBox.IsChecked = false;
             this.ChunkDefaultSizeComboBox.SelectedIndex = 2; //512KB
             this.ChunkUploadThresholdSlider.Value = 10;//10MB
-            this.ThreadCountSlider.Value = 1;
+            this.ThreadCountSlider.Value = 10;
+            this.ThreadCountLabel.Content = "10";
             this.UploadEntryDomainComboBox.SelectedIndex = 1;
         }
 

@@ -119,6 +119,7 @@
                 <StackPanel>
                     <Button Content="开始同步" Width="100" Height="32" Margin="10" 
                             HorizontalAlignment="Right"
+                            FontSize="14"
                             Click="StartSyncButton_EventHandler"
                             ></Button>
                 </StackPanel>

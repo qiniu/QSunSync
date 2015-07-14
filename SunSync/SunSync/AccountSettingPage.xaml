@@ -43,9 +43,13 @@
                            HorizontalAlignment="Left" VerticalAlignment="Center"
                            Foreground="Blue"
                            Cursor="Hand"
+                           FontSize="14"
                            MouseLeftButtonUp="ViewMyAKSK_MouseLeftButtonUp"
                            ></TextBlock>
             </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0 10" HorizontalAlignment="Right">
+                    <Button Content="保存" Width="120" Height="32" Click="SaveButton_EventHandler" FontSize="14"/>
+                </StackPanel>
         </StackPanel>
         </StackPanel>
     </Grid>

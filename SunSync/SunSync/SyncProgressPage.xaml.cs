@@ -66,7 +66,6 @@ namespace SunSync
         {
             this.syncSetting = syncSetting;
             //write the sync settings to config file
-
             string jobName = string.Join("\t", new string[] { syncSetting.SyncLocalDir, syncSetting.SyncTargetBucket, System.DateTime.Now.ToBinary().ToString() });
             string jobFileName = Convert.ToBase64String(Encoding.UTF8.GetBytes(jobName)).Replace("+", "-").Replace("/", "_");
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
@@ -118,6 +117,9 @@ namespace SunSync
             this.fileUploadErrorLock = new object();
             this.fileUploadSuccessLog = new List<string>();
             this.fileUploadSuccessLock = new object();
+            this.cancelSignal = false;
+            this.UploadActionButton.Content = "暂停";
+            this.ManualFinishButton.IsEnabled = false;
         }
 
         internal void processDir(string rootDir, string targetDir, List<string> fileList)
@@ -271,6 +273,9 @@ namespace SunSync
             return this.cancelSignal;
         }
 
+
+
+
         class FileUploader
         {
             private SyncSetting syncSetting;
@@ -421,7 +426,7 @@ namespace SunSync
                 Thread jobThread = new Thread(new ThreadStart(this.runSyncJob));
                 jobThread.Start();
                 this.UploadActionButton.IsEnabled = true;
-                this.UploadActionButton.Content = "取消";
+                this.UploadActionButton.Content = "暂停";
             }
             else
             {

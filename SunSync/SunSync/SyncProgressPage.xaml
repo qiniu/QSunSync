@@ -22,7 +22,7 @@
             </StackPanel>
         </StackPanel>
         <StackPanel Grid.Row="1">
-            <DataGrid Height="380" Name="UploadProgressDataGrid" ItemsSource="{Binding}" 
+            <DataGrid Height="340" Name="UploadProgressDataGrid" ItemsSource="{Binding}" 
                       AutoGenerateColumns="false" IsReadOnly="True"
                        VerticalGridLinesBrush="{StaticResource GrayGridLine}"
                        HorizontalGridLinesBrush="{StaticResource GrayGridLine}"
@@ -33,14 +33,17 @@
                     <DataGridTextColumn Header="上传进度" Binding="{Binding Progress}" Width="100"></DataGridTextColumn>
                 </DataGrid.Columns>
             </DataGrid>
+            <StackPanel Height="40">
+                <TextBlock Name="UploadProgressLogTextBlock" Margin="10" FontSize="16" Text="###"></TextBlock>
+            </StackPanel>
             <StackPanel Height="40" HorizontalAlignment="Center" Orientation="Horizontal">
                 <TextBlock Name="UploadProgressTextBlock" FontSize="16" 
-                           VerticalAlignment="Center" Margin="10" Text=""></TextBlock>
+                           VerticalAlignment="Center" Margin="10" Text="###"></TextBlock>
             </StackPanel>
             <StackPanel Margin="0 10">
                 <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                <Button Content="暂停" FontSize="16" Width="120" Height="32" Margin="10 0" Click="UploadActionButton_EventHandler" x:Name="UploadActionButton"></Button>
-                <Button Content="结束" FontSize="16" Width="120" Height="32" Margin="10 0" Click="ManualFinishButton_EventHandler" x:Name="ManualFinishButton"></Button>
+                <Button Content="暂停" FontSize="14" Width="120" Height="32" Margin="10 0" Click="UploadActionButton_EventHandler" x:Name="UploadActionButton"></Button>
+                <Button Content="结束" FontSize="14" Width="120" Height="32" Margin="10 0" Click="ManualFinishButton_EventHandler" x:Name="ManualFinishButton"></Button>
                 </StackPanel>
             </StackPanel>
         </StackPanel>

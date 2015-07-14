@@ -45,7 +45,7 @@ namespace SunSync
         {
             this.SyncHistoryListBox.Items.Clear();
             this.syncRecordDict.Clear();
-            int index=0;
+            int index = 0;
             foreach (SyncRecord record in syncRecords)
             {
                 ListBoxItem listBoxItem = new ListBoxItem();
@@ -55,10 +55,10 @@ namespace SunSync
                 listBoxItem.MouseDoubleClick += listBoxItem_MouseDoubleClick;
                 this.syncRecordDict.Add(index, record.FilePath);
                 this.SyncHistoryListBox.Items.Add(listBoxItem);
-                index+=1;
+                index += 1;
             }
         }
-      
+
         private void listBoxItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             int selectedIndex = this.SyncHistoryListBox.SelectedIndex;
@@ -74,13 +74,14 @@ namespace SunSync
                         SyncSetting syncSetting = JsonConvert.DeserializeObject<SyncSetting>(Encoding.UTF8.GetString(buffer));
                         if (syncSetting.SyncLocalDir != "" && syncSetting.SyncTargetBucket != "")
                         {
-                            this.mainWindow.GotoSyncSettingPage(syncSetting); 
-                           
+                            this.mainWindow.GotoSyncSettingPage(syncSetting);
+
                         }
                     }
                 }
-                catch (Exception) { 
-                //todo where is the fuck job file
+                catch (Exception)
+                {
+                    //todo where is the fuck job file
                 }
             }
         }

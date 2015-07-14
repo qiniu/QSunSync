@@ -48,7 +48,7 @@
                 </StackPanel>
             </Grid>
             <StackPanel  Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="导出日志" Width="100" Height="32" Margin="10"/>
+                <Button Content="导出日志" Width="100" Height="32" Margin="10" FontSize="14"/>
             </StackPanel>
         </StackPanel>
     </Grid>

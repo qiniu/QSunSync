@@ -95,5 +95,10 @@ namespace SunSync
             SystemConfig.ACCESS_KEY = accessKey;
             SystemConfig.SECRET_KEY = secretKey;
         }
+
+        private void SaveButton_EventHandler(object sender, RoutedEventArgs e)
+        {
+            this.mainWindow.GotoHomePage();
+        }
     }
 }
