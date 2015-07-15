@@ -120,17 +120,18 @@ namespace SunSync
         internal void GotoSyncProgress(Models.SyncSetting syncSetting)
         {
             this.MainHostFrame.Content = this.syncProgressPage;
-            this.syncProgressPage.LoadSyncSettingAndRun(syncSetting);
+            this.syncProgressPage.LoadSyncSetting(syncSetting);
         }
 
-        internal void GotoSyncResultPage(bool fileOverwrite, int fileExistsCount, int fileOverwriteCount, int fileNotOverwriteCount,
-            int fileUploadErrorCount, int fileUploadSuccessCount)
+        internal void GotoSyncResultPage(TimeSpan spentTime, bool fileOverwrite, int fileExistsCount, string fileExistsLogPath, int fileOverwriteCount,
+               string fileOverwriteLogPath, int fileNotOverwriteCount, string fileNotOverwriteLogPath, int fileUploadErrorCount, string fileUploadErrorLogPath,
+               int fileUploadSuccessCount, string fileUploadSuccessLogPath)
         {
             Dispatcher.Invoke(new Action(delegate
             {
                 this.MainHostFrame.Content = this.syncResultPage;
-                this.syncResultPage.LoadSyncResult(fileOverwrite, fileExistsCount, fileOverwriteCount, fileNotOverwriteCount,
-                    fileUploadErrorCount, fileUploadSuccessCount);
+                this.syncResultPage.LoadSyncResult(spentTime, fileOverwrite, fileExistsCount, fileExistsLogPath, fileOverwriteCount, fileOverwriteLogPath,
+                    fileNotOverwriteCount, fileNotOverwriteLogPath, fileUploadErrorCount, fileUploadErrorLogPath, fileUploadSuccessCount, fileUploadSuccessLogPath);
             }));
         }
     }

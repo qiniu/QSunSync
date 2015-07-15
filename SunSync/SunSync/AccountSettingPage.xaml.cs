@@ -46,15 +46,14 @@ namespace SunSync
             string accPath = System.IO.Path.Combine(myDocPath, "qsunbox", "account.json");
             if (File.Exists(accPath))
             {
-                byte[] accData = null;
+                string accData = "";
                 try
                 {
-                    using (FileStream fs = new FileStream(accPath, FileMode.Open, FileAccess.Read))
+                    using (StreamReader sr = new StreamReader(accPath, Encoding.UTF8))
                     {
-                        accData = new byte[fs.Length];
-                        fs.Read(accData, 0, (int)fs.Length);
+                        accData = sr.ReadToEnd();
                     }
-                    Account acct = JsonConvert.DeserializeObject<Account>(Encoding.UTF8.GetString(accData));
+                    Account acct = JsonConvert.DeserializeObject<Account>(accData);
                     this.AccessKeyTextBox.Text = acct.AccessKey;
                     this.SecretKeyTextBox.Text = acct.SecretKey;
                 }
@@ -82,10 +81,9 @@ namespace SunSync
                     Directory.CreateDirectory(appDir);
                 }
                 string accPath = System.IO.Path.Combine(appDir, "account.json");
-                using (FileStream fs = new FileStream(accPath, FileMode.Create, FileAccess.Write))
+                using (StreamWriter sw = new StreamWriter(accPath, false, Encoding.UTF8))
                 {
-                    byte[] accBytes = Encoding.UTF8.GetBytes(accData);
-                    fs.Write(accBytes, 0, accBytes.Length);
+                    sw.Write(accData);
                 }
             }
             catch (Exception)
@@ -94,11 +92,6 @@ namespace SunSync
             }
             SystemConfig.ACCESS_KEY = accessKey;
             SystemConfig.SECRET_KEY = secretKey;
-        }
-
-        private void SaveButton_EventHandler(object sender, RoutedEventArgs e)
-        {
-            this.mainWindow.GotoHomePage();
         }
     }
 }

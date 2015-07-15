@@ -16,8 +16,9 @@
             <Border BorderBrush="#FF1986D1" BorderThickness="0 0 0 2">
                 <StackPanel Orientation="Horizontal" Margin="10">
                     <Image Height="48" Width="48" Source="Pictures/result.png" VerticalAlignment="Center" />
-                    <TextBlock Text="同步结果" FontSize="32" VerticalAlignment="Center" Margin="10 0"></TextBlock>
-                    <Image Height="48" Width="48" Source="Pictures/home.png" VerticalAlignment="Center" Margin="415 0"
+                    <TextBlock Text="同步结果" FontSize="32" VerticalAlignment="Center" Margin="10 0" Width="500"
+                               Name="SyncResultTitleTextBlock"></TextBlock>
+                    <Image Height="48" Width="48" Source="Pictures/home.png" VerticalAlignment="Center" Margin="40 0"
                            MouseLeftButtonUp="BackToHome_EventHandler" Cursor="Hand"/>
                 </StackPanel>
             </Border>
@@ -48,7 +49,7 @@
                 </StackPanel>
             </Grid>
             <StackPanel  Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="导出日志" Width="100" Height="32" Margin="10" FontSize="14"/>
+                <Button Content="导出日志" Width="100" Height="32" Margin="10" FontSize="14" Click="ExportLog_EventHandler"/>
             </StackPanel>
         </StackPanel>
     </Grid>

@@ -7,13 +7,13 @@ using System.Windows;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("SunSync")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("QSunSync")]
+[assembly: AssemblyDescription("七牛云数据同步工具")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("SunSync")]
+[assembly: AssemblyCompany("上海七牛信息技术有限公司")]
+[assembly: AssemblyProduct("QSunSync")]
 [assembly: AssemblyCopyright("Copyright ©  2015")]
-[assembly: AssemblyTrademark("")]
+[assembly: AssemblyTrademark("QSunSync")]
 [assembly: AssemblyCulture("")]
 
 // Setting ComVisible to false makes the types in this assembly not visible 

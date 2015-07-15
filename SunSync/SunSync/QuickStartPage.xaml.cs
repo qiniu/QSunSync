@@ -67,15 +67,12 @@ namespace SunSync
                 string jobPath = this.syncRecordDict[selectedIndex];
                 try
                 {
-                    using (FileStream fs = new FileStream(jobPath, FileMode.Open, FileAccess.Read))
+                    using (StreamReader sr = new StreamReader(jobPath, Encoding.UTF8))
                     {
-                        byte[] buffer = new byte[fs.Length];
-                        fs.Read(buffer, 0, buffer.Length);
-                        SyncSetting syncSetting = JsonConvert.DeserializeObject<SyncSetting>(Encoding.UTF8.GetString(buffer));
+                        SyncSetting syncSetting = JsonConvert.DeserializeObject<SyncSetting>(sr.ReadToEnd());
                         if (syncSetting.SyncLocalDir != "" && syncSetting.SyncTargetBucket != "")
                         {
                             this.mainWindow.GotoSyncSettingPage(syncSetting);
-
                         }
                     }
                 }

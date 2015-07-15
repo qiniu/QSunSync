@@ -29,26 +29,18 @@ namespace SunSync
     {
         private SyncSetting syncSetting;
         private MainWindow mainWindow;
+
+        private string jobLogDir;
+        private DateTime jobStart;
         private object progressLock;
         private object uploadLogLock;
 
-        private int doneCount;
-        private int totalCount;
         private UploadInfo[] uploadInfos;
 
-        private List<string> fileExistsLog;
         private object fileExistsLock;
-
-        private List<string> fileOverwriteLog;
         private object fileOverwriteLock;
-
-        private List<string> fileNotOverwriteLog;
         private object fileNotOverwriteLock;
-
-        private List<string> fileUploadErrorLog;
         private object fileUploadErrorLock;
-
-        private List<string> fileUploadSuccessLog;
         private object fileUploadSuccessLock;
 
         private int fileExistsCount;
@@ -57,8 +49,23 @@ namespace SunSync
         private int fileUploadErrorCount;
         private int fileUploadSuccessCount;
 
+        private StreamWriter fileExistsWriter;
+        private StreamWriter fileOverwriteWriter;
+        private StreamWriter fileNotOverwriteWriter;
+        private StreamWriter fileUploadErrorWriter;
+        private StreamWriter fileUploadSuccessWriter;
+
+        private string fileExistsLogPath;
+        private string fileOverwriteLogPath;
+        private string fileNotOverwriteLogPath;
+        private string fileUploadSuccessLogPath;
+        private string fileUploadErrorLogPath;
+
         private bool cancelSignal;
         private bool finishSignal;
+
+        private int doneCount;
+        private int totalCount;
 
         public SyncProgressPage(MainWindow mainWindow)
         {
@@ -67,66 +74,64 @@ namespace SunSync
             this.resetSyncProgress();
         }
 
-        internal void LoadSyncSettingAndRun(SyncSetting syncSetting)
+        //this is called before page loaded
+        internal void LoadSyncSetting(SyncSetting syncSetting)
         {
             this.syncSetting = syncSetting;
 
             string jobName = string.Join("\t", new string[] { syncSetting.SyncLocalDir, syncSetting.SyncTargetBucket, System.DateTime.Now.ToBinary().ToString() });
             string jobFileName = Convert.ToBase64String(Encoding.UTF8.GetBytes(jobName)).Replace("+", "-").Replace("/", "_");
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string jobsDir = System.IO.Path.Combine(myDocPath, "qsunbox/jobs");
+            string jobsDir = System.IO.Path.Combine(myDocPath, "qsunbox", "jobs");
             string jobPathName = System.IO.Path.Combine(jobsDir, jobFileName);
+
+            this.jobLogDir = System.IO.Path.Combine(myDocPath, "qsunbox", "logs", jobFileName);
             try
             {
                 if (!Directory.Exists(jobsDir))
                 {
                     Directory.CreateDirectory(jobsDir);
                 }
-                //todo
-                //check duplicate sync job
-
-                //write sync settings to file
-                using (FileStream fs = new FileStream(jobPathName, FileMode.Create, FileAccess.Write))
+                if (!Directory.Exists(this.jobLogDir))
                 {
-                    string syncSettingsJson = JsonConvert.SerializeObject(syncSetting);
-                    byte[] syncSettingsData = Encoding.UTF8.GetBytes(syncSettingsJson);
-                    fs.Write(syncSettingsData, 0, syncSettingsData.Length);
+                    Directory.CreateDirectory(this.jobLogDir);
                 }
 
-                //run sync job
-                Thread jobThread = new Thread(new ThreadStart(this.runSyncJob));
-                jobThread.Start();
+                //write sync settings to file
+                using (StreamWriter fs = new StreamWriter(jobPathName,false,Encoding.UTF8))
+                {
+                    string syncSettingsJson = JsonConvert.SerializeObject(syncSetting);
+                    fs.Write(syncSettingsJson);
+                }
             }
             catch (Exception)
             {
                 //todo
             }
-
-
         }
 
         private void SyncProgressPageLoaded_EventHandler(object sender, RoutedEventArgs e)
         {
             this.resetSyncProgress();
+            //run sync job
+            Thread jobThread = new Thread(new ThreadStart(this.runSyncJob));
+            jobThread.Start();
         }
 
         private void resetSyncProgress()
         {
+            this.doneCount = 0;
+            this.totalCount = 0;
             this.progressLock = new object();
             this.uploadLogLock = new object();
-            this.fileExistsLog = new List<string>();
             this.fileExistsCount = 0;
             this.fileExistsLock = new object();
-            this.fileOverwriteLog = new List<string>();
             this.fileOverwriteCount = 0;
             this.fileOverwriteLock = new object();
-            this.fileNotOverwriteLog = new List<string>();
             this.fileNotOverwriteLock = new object();
             this.fileNotOverwriteCount = 0;
-            this.fileUploadErrorLog = new List<string>();
             this.fileUploadErrorLock = new object();
             this.fileUploadErrorCount = 0;
-            this.fileUploadSuccessLog = new List<string>();
             this.fileUploadSuccessLock = new object();
             this.fileUploadSuccessCount = 0;
             this.cancelSignal = false;
@@ -137,6 +142,50 @@ namespace SunSync
             this.UploadProgressLogTextBlock.Text = "";
             ObservableCollection<UploadInfo> dataSource = new ObservableCollection<UploadInfo>();
             this.UploadProgressDataGrid.DataContext = dataSource;
+            //create the upload log files
+            try
+            {
+                this.fileExistsLogPath = System.IO.Path.Combine(this.jobLogDir, "exists.log");
+                this.fileOverwriteLogPath = System.IO.Path.Combine(this.jobLogDir, "overwrite.log");
+                this.fileNotOverwriteLogPath = System.IO.Path.Combine(this.jobLogDir, "not_overwrite.log");
+                this.fileUploadSuccessLogPath = System.IO.Path.Combine(this.jobLogDir, "success.log");
+                this.fileUploadErrorLogPath = System.IO.Path.Combine(this.jobLogDir, "error.log");
+
+                this.fileExistsWriter = new StreamWriter(fileExistsLogPath, false, Encoding.UTF8);
+                this.fileOverwriteWriter = new StreamWriter(fileOverwriteLogPath, false, Encoding.UTF8);
+                this.fileNotOverwriteWriter = new StreamWriter(fileNotOverwriteLogPath, false, Encoding.UTF8);
+                this.fileUploadSuccessWriter = new StreamWriter(fileUploadSuccessLogPath, false, Encoding.UTF8);
+                this.fileUploadErrorWriter = new StreamWriter(fileUploadErrorLogPath, false, Encoding.UTF8);
+            }
+            catch (Exception) { }
+        }
+
+        internal void closeLogWriters()
+        {
+            try
+            {
+                if (this.fileExistsWriter != null)
+                {
+                    this.fileExistsWriter.Close();
+                }
+                if (this.fileOverwriteWriter != null)
+                {
+                    this.fileOverwriteWriter.Close();
+                }
+                if (this.fileNotOverwriteWriter != null)
+                {
+                    this.fileNotOverwriteWriter.Close();
+                }
+                if (this.fileUploadSuccessWriter != null)
+                {
+                    this.fileUploadSuccessWriter.Close();
+                }
+                if (this.fileUploadErrorWriter != null)
+                {
+                    this.fileUploadErrorWriter.Close();
+                }
+            }
+            catch (Exception) { }
         }
 
         internal void processDir(string rootDir, string targetDir, List<string> fileList)
@@ -156,6 +205,7 @@ namespace SunSync
         //main job scheduler
         internal void runSyncJob()
         {
+            this.jobStart = System.DateTime.Now;
             //set before run status
             this.finishSignal = false;
             this.cancelSignal = false;
@@ -211,11 +261,15 @@ namespace SunSync
 
             //set finish signal
             this.finishSignal = true;
+            this.closeLogWriters();
             if (!this.cancelSignal)
             {
-                //job finish, jump to result page
-                this.mainWindow.GotoSyncResultPage(this.syncSetting.OverwriteFile, fileExistsCount, fileOverwriteCount, fileNotOverwriteCount,
-                    fileUploadErrorCount, fileUploadSuccessCount);
+                //job auto finish, jump to result page
+                DateTime jobEnd = System.DateTime.Now;
+
+                this.mainWindow.GotoSyncResultPage(jobEnd - jobStart, this.syncSetting.OverwriteFile, this.fileExistsCount, this.fileExistsLogPath, this.fileOverwriteCount,
+               this.fileOverwriteLogPath, this.fileNotOverwriteCount, this.fileNotOverwriteLogPath, this.fileUploadErrorCount, this.fileUploadErrorLogPath,
+               this.fileUploadSuccessCount, this.fileUploadSuccessLogPath);
             }
         }
 
@@ -264,7 +318,15 @@ namespace SunSync
             lock (this.fileExistsLock)
             {
                 this.fileExistsCount += 1;
-                this.fileExistsLog.Add(log);
+                
+                try
+                {
+                    this.fileExistsWriter.WriteLine(log);
+                }
+                catch (Exception)
+                {
+                    //todo
+                }
             }
         }
 
@@ -273,7 +335,15 @@ namespace SunSync
             lock (this.fileOverwriteLock)
             {
                 this.fileOverwriteCount += 1;
-                this.fileOverwriteLog.Add(log);
+                 
+                try
+                {
+                    this.fileOverwriteWriter.WriteLine(log);
+                }
+                catch (Exception)
+                {
+                    //todo
+                }
             }
         }
 
@@ -282,7 +352,14 @@ namespace SunSync
             lock (this.fileNotOverwriteLock)
             {
                 this.fileNotOverwriteCount += 1;
-                this.fileNotOverwriteLog.Add(log);
+                try
+                {
+                    this.fileNotOverwriteWriter.WriteLine(log);
+                }
+                catch (Exception)
+                {
+                    //todo
+                }
             }
         }
 
@@ -291,7 +368,14 @@ namespace SunSync
             lock (this.fileUploadErrorLock)
             {
                 this.fileUploadErrorCount += 1;
-                this.fileUploadErrorLog.Add(log);
+                try
+                {
+                    this.fileUploadErrorWriter.WriteLine(log);
+                }
+                catch (Exception)
+                {
+                    //todo
+                }
             }
         }
 
@@ -301,7 +385,14 @@ namespace SunSync
             lock (this.fileUploadSuccessLock)
             {
                 this.fileUploadSuccessCount += 1;
-                this.fileUploadSuccessLog.Add(log);
+                try
+                {
+                    this.fileUploadSuccessWriter.WriteLine(log);
+                }
+                catch (Exception)
+                {
+                    //todo
+                }
             }
         }
 
@@ -310,6 +401,46 @@ namespace SunSync
             return this.cancelSignal;
         }
 
+
+        private void UploadActionButton_EventHandler(object sender, RoutedEventArgs e)
+        {
+            this.UploadActionButton.IsEnabled = false;
+            if (this.cancelSignal)
+            {
+                //reset
+                this.resetSyncProgress();
+                Thread jobThread = new Thread(new ThreadStart(this.runSyncJob));
+                jobThread.Start();
+                this.UploadActionButton.IsEnabled = true;
+                this.UploadActionButton.Content = "暂停";
+            }
+            else
+            {
+                this.cancelSignal = true;
+                Thread checkThread = new Thread(new ThreadStart(delegate
+                {
+                    while (!this.finishSignal)
+                    {
+                        Thread.Sleep(1000);
+                    }
+                    Dispatcher.Invoke(new Action(delegate
+                    {
+                        this.UploadActionButton.IsEnabled = true;
+                        this.UploadActionButton.Content = "恢复";
+                        this.ManualFinishButton.IsEnabled = true;
+                    }));
+                }));
+                checkThread.Start();
+            }
+        }
+
+        private void ManualFinishButton_EventHandler(object sender, RoutedEventArgs e)
+        {
+            DateTime jobEnd = System.DateTime.Now;
+            this.mainWindow.GotoSyncResultPage(jobEnd - jobStart, this.syncSetting.OverwriteFile, this.fileExistsCount, this.fileExistsLogPath, this.fileOverwriteCount,
+               this.fileOverwriteLogPath, this.fileNotOverwriteCount, this.fileNotOverwriteLogPath, this.fileUploadErrorCount, this.fileUploadErrorLogPath,
+               this.fileUploadSuccessCount, this.fileUploadSuccessLogPath);
+        }
 
         class FileUploader
         {
@@ -385,6 +516,7 @@ namespace SunSync
                         this.syncProgressPage.addFileExistsLog(this.syncSetting.SyncTargetBucket + "\t" +
                             fileFullPath + "\t" + fileKey);
                         this.syncProgressPage.updateUploadLog("空间已存在，跳过文件 " + fileFullPath);
+                        this.syncProgressPage.updateTotalUploadProgress();
                         doneEvent.Set();
                         return;
                     }
@@ -453,45 +585,7 @@ namespace SunSync
                     this.syncProgressPage.updateTotalUploadProgress();
                     doneEvent.Set();
                 }));
-
             }
-        }
-
-        private void UploadActionButton_EventHandler(object sender, RoutedEventArgs e)
-        {
-            this.UploadActionButton.IsEnabled = false;
-            if (this.cancelSignal)
-            {
-                //resume upload
-                Thread jobThread = new Thread(new ThreadStart(this.runSyncJob));
-                jobThread.Start();
-                this.UploadActionButton.IsEnabled = true;
-                this.UploadActionButton.Content = "暂停";
-            }
-            else
-            {
-                this.cancelSignal = true;
-                Thread checkThread = new Thread(new ThreadStart(delegate
-                {
-                    while (!this.finishSignal)
-                    {
-                        Thread.Sleep(1000);
-                    }
-                    Dispatcher.Invoke(new Action(delegate
-                    {
-                        this.UploadActionButton.IsEnabled = true;
-                        this.UploadActionButton.Content = "恢复";
-                        this.ManualFinishButton.IsEnabled = true;
-                    }));
-                }));
-                checkThread.Start();
-            }
-        }
-
-        private void ManualFinishButton_EventHandler(object sender, RoutedEventArgs e)
-        {
-            this.mainWindow.GotoSyncResultPage(this.syncSetting.OverwriteFile, this.fileExistsCount, this.fileOverwriteCount,
-                this.fileNotOverwriteCount, this.fileUploadErrorCount, this.fileUploadSuccessCount);
         }
     }
 }
