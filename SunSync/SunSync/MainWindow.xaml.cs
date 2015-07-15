@@ -123,13 +123,14 @@ namespace SunSync
             this.syncProgressPage.LoadSyncSettingAndRun(syncSetting);
         }
 
-        internal void GotoSyncResultPage(bool fileOverwrite,List<string> fileExistsLog, List<string> fileOverwriteLog, List<string> fileNotOverwriteLog,
-            List<string> fileUploadErrorLog, List<string> fileUploadSuccessLog)
+        internal void GotoSyncResultPage(bool fileOverwrite, int fileExistsCount, int fileOverwriteCount, int fileNotOverwriteCount,
+            int fileUploadErrorCount, int fileUploadSuccessCount)
         {
             Dispatcher.Invoke(new Action(delegate
             {
                 this.MainHostFrame.Content = this.syncResultPage;
-                this.syncResultPage.LoadSyncResult(fileOverwrite,fileExistsLog, fileOverwriteLog, fileNotOverwriteLog, fileUploadErrorLog, fileUploadSuccessLog);
+                this.syncResultPage.LoadSyncResult(fileOverwrite, fileExistsCount, fileOverwriteCount, fileNotOverwriteCount,
+                    fileUploadErrorCount, fileUploadSuccessCount);
             }));
         }
     }

@@ -34,7 +34,7 @@
                 </DataGrid.Columns>
             </DataGrid>
             <StackPanel Height="40">
-                <TextBlock Name="UploadProgressLogTextBlock" Margin="5" Height="40" FontSize="14" Text="###" TextWrapping="WrapWithOverflow">
+                <TextBlock Name="UploadProgressLogTextBlock" Margin="10 5" Height="40" FontSize="14" Text="###" TextWrapping="WrapWithOverflow">
                     
                 </TextBlock>
             </StackPanel>
