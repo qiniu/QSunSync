@@ -13,6 +13,8 @@ using Qiniu.Storage;
 using Qiniu.Util;
 using Qiniu.Storage.Model;
 using System.Collections.ObjectModel;
+using System.Data.SQLite;
+
 namespace SunSync
 {
     /// <summary>
@@ -60,6 +62,9 @@ namespace SunSync
         private int doneCount;
         private int totalCount;
 
+        private string localHashDBPath;
+        private SQLiteConnection localHashDB;
+
         public SyncProgressPage(MainWindow mainWindow)
         {
             InitializeComponent();
@@ -79,6 +84,8 @@ namespace SunSync
             string jobPathName = System.IO.Path.Combine(jobsDir, jobFileName);
 
             this.jobLogDir = System.IO.Path.Combine(myDocPath, "qsunbox", "logs", jobFileName);
+            this.localHashDBPath = System.IO.Path.Combine(myDocPath, "qsunbox","cache.db");
+
             try
             {
                 if (!Directory.Exists(jobsDir))
@@ -91,7 +98,7 @@ namespace SunSync
                 }
 
                 //write sync settings to file
-                using (StreamWriter fs = new StreamWriter(jobPathName,false,Encoding.UTF8))
+                using (StreamWriter fs = new StreamWriter(jobPathName, false, Encoding.UTF8))
                 {
                     string syncSettingsJson = JsonConvert.SerializeObject(syncSetting);
                     fs.Write(syncSettingsJson);
@@ -100,6 +107,45 @@ namespace SunSync
             catch (Exception)
             {
                 //todo
+            }
+
+            //create the upload log files
+            try
+            {
+                this.fileExistsLogPath = System.IO.Path.Combine(this.jobLogDir, "exists.log");
+                this.fileOverwriteLogPath = System.IO.Path.Combine(this.jobLogDir, "overwrite.log");
+                this.fileNotOverwriteLogPath = System.IO.Path.Combine(this.jobLogDir, "not_overwrite.log");
+                this.fileUploadSuccessLogPath = System.IO.Path.Combine(this.jobLogDir, "success.log");
+                this.fileUploadErrorLogPath = System.IO.Path.Combine(this.jobLogDir, "error.log");
+
+                this.fileExistsWriter = new StreamWriter(fileExistsLogPath, false, Encoding.UTF8);
+                this.fileOverwriteWriter = new StreamWriter(fileOverwriteLogPath, false, Encoding.UTF8);
+                this.fileNotOverwriteWriter = new StreamWriter(fileNotOverwriteLogPath, false, Encoding.UTF8);
+                this.fileUploadSuccessWriter = new StreamWriter(fileUploadSuccessLogPath, false, Encoding.UTF8);
+                this.fileUploadErrorWriter = new StreamWriter(fileUploadErrorLogPath, false, Encoding.UTF8);
+            }
+            catch (Exception) { }
+
+            //open or create hash.db
+            try
+            {
+                if (!File.Exists(this.localHashDBPath))
+                {
+                    SQLiteConnection.CreateFile(this.localHashDBPath);
+                    string conStr = new SQLiteConnectionStringBuilder { DataSource = this.localHashDBPath }.ToString();
+                    using (SQLiteConnection sqlCon = new SQLiteConnection(conStr))
+                    {
+                        sqlCon.Open();
+                        string sqlStr = "CREATE TABLE cached_hash (local_path VARCHAR(500), etag CHAR(28), last_modified VARCHAR(50))";
+                        using (SQLiteCommand sqlCmd = new SQLiteCommand(sqlStr, sqlCon))
+                        {
+                            sqlCmd.ExecuteNonQuery();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) {
+                Console.WriteLine(ex);
             }
         }
 
@@ -135,22 +181,6 @@ namespace SunSync
             this.UploadProgressLogTextBlock.Text = "";
             ObservableCollection<UploadInfo> dataSource = new ObservableCollection<UploadInfo>();
             this.UploadProgressDataGrid.DataContext = dataSource;
-            //create the upload log files
-            try
-            {
-                this.fileExistsLogPath = System.IO.Path.Combine(this.jobLogDir, "exists.log");
-                this.fileOverwriteLogPath = System.IO.Path.Combine(this.jobLogDir, "overwrite.log");
-                this.fileNotOverwriteLogPath = System.IO.Path.Combine(this.jobLogDir, "not_overwrite.log");
-                this.fileUploadSuccessLogPath = System.IO.Path.Combine(this.jobLogDir, "success.log");
-                this.fileUploadErrorLogPath = System.IO.Path.Combine(this.jobLogDir, "error.log");
-
-                this.fileExistsWriter = new StreamWriter(fileExistsLogPath, false, Encoding.UTF8);
-                this.fileOverwriteWriter = new StreamWriter(fileOverwriteLogPath, false, Encoding.UTF8);
-                this.fileNotOverwriteWriter = new StreamWriter(fileNotOverwriteLogPath, false, Encoding.UTF8);
-                this.fileUploadSuccessWriter = new StreamWriter(fileUploadSuccessLogPath, false, Encoding.UTF8);
-                this.fileUploadErrorWriter = new StreamWriter(fileUploadErrorLogPath, false, Encoding.UTF8);
-            }
-            catch (Exception) { }
         }
 
         internal void closeLogWriters()
@@ -181,6 +211,66 @@ namespace SunSync
             catch (Exception) { }
         }
 
+
+
+        internal string getLocalHash(string fileFullPath)
+        {
+            string hash = "";
+
+            //current file info
+            FileInfo fileInfo = new FileInfo(fileFullPath);
+            string lmdStr = fileInfo.LastWriteTimeUtc.ToFileTime().ToString();
+
+            //cached file info
+            string cachedHash = "";
+            string cachedLmd = "";
+            string query = string.Format("SELECT etag, last_modified FROM cached_hash WHERE local_path='{0}'", fileFullPath);
+            using (SQLiteCommand sqlCmd = new SQLiteCommand(query, this.localHashDB))
+            {
+                SQLiteDataReader dr = sqlCmd.ExecuteReader();
+                if (dr.Read())
+                {
+                    cachedHash = dr["etag"].ToString();
+                    cachedLmd = dr["last_modified"].ToString();
+                }
+            }
+
+            if (!string.IsNullOrEmpty(cachedHash) && !string.IsNullOrEmpty(cachedLmd))
+            {
+                if (cachedLmd.Equals(lmdStr))
+                {
+                    //file not modified
+                    hash = cachedHash;
+                }
+                else
+                {
+                    //file modified, calc the hash and update db
+                    string newHash = QETag.hash(fileFullPath);
+                    string updateSql = string.Format("UPDATE cached_hash SET etag='{0}', last_modified='{1}' WHERE local_path='{2}'",
+                        newHash, lmdStr, fileFullPath);
+                    using (SQLiteCommand sqlCmd = new SQLiteCommand(updateSql, this.localHashDB))
+                    {
+                        sqlCmd.ExecuteNonQuery();
+                    }
+                    hash = newHash;
+                }
+            }
+            else
+            {
+                //no record, calc hash and insert into db
+                string newHash = QETag.hash(fileFullPath);
+                string insertSql = string.Format("INSERT INTO cached_hash (local_path, etag, last_modified) VALUES ('{0}', '{1}', '{2}')",
+                    fileFullPath, newHash, lmdStr);
+                using (SQLiteCommand sqlCmd = new SQLiteCommand(insertSql, this.localHashDB))
+                {
+                    sqlCmd.ExecuteNonQuery();
+                }
+            }
+
+            return hash;
+        }
+
+
         internal void processDir(string rootDir, string targetDir, List<string> fileList)
         {
             string[] fileEntries = Directory.GetFiles(targetDir);
@@ -198,6 +288,11 @@ namespace SunSync
         //main job scheduler
         internal void runSyncJob()
         {
+            //open database
+            string conStr = new SQLiteConnectionStringBuilder { DataSource = this.localHashDBPath }.ToString();
+            this.localHashDB = new SQLiteConnection(conStr);
+            this.localHashDB.Open();
+            //start job
             this.jobStart = System.DateTime.Now;
             //set before run status
             this.finishSignal = false;
@@ -255,14 +350,14 @@ namespace SunSync
             //set finish signal
             this.finishSignal = true;
             this.closeLogWriters();
+            this.localHashDB.Close();
             if (!this.cancelSignal)
             {
                 //job auto finish, jump to result page
                 DateTime jobEnd = System.DateTime.Now;
-
                 this.mainWindow.GotoSyncResultPage(jobEnd - jobStart, this.syncSetting.OverwriteFile, this.fileExistsCount, this.fileExistsLogPath, this.fileOverwriteCount,
-               this.fileOverwriteLogPath, this.fileNotOverwriteCount, this.fileNotOverwriteLogPath, this.fileUploadErrorCount, this.fileUploadErrorLogPath,
-               this.fileUploadSuccessCount, this.fileUploadSuccessLogPath);
+                this.fileOverwriteLogPath, this.fileNotOverwriteCount, this.fileNotOverwriteLogPath, this.fileUploadErrorCount, this.fileUploadErrorLogPath,
+                this.fileUploadSuccessCount, this.fileUploadSuccessLogPath);
             }
         }
 
@@ -311,7 +406,7 @@ namespace SunSync
             lock (this.fileExistsLock)
             {
                 this.fileExistsCount += 1;
-                
+
                 try
                 {
                     this.fileExistsWriter.WriteLine(log);
@@ -328,7 +423,7 @@ namespace SunSync
             lock (this.fileOverwriteLock)
             {
                 this.fileOverwriteCount += 1;
-                 
+
                 try
                 {
                     this.fileOverwriteWriter.WriteLine(log);
@@ -499,11 +594,14 @@ namespace SunSync
                 BucketManager bucketManager = new BucketManager(mac);
 
                 bool overwriteKey = false;
+                //get local hash
+                string localHash = this.syncProgressPage.getLocalHash(fileFullPath);
                 StatResult statResult = bucketManager.stat(this.syncSetting.SyncTargetBucket, fileKey);
+
                 if (!string.IsNullOrEmpty(statResult.Hash))
                 {
-                    string localHash = QETag.hash(fileFullPath);
-                    if (statResult.Hash.Equals(localHash))
+                    //check hash 
+                    if (localHash.Equals(statResult.Hash))
                     {
                         //same file, no need to upload
                         this.syncProgressPage.addFileExistsLog(this.syncSetting.SyncTargetBucket + "\t" +
@@ -567,7 +665,7 @@ namespace SunSync
                     {
                         this.syncProgressPage.updateUploadLog("上传失败 " + fileFullPath + "，" + respInfo.Error);
                         this.syncProgressPage.addFileUploadErrorLog(this.syncSetting.SyncTargetBucket + "\t" +
-                                fileFullPath + "\t" + fileKey);
+                                fileFullPath + "\t" + fileKey + "\t" + respInfo.Error + "" + response);
                     }
                     else
                     {
@@ -580,5 +678,7 @@ namespace SunSync
                 }));
             }
         }
+
+
     }
 }
