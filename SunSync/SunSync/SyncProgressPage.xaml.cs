@@ -513,10 +513,10 @@ namespace SunSync
             {
                 //reset
                 this.resetSyncProgress();
-                Thread jobThread = new Thread(new ThreadStart(this.runSyncJob));
-                jobThread.Start();
                 this.UploadActionButton.IsEnabled = true;
                 this.UploadActionButton.Content = "暂停";
+                Thread jobThread = new Thread(new ThreadStart(this.runSyncJob));
+                jobThread.Start();
             }
             else
             {
