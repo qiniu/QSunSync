@@ -78,13 +78,13 @@ namespace SunSync
             this.syncSetting = syncSetting;
 
             string jobName = string.Join("\t", new string[] { syncSetting.SyncLocalDir, syncSetting.SyncTargetBucket, System.DateTime.Now.ToBinary().ToString() });
-            string jobFileName = Convert.ToBase64String(Encoding.UTF8.GetBytes(jobName)).Replace("+", "-").Replace("/", "_");
+            string jobFileName = Tools.urlsafeBase64Encode(jobName);
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             string jobsDir = System.IO.Path.Combine(myDocPath, "qsunbox", "jobs");
             string jobPathName = System.IO.Path.Combine(jobsDir, jobFileName);
 
             this.jobLogDir = System.IO.Path.Combine(myDocPath, "qsunbox", "logs", jobFileName);
-            this.localHashDBPath = System.IO.Path.Combine(myDocPath, "qsunbox","cache.db");
+            this.localHashDBPath = System.IO.Path.Combine(myDocPath, "qsunbox", "cache.db");
 
             try
             {
@@ -136,7 +136,7 @@ namespace SunSync
                     using (SQLiteConnection sqlCon = new SQLiteConnection(conStr))
                     {
                         sqlCon.Open();
-                        string sqlStr = "CREATE TABLE cached_hash (local_path VARCHAR(500), etag CHAR(28), last_modified VARCHAR(50))";
+                        string sqlStr = "CREATE TABLE cached_hash (local_path TEXT, etag CHAR(28), last_modified VARCHAR(50))";
                         using (SQLiteCommand sqlCmd = new SQLiteCommand(sqlStr, sqlCon))
                         {
                             sqlCmd.ExecuteNonQuery();
@@ -144,7 +144,8 @@ namespace SunSync
                     }
                 }
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 Console.WriteLine(ex);
             }
         }
@@ -224,9 +225,12 @@ namespace SunSync
             //cached file info
             string cachedHash = "";
             string cachedLmd = "";
-            string query = string.Format("SELECT etag, last_modified FROM cached_hash WHERE local_path='{0}'", fileFullPath);
-            using (SQLiteCommand sqlCmd = new SQLiteCommand(query, this.localHashDB))
+            string querySql = "SELECT etag, last_modified FROM cached_hash WHERE local_path=@local_path";
+            using (SQLiteCommand sqlCmd = new SQLiteCommand(this.localHashDB))
             {
+                sqlCmd.CommandText=querySql;
+                sqlCmd.Parameters.Add("@local_path",System.Data.DbType.String);
+                sqlCmd.Parameters["@local_path"].Value = fileFullPath;
                 SQLiteDataReader dr = sqlCmd.ExecuteReader();
                 if (dr.Read())
                 {
@@ -246,10 +250,16 @@ namespace SunSync
                 {
                     //file modified, calc the hash and update db
                     string newHash = QETag.hash(fileFullPath);
-                    string updateSql = string.Format("UPDATE cached_hash SET etag='{0}', last_modified='{1}' WHERE local_path='{2}'",
-                        newHash, lmdStr, fileFullPath);
-                    using (SQLiteCommand sqlCmd = new SQLiteCommand(updateSql, this.localHashDB))
+                    string updateSql = "UPDATE cached_hash SET etag=@etag, last_modified=@last_modified WHERE local_path=@local_path";
+                    using (SQLiteCommand sqlCmd = new SQLiteCommand(this.localHashDB))
                     {
+                        sqlCmd.CommandText=updateSql;
+                        sqlCmd.Parameters.Add("@etag",System.Data.DbType.String);
+                        sqlCmd.Parameters.Add("@last_modified", System.Data.DbType.String);
+                        sqlCmd.Parameters.Add("@local_path", System.Data.DbType.String);
+                        sqlCmd.Parameters["@etag"].Value=newHash;
+                        sqlCmd.Parameters["@last_modified"].Value=lmdStr;
+                        sqlCmd.Parameters["@local_path"].Value=fileFullPath;
                         sqlCmd.ExecuteNonQuery();
                     }
                     hash = newHash;
@@ -259,10 +269,16 @@ namespace SunSync
             {
                 //no record, calc hash and insert into db
                 string newHash = QETag.hash(fileFullPath);
-                string insertSql = string.Format("INSERT INTO cached_hash (local_path, etag, last_modified) VALUES ('{0}', '{1}', '{2}')",
-                    fileFullPath, newHash, lmdStr);
+                string insertSql ="INSERT INTO cached_hash (local_path, etag, last_modified) VALUES (@local_path, @etag, @last_modified)";
                 using (SQLiteCommand sqlCmd = new SQLiteCommand(insertSql, this.localHashDB))
                 {
+                    sqlCmd.CommandText = insertSql;
+                    sqlCmd.Parameters.Add("@etag", System.Data.DbType.String);
+                    sqlCmd.Parameters.Add("@last_modified", System.Data.DbType.String);
+                    sqlCmd.Parameters.Add("@local_path", System.Data.DbType.String);
+                    sqlCmd.Parameters["@etag"].Value = newHash;
+                    sqlCmd.Parameters["@last_modified"].Value = lmdStr;
+                    sqlCmd.Parameters["@local_path"].Value = fileFullPath;
                     sqlCmd.ExecuteNonQuery();
                 }
             }
@@ -580,7 +596,7 @@ namespace SunSync
 
                 //support resume upload
                 string recorderKey = this.syncSetting.SyncLocalDir + ":" + this.syncSetting.SyncTargetBucket + ":" + fileKey;
-                recorderKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(recorderKey)).Replace("+", "-").Replace("/", "_");
+                recorderKey = Tools.urlsafeBase64Encode(recorderKey);
 
                 string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
                 string recordPath = System.IO.Path.Combine(myDocPath, "qsunbox", "record");
@@ -604,8 +620,8 @@ namespace SunSync
                     if (localHash.Equals(statResult.Hash))
                     {
                         //same file, no need to upload
-                        this.syncProgressPage.addFileExistsLog(this.syncSetting.SyncTargetBucket + "\t" +
-                            fileFullPath + "\t" + fileKey);
+                        this.syncProgressPage.addFileExistsLog(string.Format("{0}\t{1}\t{2}",this.syncSetting.SyncTargetBucket,
+                            fileFullPath, fileKey));
                         this.syncProgressPage.updateUploadLog("空间已存在，跳过文件 " + fileFullPath);
                         this.syncProgressPage.updateTotalUploadProgress();
                         doneEvent.Set();
@@ -617,14 +633,12 @@ namespace SunSync
                         {
                             overwriteKey = true;
                             this.syncProgressPage.updateUploadLog("空间已存在，将覆盖 " + fileFullPath);
-                            this.syncProgressPage.addFileOverwriteLog(this.syncSetting.SyncTargetBucket + "\t" +
-                                fileFullPath + "\t" + fileKey);
                         }
                         else
                         {
                             this.syncProgressPage.updateUploadLog("空间已存在，不覆盖 " + fileFullPath);
-                            this.syncProgressPage.addFileNotOverwriteLog(this.syncSetting.SyncTargetBucket + "\t" +
-                                fileFullPath + "\t" + fileKey);
+                            this.syncProgressPage.addFileNotOverwriteLog(string.Format("{0}\t{1}\t{2}",this.syncSetting.SyncTargetBucket ,
+                                fileFullPath , fileKey));
                             doneEvent.Set();
                             return;
                         }
@@ -664,21 +678,24 @@ namespace SunSync
                     if (respInfo.StatusCode != 200)
                     {
                         this.syncProgressPage.updateUploadLog("上传失败 " + fileFullPath + "，" + respInfo.Error);
-                        this.syncProgressPage.addFileUploadErrorLog(this.syncSetting.SyncTargetBucket + "\t" +
-                                fileFullPath + "\t" + fileKey + "\t" + respInfo.Error + "" + response);
+                        this.syncProgressPage.addFileUploadErrorLog(string.Format("{0}\t{1}\t{2}\t{3}",this.syncSetting.SyncTargetBucket,
+                                fileFullPath  , fileKey, respInfo.Error + "" + response));
                     }
                     else
                     {
+                        if (overwriteKey)
+                        {
+                            this.syncProgressPage.addFileOverwriteLog(string.Format("{0}\t{1}\t{2}",this.syncSetting.SyncTargetBucket,
+                                 fileFullPath , fileKey));
+                        }
                         this.syncProgressPage.updateUploadLog("上传成功 " + fileFullPath);
-                        this.syncProgressPage.addFileUploadSuccessLog(this.syncSetting.SyncTargetBucket + "\t" +
-                                fileFullPath + "\t" + fileKey);
+                        this.syncProgressPage.addFileUploadSuccessLog(string.Format("{0}\t{1}\t{2}",this.syncSetting.SyncTargetBucket,
+                                fileFullPath , fileKey));
                     }
                     this.syncProgressPage.updateTotalUploadProgress();
                     doneEvent.Set();
                 }));
             }
         }
-
-
     }
 }
