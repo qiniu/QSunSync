@@ -49,8 +49,6 @@ namespace SunSync
         //go to quick start page
         internal void GotoQuickStartPage()
         {
-            List<SyncRecord> syncRecords = Tools.loadRecentSyncJobs();
-            this.quickStartPage.LoadSyncRecords(syncRecords);
             this.MainHostFrame.Content = this.quickStartPage;
         }
 

@@ -41,29 +41,18 @@ namespace SunSync
         }
 
         /// <summary>
-        /// load account settings from local file if exists
+        /// load ak & sk from local file
         /// </summary>
         private void loadAccountInfo()
         {
-            string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string accPath = System.IO.Path.Combine(myDocPath, "qsunbox", "account.json");
-            if (File.Exists(accPath))
+            Account acct = Tools.loadAccountInfo();
+            if (!string.IsNullOrEmpty(acct.AccessKey))
             {
-                string accData = "";
-                try
-                {
-                    using (StreamReader sr = new StreamReader(accPath, Encoding.UTF8))
-                    {
-                        accData = sr.ReadToEnd();
-                    }
-                    Account acct = JsonConvert.DeserializeObject<Account>(accData);
-                    this.AccessKeyTextBox.Text = acct.AccessKey;
-                    this.SecretKeyTextBox.Text = acct.SecretKey;
-                }
-                catch (Exception)
-                {
-                    //todo error log
-                }
+                this.AccessKeyTextBox.Text = acct.AccessKey;
+            }
+            if (!string.IsNullOrEmpty(acct.SecretKey))
+            {
+                this.SecretKeyTextBox.Text = acct.SecretKey;
             }
         }
 
