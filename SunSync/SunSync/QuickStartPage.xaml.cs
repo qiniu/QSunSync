@@ -17,6 +17,7 @@ namespace SunSync
     {
         private MainWindow mainWindow;
         private Dictionary<int, string> syncRecordDict;
+
         public QuickStartPage(MainWindow mainWindow)
         {
             InitializeComponent();
@@ -24,18 +25,45 @@ namespace SunSync
             this.syncRecordDict = new Dictionary<int, string>();
         }
 
+        /// <summary>
+        /// quick start page loaded event handler
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void QuickStartPageLoaded_EventHandler(object sender, RoutedEventArgs e)
+        {
+            this.LoadSyncRecords();
+            this.checkAccountSetting();
+        }
+
+        /// <summary>
+        /// go to account setting page
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void SetAccount_EventHandler(object sender, MouseButtonEventArgs e)
         {
             this.mainWindow.GotoAccountPage();
         }
 
+        /// <summary>
+        /// go to empty sync setting page, create new sync job
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void CreateNewSyncJob_EventHandler(object sender, MouseButtonEventArgs e)
         {
             this.mainWindow.GotoSyncSettingPage(null);
         }
 
-        public void LoadSyncRecords(List<SyncRecord> syncRecords)
+
+        /// <summary>
+        /// load recent sync jobs
+        /// </summary>
+        private void LoadSyncRecords()
         {
+            List<SyncRecord> syncRecords = Tools.loadRecentSyncJobs();
+
             this.SyncHistoryListBox.Items.Clear();
             this.syncRecordDict.Clear();
             int index = 0;
@@ -71,8 +99,26 @@ namespace SunSync
                 }
                 catch (Exception)
                 {
-                    //todo where is the fuck job file
+                    //todo error log
                 }
+            }
+        }
+
+        /// <summary>
+        /// check ak & sk settings
+        /// </summary>
+        private void checkAccountSetting()
+        {
+            Account account = Tools.loadAccountInfo();
+            if (string.IsNullOrEmpty(account.AccessKey) || string.IsNullOrEmpty(account.SecretKey))
+            {
+                this.CreateNewTask_TextBlock.Foreground = System.Windows.Media.Brushes.Gray;
+                this.CreateNewTask_TextBlock.IsEnabled = false;
+            }
+            else
+            {
+                this.CreateNewTask_TextBlock.Foreground = System.Windows.Media.Brushes.MediumBlue;
+                this.CreateNewTask_TextBlock.IsEnabled = true;
             }
         }
     }

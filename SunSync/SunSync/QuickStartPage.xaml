@@ -5,7 +5,7 @@
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       mc:Ignorable="d" 
       d:DesignHeight="560" d:DesignWidth="680"
-	Title="QuickStartPage">
+	Title="QuickStartPage" Loaded="QuickStartPageLoaded_EventHandler">
     
     <Grid>
         <Grid.RowDefinitions>
@@ -37,6 +37,7 @@
                           Foreground="MediumBlue"
                           Cursor="Hand"
                           MouseLeftButtonUp="CreateNewSyncJob_EventHandler"
+                          Name="CreateNewTask_TextBlock"
                           ></TextBlock>
                <TextBlock TextDecorations="Underline" 
                           Text="帐号设置" Margin="0 10"

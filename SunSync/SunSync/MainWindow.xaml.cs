@@ -1,9 +1,5 @@
-﻿using Newtonsoft.Json;
-using SunSync.Models;
+﻿using SunSync.Models;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
 using System.Windows;
 
 namespace SunSync
@@ -60,7 +56,7 @@ namespace SunSync
         }
 
         //go to sync progress page
-        internal void GotoSyncProgress(Models.SyncSetting syncSetting)
+        internal void GotoSyncProgress(SyncSetting syncSetting)
         {
             this.MainHostFrame.Content = this.syncProgressPage;
             this.syncProgressPage.LoadSyncSetting(syncSetting);
