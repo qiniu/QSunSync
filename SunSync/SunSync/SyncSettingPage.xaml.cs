@@ -171,6 +171,10 @@ namespace SunSync
                 Dispatcher.Invoke(new Action(delegate
                 {
                     this.SyncTargetBucketsComboBox.ItemsSource = buckets;
+                    if (this.syncSetting != null)
+                    {
+                        this.SyncTargetBucketsComboBox.SelectedItem = this.syncSetting.SyncTargetBucket;
+                    }
                 }));
             }
             else if (bucketsResult.ResponseInfo.isNetworkBroken())

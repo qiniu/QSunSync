@@ -297,7 +297,15 @@ namespace SunSync
             string[] subDirs = Directory.GetDirectories(targetDir);
             foreach (string subDir in subDirs)
             {
-                processDir(rootDir, subDir, fileList);
+                try
+                {
+                    processDir(rootDir, subDir, fileList);
+                }
+                catch (Exception ex)
+                {
+                    //todo error log
+                    this.updateUploadLog("路径无法访问, " + ex.Message);
+                }
             }
         }
 
@@ -323,6 +331,7 @@ namespace SunSync
             string localSyncDir = syncSetting.SyncLocalDir;
             List<string> fileList = new List<string>();
             processDir(localSyncDir, localSyncDir, fileList);
+           
             ManualResetEvent[] doneEvents = null;
 
             int fileCount = fileList.Count;
@@ -691,8 +700,9 @@ namespace SunSync
                         this.syncProgressPage.updateUploadLog("上传成功 " + fileFullPath);
                         this.syncProgressPage.addFileUploadSuccessLog(string.Format("{0}\t{1}\t{2}",this.syncSetting.SyncTargetBucket,
                                 fileFullPath , fileKey));
+                        this.syncProgressPage.updateTotalUploadProgress();
                     }
-                    this.syncProgressPage.updateTotalUploadProgress();
+                    
                     doneEvent.Set();
                 }));
             }
