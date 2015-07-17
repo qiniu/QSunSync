@@ -62,10 +62,6 @@ namespace SunSync
         private void SaveAccountSetting(object accountObj)
         {
             Account account = (Account)accountObj;
-            //overwrite memory settings
-            SystemConfig.ACCESS_KEY = account.AccessKey;
-            SystemConfig.SECRET_KEY = account.SecretKey;
-
             //write settings to local file
             string accData = JsonConvert.SerializeObject(account);
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);

@@ -41,9 +41,16 @@
 
                             <StackPanel>
                                 <Label Content="目标空间" FontSize="16" Margin="0 10"></Label>
-                                <TextBox FontSize="16" Height="48" Width="400" Foreground="Green"
-                                         Name="SyncTargetBucketTextBox"
-                                         HorizontalAlignment="Left" VerticalContentAlignment="Center"></TextBox>
+                                <StackPanel Orientation="Horizontal">
+                                    <ComboBox FontSize="16" Height="48" Width="400" Foreground="Green"
+                                             Name="SyncTargetBucketsComboBox"
+                                             HorizontalAlignment="Left" VerticalContentAlignment="Center">               
+                                    </ComboBox>
+                                    <Button Width="52" Height="52" Margin="10 0" 
+                                                Click="ReloadBucketButton_EventHandler">
+                                        <Image Source="Pictures/reload.png"></Image>
+                                    </Button>
+                                </StackPanel>
                             </StackPanel>
                             
                             <StackPanel>
@@ -62,10 +69,10 @@
                                                      Name="PrefixTextBox" Foreground="Green"></TextBox>
                                         </StackPanel>
                                         <StackPanel Margin="5">
-                                            <CheckBox Content="忽略文件名相对路径" FontSize="16" Name="IgnoreRelativePathCheckBox"></CheckBox>
+                                            <CheckBox Content="忽略文件名相对路径" FontSize="16" Name="IgnoreRelativePathCheckBox" VerticalContentAlignment="Center"></CheckBox>
                                         </StackPanel>
                                         <StackPanel Margin="5">
-                                            <CheckBox Content="空间中同名文件强制覆盖" FontSize="16" Name="OverwriteFileCheckBox"></CheckBox>
+                                            <CheckBox Content="空间中同名文件强制覆盖" FontSize="16" Name="OverwriteFileCheckBox" VerticalContentAlignment="Center"></CheckBox>
                                         </StackPanel>
                                     </StackPanel>
                                 </GroupBox>
