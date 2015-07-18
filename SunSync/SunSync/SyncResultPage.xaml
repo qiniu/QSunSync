@@ -18,12 +18,11 @@
                     <Image Height="48" Width="48" Source="Pictures/result.png" VerticalAlignment="Center" />
                     <TextBlock Text="同步结果" FontSize="32" VerticalAlignment="Center" Margin="10 0" Width="500"
                                Name="SyncResultTitleTextBlock"></TextBlock>
-                    <Image Height="48" Width="48" Source="Pictures/home.png" VerticalAlignment="Center" Margin="40 0"
-                           MouseLeftButtonUp="BackToHome_EventHandler" Cursor="Hand"/>
                 </StackPanel>
             </Border>
         </StackPanel>
         <StackPanel Grid.Row="1" Margin="10">
+            <Border BorderBrush="LightGray" BorderThickness="1">
             <Grid Height="380" Margin="20">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"></RowDefinition>
@@ -48,8 +47,10 @@
                     <TextBlock FontSize="16" Name="UploadOverwriteTextBlock2" Foreground="Gray" Margin="10" TextWrapping="Wrap">##</TextBlock>
                 </StackPanel>
             </Grid>
-            <StackPanel  Orientation="Horizontal" HorizontalAlignment="Right">
+            </Border>
+            <StackPanel  Orientation="Horizontal">
                 <Button Content="导出日志" Width="100" Height="32" Margin="10" FontSize="14" Click="ExportLog_EventHandler"/>
+                <Button Content="返回首页" Width="100" Height="32" Margin="430 10" FontSize="14" Click="BackToHome_EventHandler"></Button>
             </StackPanel>
         </StackPanel>
     </Grid>

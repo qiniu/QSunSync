@@ -60,11 +60,6 @@ namespace SunSync
             this.fileUploadSuccessLogPath = fileUploadSuccessLogPath;
         }
 
-        private void BackToHome_EventHandler(object sender, MouseButtonEventArgs e)
-        {
-            this.mainWindow.GotoHomePage();
-        }
-
         private void SyncResultLoaded_EventHandler(object sender, RoutedEventArgs e)
         {
             //set title
@@ -195,6 +190,11 @@ namespace SunSync
                     //todo
                 }
             }
+        }
+
+        private void BackToHome_EventHandler(object sender, RoutedEventArgs e)
+        {
+            this.mainWindow.GotoHomePage();
         }
     }
 }
