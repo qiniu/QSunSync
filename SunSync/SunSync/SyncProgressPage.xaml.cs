@@ -84,7 +84,7 @@ namespace SunSync
             string jobPathName = System.IO.Path.Combine(jobsDir, jobFileName);
 
             this.jobLogDir = System.IO.Path.Combine(myDocPath, "qsunbox", "logs", jobFileName);
-            this.localHashDBPath = System.IO.Path.Combine(myDocPath, "qsunbox", "cache.db");
+            this.localHashDBPath = System.IO.Path.Combine(myDocPath, "qsunbox", "hash.db");
 
             try
             {
@@ -223,7 +223,7 @@ namespace SunSync
             string lmdStr = fileInfo.LastWriteTimeUtc.ToFileTime().ToString();
 
             //cached file info
-            string cachedHash = "";
+            string cachedEtag = "";
             string cachedLmd = "";
             string querySql = "SELECT etag, last_modified FROM cached_hash WHERE local_path=@local_path";
             using (SQLiteCommand sqlCmd = new SQLiteCommand(this.localHashDB))
@@ -234,17 +234,17 @@ namespace SunSync
                 SQLiteDataReader dr = sqlCmd.ExecuteReader();
                 if (dr.Read())
                 {
-                    cachedHash = dr["etag"].ToString();
+                    cachedEtag = dr["etag"].ToString();
                     cachedLmd = dr["last_modified"].ToString();
                 }
             }
 
-            if (!string.IsNullOrEmpty(cachedHash) && !string.IsNullOrEmpty(cachedLmd))
+            if (!string.IsNullOrEmpty(cachedEtag) && !string.IsNullOrEmpty(cachedLmd))
             {
                 if (cachedLmd.Equals(lmdStr))
                 {
                     //file not modified
-                    hash = cachedHash;
+                    hash = cachedEtag;
                 }
                 else
                 {
@@ -605,7 +605,7 @@ namespace SunSync
 
                 //support resume upload
                 string recorderKey = this.syncSetting.SyncLocalDir + ":" + this.syncSetting.SyncTargetBucket + ":" + fileKey;
-                recorderKey = Tools.urlsafeBase64Encode(recorderKey);
+                recorderKey = Tools.md5Hash(recorderKey);
 
                 string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
                 string recordPath = System.IO.Path.Combine(myDocPath, "qsunbox", "record");

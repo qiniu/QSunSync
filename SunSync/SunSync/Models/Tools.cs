@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace SunSync.Models
@@ -13,6 +14,19 @@ namespace SunSync.Models
         {
             byte[] data = Encoding.UTF8.GetBytes(str);
             return Convert.ToBase64String(data, 0, data.Length).Replace('+', '-').Replace('/', '_');
+        }
+
+        public static string md5Hash(string str)
+        {
+            MD5 md5 = new MD5CryptoServiceProvider();
+            byte[] data = Encoding.UTF8.GetBytes(str);
+            byte[] hashData = md5.ComputeHash(data);
+            StringBuilder sb = new StringBuilder(hashData.Length * 2);
+            foreach (byte b in hashData)
+            {
+                sb.AppendFormat("{0:x2}", b);
+            }
+            return sb.ToString();
         }
 
         /// <summary>
