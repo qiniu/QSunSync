@@ -194,6 +194,7 @@ namespace SunSync
             else
             {
                 //todo error log
+                Console.WriteLine(bucketsResult.ResponseInfo.Error);
             }
         }
 

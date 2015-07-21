@@ -2,6 +2,7 @@
 using SunSync.Models;
 using System;
 using System.Collections.Generic;
+using System.Data.SQLite;
 using System.IO;
 using System.Text;
 using System.Windows;
@@ -32,6 +33,7 @@ namespace SunSync
         /// <param name="e"></param>
         private void QuickStartPageLoaded_EventHandler(object sender, RoutedEventArgs e)
         {
+            this.checkJobDB();
             this.LoadSyncRecords();
             this.checkAccountSetting();
         }
@@ -56,6 +58,38 @@ namespace SunSync
             this.mainWindow.GotoSyncSettingPage(null);
         }
 
+        private void checkJobDB()
+        {
+            string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string jobsDb = System.IO.Path.Combine(myDocPath, "qsunbox", "jobs.db");
+            if (!File.Exists(jobsDb))
+            {
+                //db not exist, create it
+                string sqlStr = new StringBuilder()
+                    .Append("CREATE TABLE [sync_jobs]")
+                    .Append("([sync_id] CHAR(32)  UNIQUE NOT NULL PRIMARY KEY, ")
+                    .Append("[sync_local_dir] VARCHAR(255)  NOT NULL,")
+                    .Append("[sync_target_bucket] VARCHAR(64)  NOT NULL,")
+                    .Append("[sync_prefix] VARCHAR(255),")
+                    .Append("[ignore_dir] BOOLEAN  NULL,")
+                    .Append("[overwrite_file] BOOLEAN  NULL,")
+                    .Append("[default_chunk_size] INTEGER  NULL,")
+                    .Append("[chunk_upload_threshold] INTEGER  NULL,")
+                    .Append("[sync_thread_count] INTEGER  NULL,")
+                    .Append("[upload_entry_domain] VARCHAR(255)  NULL,")
+                    .Append("[sync_date_time] DATE  NULL )").ToString();
+                SQLiteConnection.CreateFile(jobsDb);
+                string conStr = new SQLiteConnectionStringBuilder { DataSource = jobsDb }.ToString();
+                using (SQLiteConnection sqlCon = new SQLiteConnection(conStr))
+                {
+                    sqlCon.Open();
+                    using (SQLiteCommand sqlCmd = new SQLiteCommand(sqlStr, sqlCon))
+                    {
+                        sqlCmd.ExecuteNonQuery();
+                    }
+                }
+            }
+        }
 
         /// <summary>
         /// load recent sync jobs
@@ -74,7 +108,7 @@ namespace SunSync
                 listBoxItem.DataContext = record;
                 listBoxItem.Style = ctlStyle;
                 listBoxItem.MouseDoubleClick += listBoxItem_MouseDoubleClick;
-                this.syncRecordDict.Add(index, record.FilePath);
+                this.syncRecordDict.Add(index, record.SyncId);
                 this.SyncHistoryListBox.Items.Add(listBoxItem);
                 index += 1;
             }
@@ -85,21 +119,15 @@ namespace SunSync
             int selectedIndex = this.SyncHistoryListBox.SelectedIndex;
             if (selectedIndex != -1)
             {
-                string jobPath = this.syncRecordDict[selectedIndex];
-                try
+                string syncId = this.syncRecordDict[selectedIndex];
+                SyncSetting syncSetting = Tools.loadSyncSettingByJobId(syncId);
+                if (syncSetting != null)
                 {
-                    using (StreamReader sr = new StreamReader(jobPath, Encoding.UTF8))
-                    {
-                        SyncSetting syncSetting = JsonConvert.DeserializeObject<SyncSetting>(sr.ReadToEnd());
-                        if (syncSetting.SyncLocalDir != "" && syncSetting.SyncTargetBucket != "")
-                        {
-                            this.mainWindow.GotoSyncSettingPage(syncSetting);
-                        }
-                    }
+                    this.mainWindow.GotoSyncSettingPage(syncSetting);
                 }
-                catch (Exception)
+                else
                 {
-                    //todo error log
+                    //todo
                 }
             }
         }

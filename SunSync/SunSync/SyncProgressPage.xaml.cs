@@ -77,32 +77,24 @@ namespace SunSync
         {
             this.syncSetting = syncSetting;
 
-            string jobName = string.Join("\t", new string[] { syncSetting.SyncLocalDir, syncSetting.SyncTargetBucket, System.DateTime.Now.ToBinary().ToString() });
+            string jobName = string.Join("\t", new string[] { syncSetting.SyncLocalDir, syncSetting.SyncTargetBucket});
             string jobFileName = Tools.urlsafeBase64Encode(jobName);
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string jobsDir = System.IO.Path.Combine(myDocPath, "qsunbox", "jobs");
-            string jobPathName = System.IO.Path.Combine(jobsDir, jobFileName);
 
             this.jobLogDir = System.IO.Path.Combine(myDocPath, "qsunbox", "logs", jobFileName);
             this.localHashDBPath = System.IO.Path.Combine(myDocPath, "qsunbox", "hash.db");
 
             try
             {
-                if (!Directory.Exists(jobsDir))
-                {
-                    Directory.CreateDirectory(jobsDir);
-                }
                 if (!Directory.Exists(this.jobLogDir))
                 {
                     Directory.CreateDirectory(this.jobLogDir);
                 }
 
-                //write sync settings to file
-                using (StreamWriter fs = new StreamWriter(jobPathName, false, Encoding.UTF8))
-                {
-                    string syncSettingsJson = JsonConvert.SerializeObject(syncSetting);
-                    fs.Write(syncSettingsJson);
-                }
+                //write sync settings to db
+                string syncId = Tools.md5Hash(jobName);
+                DateTime syncDateTime = DateTime.Now;
+                Tools.recordSyncJob(syncId, syncDateTime, this.syncSetting);
             }
             catch (Exception)
             {
@@ -132,11 +124,11 @@ namespace SunSync
                 if (!File.Exists(this.localHashDBPath))
                 {
                     SQLiteConnection.CreateFile(this.localHashDBPath);
-                    string conStr = new SQLiteConnectionStringBuilder { DataSource = this.localHashDBPath }.ToString();
+                    string conStr = new SQLiteConnectionStringBuilder { DataSource = this.localHashDBPath }.ToString();                       
+                    string sqlStr = "CREATE TABLE [cached_hash] ([local_path] TEXT, [etag] CHAR(28), [last_modified] VARCHAR(50))";
                     using (SQLiteConnection sqlCon = new SQLiteConnection(conStr))
                     {
                         sqlCon.Open();
-                        string sqlStr = "CREATE TABLE cached_hash (local_path TEXT, etag CHAR(28), last_modified VARCHAR(50))";
                         using (SQLiteCommand sqlCmd = new SQLiteCommand(sqlStr, sqlCon))
                         {
                             sqlCmd.ExecuteNonQuery();
