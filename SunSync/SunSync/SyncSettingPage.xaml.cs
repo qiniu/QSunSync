@@ -101,13 +101,21 @@ namespace SunSync
         private void initBucketManager()
         {
             this.account = Account.TryLoadAccount();
-            if (string.IsNullOrEmpty(account.AccessKey) || string.IsNullOrEmpty(account.SecretKey))
+            if (this.account == null)
             {
-                this.SettingsErrorTextBlock.Text = "请返回设置 AK 和 SK";
+                Log.Info("no account info found");
                 return;
             }
-            Mac mac = new Mac(this.account.AccessKey,this.account.SecretKey);
-            this.bucketManager = new BucketManager(mac);
+            else
+            {
+                if (string.IsNullOrEmpty(account.AccessKey) || string.IsNullOrEmpty(account.SecretKey))
+                {
+                    this.SettingsErrorTextBlock.Text = "请返回设置 AK 和 SK";
+                    return;
+                }
+                Mac mac = new Mac(this.account.AccessKey, this.account.SecretKey);
+                this.bucketManager = new BucketManager(mac);
+            }
         }
 
         /// <summary>
@@ -179,6 +187,7 @@ namespace SunSync
             }
             else if (bucketsResult.ResponseInfo.isNetworkBroken())
             {
+                Log.Error("network error, " + bucketsResult.ResponseInfo.ToString());
                 Dispatcher.Invoke(new Action(delegate
                 {
                     this.SettingsErrorTextBlock.Text = "网络故障";
@@ -193,8 +202,7 @@ namespace SunSync
             }
             else
             {
-                //todo error log
-                Console.WriteLine(bucketsResult.ResponseInfo.Error);
+                Log.Error("get buckets failed due to " + bucketsResult.ResponseInfo.ToString());
             }
         }
 

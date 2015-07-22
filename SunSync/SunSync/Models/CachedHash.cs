@@ -13,7 +13,7 @@ namespace SunSync.Models
         public string Etag { set; get; }
         public string LastModified { set; get; }
 
-        public static void CreateCachedHashDBIfNone(string localHashDBPath)
+        public static void CreateCachedHashDB(string localHashDBPath)
         {
             SQLiteConnection.CreateFile(localHashDBPath);
             string conStr = new SQLiteConnectionStringBuilder { DataSource = localHashDBPath }.ToString();

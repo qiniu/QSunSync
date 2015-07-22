@@ -36,8 +36,15 @@ namespace SunSync
         /// <param name="e"></param>
         private void ViewMyAKSK_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            string myAKSKLink = "https://portal.qiniu.com/setting/key";
-            System.Diagnostics.Process.Start(myAKSKLink);
+            try
+            {
+                string myAKSKLink = "https://portal.qiniu.com/setting/key";
+                System.Diagnostics.Process.Start(myAKSKLink);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("open ak & sk link failed, " + ex.Message);
+            }
         }
 
         /// <summary>
@@ -46,6 +53,10 @@ namespace SunSync
         private void loadAccountInfo()
         {
             Account acct = Account.TryLoadAccount();
+            if (acct == null)
+            {
+                return;
+            }
             if (!string.IsNullOrEmpty(acct.AccessKey))
             {
                 this.AccessKeyTextBox.Text = acct.AccessKey;
@@ -70,7 +81,18 @@ namespace SunSync
             {
                 if (!Directory.Exists(appDir))
                 {
-                    Directory.CreateDirectory(appDir);
+                    try
+                    {
+                        Directory.CreateDirectory(appDir);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(string.Format("create app dir {0} failed due to {1}", appDir, ex.Message));
+                        Dispatcher.Invoke(new Action(delegate
+                        {
+                            this.SettingsErrorTextBlock.Text = "创建本地配置路径失败";
+                        }));
+                    }
                 }
                 string accPath = System.IO.Path.Combine(appDir, "account.json");
                 using (StreamWriter sw = new StreamWriter(accPath, false, Encoding.UTF8))
@@ -78,10 +100,9 @@ namespace SunSync
                     sw.Write(accData);
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                //todo error log
-
+                Log.Error("save account info to file failed, " + ex.Message);
                 Dispatcher.Invoke(new Action(delegate
                 {
                     this.SettingsErrorTextBlock.Text = "帐号设置写入文件失败";
@@ -94,6 +115,7 @@ namespace SunSync
             StatResult statResult = bucketManager.stat("NONE_EXIST_BUCKET", "NONE_EXIST_KEY");
             if (statResult.ResponseInfo.isNetworkBroken())
             {
+                Log.Error("network error, " + statResult.ResponseInfo.ToString());
                 Dispatcher.Invoke(new Action(delegate
                 {
                     this.SettingsErrorTextBlock.Text = "网络故障";
@@ -103,6 +125,7 @@ namespace SunSync
             {
                 if (statResult.ResponseInfo.StatusCode == 401)
                 {
+                    Log.Error("ak & sk wrong");
                     Dispatcher.Invoke(new Action(delegate
                     {
                         this.SettingsErrorTextBlock.Text = "AK 或 SK 设置不正确";
@@ -110,9 +133,9 @@ namespace SunSync
                 }
                 else
                 {
+                    Log.Error("failed due to " + statResult.ResponseInfo.ToString());
                     Dispatcher.Invoke(new Action(delegate
                     {
-
                         this.SettingsErrorTextBlock.Text = "";
                         this.mainWindow.GotoHomePage();
                     }));

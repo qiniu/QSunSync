@@ -193,53 +193,80 @@ namespace SunSync
 
         internal void processDir(string rootDir, string targetDir, List<string> fileList)
         {
-            string[] fileEntries = Directory.GetFiles(targetDir);
-            foreach (string fileName in fileEntries)
+            try
             {
-                fileList.Add(fileName);
+                string[] fileEntries = Directory.GetFiles(targetDir);
+                foreach (string fileName in fileEntries)
+                {
+                    fileList.Add(fileName);
+                }
             }
-            string[] subDirs = Directory.GetDirectories(targetDir);
-            foreach (string subDir in subDirs)
+            catch (Exception ex)
             {
-                try
+                Log.Error(string.Format("get files from {0} failed due to {1}", targetDir, ex.Message));
+            }
+
+            try
+            {
+                string[] subDirs = Directory.GetDirectories(targetDir);
+                foreach (string subDir in subDirs)
                 {
-                    processDir(rootDir, subDir, fileList);
+                    try
+                    {
+                        processDir(rootDir, subDir, fileList);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(string.Format("directory {0} access failed due to {1}", subDir, ex.Message));
+                        //todo error log
+                        this.updateUploadLog("路径无法访问, " + ex.Message);
+                    }
                 }
-                catch (Exception ex)
-                {
-                    //todo error log
-                    this.updateUploadLog("路径无法访问, " + ex.Message);
-                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(string.Format("get dirs from {0} failed due to {1}", targetDir, ex.Message));
             }
         }
 
 
         internal void prepBeforeRunJob()
         {
-            try
+            if (!Directory.Exists(this.jobLogDir))
             {
-                if (!Directory.Exists(this.jobLogDir))
+                try
                 {
                     Directory.CreateDirectory(this.jobLogDir);
                 }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("create job log dir {0} failed due to {1},", this.jobLogDir, ex.Message));
+                }
+            }
 
-                if (!File.Exists(this.jobsDbPath))
+            if (!File.Exists(this.jobsDbPath))
+            {
+                try
                 {
                     SyncRecord.CreateSyncRecordDB(this.jobsDbPath);
                 }
-                else
+                catch (Exception ex)
                 {
-                    DateTime syncDateTime = DateTime.Now;
-                    SyncRecord.RecordSyncJob(this.jobId, syncDateTime, this.syncSetting, this.jobsDbPath);
+                    Log.Error("create sync record db failed, " + ex.Message);
                 }
             }
-            catch (Exception ex)
+            else
             {
-                //todo
-                Console.WriteLine(ex);
-                Console.WriteLine(ex.StackTrace);
+                DateTime syncDateTime = DateTime.Now;
+                try
+                {
+                    SyncRecord.RecordSyncJob(this.jobId, syncDateTime, this.syncSetting, this.jobsDbPath);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("record sync job failed, " + ex.Message);
+                }
             }
-
             //create the upload log files
             try
             {
@@ -255,17 +282,21 @@ namespace SunSync
                 this.fileUploadSuccessWriter = new StreamWriter(fileUploadSuccessLogPath, false, Encoding.UTF8);
                 this.fileUploadErrorWriter = new StreamWriter(fileUploadErrorLogPath, false, Encoding.UTF8);
             }
-            catch (Exception) { }
-
-            //open or create hash.db
-            try
-            {
-                CachedHash.CreateCachedHashDBIfNone(this.localHashDBPath);
-            }
             catch (Exception ex)
             {
-                //todo log
-                Console.WriteLine(ex);
+                Log.Error("init the log writer failed, " + ex.Message);
+            }
+
+            if (!File.Exists(this.localHashDBPath))
+            {
+                try
+                {
+                    CachedHash.CreateCachedHashDB(this.localHashDBPath);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("create cached hash db failed, " + ex.Message);
+                }
             }
         }
         //main job scheduler
