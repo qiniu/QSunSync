@@ -100,7 +100,7 @@ namespace SunSync
         /// </summary>
         private void initBucketManager()
         {
-            this.account = Tools.loadAccountInfo();
+            this.account = Account.TryLoadAccount();
             if (string.IsNullOrEmpty(account.AccessKey) || string.IsNullOrEmpty(account.SecretKey))
             {
                 this.SettingsErrorTextBlock.Text = "请返回设置 AK 和 SK";

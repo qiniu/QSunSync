@@ -33,7 +33,7 @@ namespace SunSync
         /// <param name="e"></param>
         private void QuickStartPageLoaded_EventHandler(object sender, RoutedEventArgs e)
         {
-            this.checkJobDB();
+            SyncRecord.CreateSyncRecordDBIfNone();
             this.LoadSyncRecords();
             this.checkAccountSetting();
         }
@@ -58,45 +58,12 @@ namespace SunSync
             this.mainWindow.GotoSyncSettingPage(null);
         }
 
-        private void checkJobDB()
-        {
-            string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string jobsDb = System.IO.Path.Combine(myDocPath, "qsunbox", "jobs.db");
-            if (!File.Exists(jobsDb))
-            {
-                //db not exist, create it
-                string sqlStr = new StringBuilder()
-                    .Append("CREATE TABLE [sync_jobs]")
-                    .Append("([sync_id] CHAR(32)  UNIQUE NOT NULL, ")
-                    .Append("[sync_local_dir] VARCHAR(255)  NOT NULL,")
-                    .Append("[sync_target_bucket] VARCHAR(64)  NOT NULL,")
-                    .Append("[sync_prefix] VARCHAR(255),")
-                    .Append("[ignore_dir] BOOLEAN  NULL,")
-                    .Append("[overwrite_file] BOOLEAN  NULL,")
-                    .Append("[default_chunk_size] INTEGER  NULL,")
-                    .Append("[chunk_upload_threshold] INTEGER  NULL,")
-                    .Append("[sync_thread_count] INTEGER  NULL,")
-                    .Append("[upload_entry_domain] VARCHAR(255)  NULL,")
-                    .Append("[sync_date_time] DATE  NULL )").ToString();
-                SQLiteConnection.CreateFile(jobsDb);
-                string conStr = new SQLiteConnectionStringBuilder { DataSource = jobsDb }.ToString();
-                using (SQLiteConnection sqlCon = new SQLiteConnection(conStr))
-                {
-                    sqlCon.Open();
-                    using (SQLiteCommand sqlCmd = new SQLiteCommand(sqlStr, sqlCon))
-                    {
-                        sqlCmd.ExecuteNonQuery();
-                    }
-                }
-            }
-        }
-
         /// <summary>
         /// load recent sync jobs
         /// </summary>
         private void LoadSyncRecords()
         {
-            List<SyncRecord> syncRecords = Tools.loadRecentSyncJobs();
+            List<SyncRecord> syncRecords = SyncRecord.LoadRecentSyncJobs();
 
             this.SyncHistoryListBox.Items.Clear();
             this.syncRecordDict.Clear();
@@ -120,7 +87,7 @@ namespace SunSync
             if (selectedIndex != -1)
             {
                 string syncId = this.syncRecordDict[selectedIndex];
-                SyncSetting syncSetting = Tools.loadSyncSettingByJobId(syncId);
+                SyncSetting syncSetting = SyncSetting.LoadSyncSettingByJobId(syncId);
                 if (syncSetting != null)
                 {
                     this.mainWindow.GotoSyncSettingPage(syncSetting);
@@ -137,7 +104,7 @@ namespace SunSync
         /// </summary>
         private void checkAccountSetting()
         {
-            Account account = Tools.loadAccountInfo();
+            Account account = Account.TryLoadAccount();
             if (string.IsNullOrEmpty(account.AccessKey) || string.IsNullOrEmpty(account.SecretKey))
             {
                 this.CreateNewTask_TextBlock.Foreground = System.Windows.Media.Brushes.Gray;

@@ -258,7 +258,7 @@ namespace SunSync
 
                 //write sync settings to db
                 DateTime syncDateTime = DateTime.Now;
-                Tools.recordSyncJob(this.jobId, syncDateTime, this.syncSetting);
+                SyncRecord.RecordSyncJob(this.jobId, syncDateTime, this.syncSetting);
             }
             catch (Exception ex)
             {
