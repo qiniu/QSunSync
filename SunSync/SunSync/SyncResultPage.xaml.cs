@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SunSync.Models;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -12,6 +13,7 @@ namespace SunSync
     /// </summary>
     public partial class SyncResultPage : Page
     {
+        private string jobId;
         private bool fileOverwrite;
         private int fileExistsCount;
         private int fileOverwriteCount;
@@ -41,10 +43,11 @@ namespace SunSync
             this.syncResultInfo.Add("UPLOAD_EXISTS_OVERWRITE", "本次同步过程中发现的已存在于云空间且本地已有改动的文件数量，这些文件进行了覆盖上传。");
         }
 
-        public void LoadSyncResult(TimeSpan spentTime, bool fileOverwrite, int fileExistsCount, string fileExistsLogPath, int fileOverwriteCount,
+        public void LoadSyncResult(string jobId,TimeSpan spentTime, bool fileOverwrite, int fileExistsCount, string fileExistsLogPath, int fileOverwriteCount,
                string fileOverwriteLogPath, int fileNotOverwriteCount, string fileNotOverwriteLogPath, int fileUploadErrorCount, string fileUploadErrorLogPath,
                int fileUploadSuccessCount, string fileUploadSuccessLogPath)
         {
+            this.jobId = jobId;
             this.spentTime = spentTime;
             this.fileOverwrite = fileOverwrite;
             this.fileExistsCount = fileExistsCount;
@@ -184,9 +187,9 @@ namespace SunSync
                         }
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    //todo
+                    Log.Error(string.Format("export log for job {0} failed due to {1}",this.jobId,ex.Message));
                 }
             }
         }

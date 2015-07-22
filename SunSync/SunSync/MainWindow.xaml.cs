@@ -68,14 +68,14 @@ namespace SunSync
         }
 
         //go to sync result page
-        internal void GotoSyncResultPage(TimeSpan spentTime, bool fileOverwrite, int fileExistsCount, string fileExistsLogPath, int fileOverwriteCount,
+        internal void GotoSyncResultPage(string jobId, TimeSpan spentTime, bool fileOverwrite, int fileExistsCount, string fileExistsLogPath, int fileOverwriteCount,
                string fileOverwriteLogPath, int fileNotOverwriteCount, string fileNotOverwriteLogPath, int fileUploadErrorCount, string fileUploadErrorLogPath,
                int fileUploadSuccessCount, string fileUploadSuccessLogPath)
         {
             Dispatcher.Invoke(new Action(delegate
             {
                 this.MainHostFrame.Content = this.syncResultPage;
-                this.syncResultPage.LoadSyncResult(spentTime, fileOverwrite, fileExistsCount, fileExistsLogPath, fileOverwriteCount, fileOverwriteLogPath,
+                this.syncResultPage.LoadSyncResult(jobId, spentTime, fileOverwrite, fileExistsCount, fileExistsLogPath, fileOverwriteCount, fileOverwriteLogPath,
                     fileNotOverwriteCount, fileNotOverwriteLogPath, fileUploadErrorCount, fileUploadErrorLogPath, fileUploadSuccessCount, fileUploadSuccessLogPath);
             }));
         }

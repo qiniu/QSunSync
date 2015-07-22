@@ -70,8 +70,6 @@ namespace SunSync
         {
             InitializeComponent();
             this.mainWindow = mainWindow;
-            string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunbox", "jobs.db");
             this.resetSyncProgress();
         }
 
@@ -82,16 +80,19 @@ namespace SunSync
 
             string jobName = string.Join("\t", new string[] { syncSetting.SyncLocalDir, syncSetting.SyncTargetBucket });
             this.jobId = Tools.md5Hash(jobName);
-            string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
+            string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunbox", "jobs.db");
             this.jobLogDir = System.IO.Path.Combine(myDocPath, "qsunbox", "logs", jobId);
             this.localHashDBPath = System.IO.Path.Combine(myDocPath, "qsunbox", "hash.db");
         }
 
         private void SyncProgressPageLoaded_EventHandler(object sender, RoutedEventArgs e)
         {
+            //clear old sync status
             this.resetSyncProgress();
-            //run sync job
+
+            //run new sync job
             Thread jobThread = new Thread(new ThreadStart(this.runSyncJob));
             jobThread.Start();
         }
@@ -147,10 +148,11 @@ namespace SunSync
                     this.fileUploadErrorWriter.Close();
                 }
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                Log.Error("close log writers failed, " + ex.Message);
+            }
         }
-
-
 
         internal string getLocalHash(string fileFullPath)
         {
@@ -322,7 +324,7 @@ namespace SunSync
             string localSyncDir = syncSetting.SyncLocalDir;
             List<string> fileList = new List<string>();
             processDir(localSyncDir, localSyncDir, fileList);
-           
+
             ManualResetEvent[] doneEvents = null;
 
             int fileCount = fileList.Count;
@@ -353,8 +355,7 @@ namespace SunSync
                 }
                 catch (Exception ex)
                 {
-                    //todo log
-                    Console.WriteLine(ex);
+                    Log.Error("wait for all threads exit failed, " + ex.Message);
                 }
 
                 //if cancel signalled
@@ -372,7 +373,7 @@ namespace SunSync
             {
                 //job auto finish, jump to result page
                 DateTime jobEnd = System.DateTime.Now;
-                this.mainWindow.GotoSyncResultPage(jobEnd - jobStart, this.syncSetting.OverwriteFile, this.fileExistsCount, this.fileExistsLogPath, this.fileOverwriteCount,
+                this.mainWindow.GotoSyncResultPage(this.jobId, jobEnd - jobStart, this.syncSetting.OverwriteFile, this.fileExistsCount, this.fileExistsLogPath, this.fileOverwriteCount,
                 this.fileOverwriteLogPath, this.fileNotOverwriteCount, this.fileNotOverwriteLogPath, this.fileUploadErrorCount, this.fileUploadErrorLogPath,
                 this.fileUploadSuccessCount, this.fileUploadSuccessLogPath);
             }
@@ -428,9 +429,9 @@ namespace SunSync
                 {
                     this.fileExistsWriter.WriteLine(log);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    //todo
+                    Log.Error(string.Format("write file exists log for {0} failed due to {1}", this.jobId, ex.Message));
                 }
             }
         }
@@ -445,9 +446,9 @@ namespace SunSync
                 {
                     this.fileOverwriteWriter.WriteLine(log);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    //todo
+                    Log.Error(string.Format("write file overwrite log for {0} failed due to {1}", this.jobId, ex.Message));
                 }
             }
         }
@@ -461,9 +462,9 @@ namespace SunSync
                 {
                     this.fileNotOverwriteWriter.WriteLine(log);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    //todo
+                    Log.Error(string.Format("write file not overwrite log for {0} failed due to {1}", this.jobId, ex.Message));
                 }
             }
         }
@@ -477,9 +478,9 @@ namespace SunSync
                 {
                     this.fileUploadErrorWriter.WriteLine(log);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    //todo
+                    Log.Error(string.Format("write file upload failed log for {0} failed due to {1}", this.jobId, ex.Message));
                 }
             }
         }
@@ -494,9 +495,9 @@ namespace SunSync
                 {
                     this.fileUploadSuccessWriter.WriteLine(log);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    //todo
+                    Log.Error(string.Format("write file upload success log for {0} failed due to {1}", this.jobId, ex.Message));
                 }
             }
         }
@@ -542,7 +543,7 @@ namespace SunSync
         private void ManualFinishButton_EventHandler(object sender, RoutedEventArgs e)
         {
             DateTime jobEnd = System.DateTime.Now;
-            this.mainWindow.GotoSyncResultPage(jobEnd - jobStart, this.syncSetting.OverwriteFile, this.fileExistsCount, this.fileExistsLogPath, this.fileOverwriteCount,
+            this.mainWindow.GotoSyncResultPage(this.jobId, jobEnd - jobStart, this.syncSetting.OverwriteFile, this.fileExistsCount, this.fileExistsLogPath, this.fileOverwriteCount,
                this.fileOverwriteLogPath, this.fileNotOverwriteCount, this.fileNotOverwriteLogPath, this.fileUploadErrorCount, this.fileUploadErrorLogPath,
                this.fileUploadSuccessCount, this.fileUploadSuccessLogPath);
         }
@@ -621,7 +622,7 @@ namespace SunSync
                     if (localHash.Equals(statResult.Hash))
                     {
                         //same file, no need to upload
-                        this.syncProgressPage.addFileExistsLog(string.Format("{0}\t{1}\t{2}",this.syncSetting.SyncTargetBucket,
+                        this.syncProgressPage.addFileExistsLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.SyncTargetBucket,
                             fileFullPath, fileKey));
                         this.syncProgressPage.updateUploadLog("空间已存在，跳过文件 " + fileFullPath);
                         this.syncProgressPage.updateTotalUploadProgress();
@@ -638,8 +639,8 @@ namespace SunSync
                         else
                         {
                             this.syncProgressPage.updateUploadLog("空间已存在，不覆盖 " + fileFullPath);
-                            this.syncProgressPage.addFileNotOverwriteLog(string.Format("{0}\t{1}\t{2}",this.syncSetting.SyncTargetBucket ,
-                                fileFullPath , fileKey));
+                            this.syncProgressPage.addFileNotOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.SyncTargetBucket,
+                                fileFullPath, fileKey));
                             doneEvent.Set();
                             return;
                         }
@@ -679,22 +680,22 @@ namespace SunSync
                     if (respInfo.StatusCode != 200)
                     {
                         this.syncProgressPage.updateUploadLog("上传失败 " + fileFullPath + "，" + respInfo.Error);
-                        this.syncProgressPage.addFileUploadErrorLog(string.Format("{0}\t{1}\t{2}\t{3}",this.syncSetting.SyncTargetBucket,
-                                fileFullPath  , fileKey, respInfo.Error + "" + response));
+                        this.syncProgressPage.addFileUploadErrorLog(string.Format("{0}\t{1}\t{2}\t{3}", this.syncSetting.SyncTargetBucket,
+                                fileFullPath, fileKey, respInfo.Error + "" + response));
                     }
                     else
                     {
                         if (overwriteKey)
                         {
-                            this.syncProgressPage.addFileOverwriteLog(string.Format("{0}\t{1}\t{2}",this.syncSetting.SyncTargetBucket,
-                                 fileFullPath , fileKey));
+                            this.syncProgressPage.addFileOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.SyncTargetBucket,
+                                 fileFullPath, fileKey));
                         }
                         this.syncProgressPage.updateUploadLog("上传成功 " + fileFullPath);
-                        this.syncProgressPage.addFileUploadSuccessLog(string.Format("{0}\t{1}\t{2}",this.syncSetting.SyncTargetBucket,
-                                fileFullPath , fileKey));
+                        this.syncProgressPage.addFileUploadSuccessLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.SyncTargetBucket,
+                                fileFullPath, fileKey));
                         this.syncProgressPage.updateTotalUploadProgress();
                     }
-                    
+
                     doneEvent.Set();
                 }));
             }
@@ -702,7 +703,7 @@ namespace SunSync
 
         public void Dispose()
         {
-            
+
         }
     }
 }
