@@ -19,7 +19,7 @@ namespace SunSync
     /// <summary>
     /// Interaction logic for SyncProgressPage.xaml
     /// </summary>
-    public partial class SyncProgressPage : Page
+    public partial class SyncProgressPage : Page, IDisposable
     {
         private SyncSetting syncSetting;
         private MainWindow mainWindow;
@@ -705,6 +705,11 @@ namespace SunSync
                     doneEvent.Set();
                 }));
             }
+        }
+
+        public void Dispose()
+        {
+            
         }
     }
 }

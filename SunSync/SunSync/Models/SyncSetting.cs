@@ -24,6 +24,13 @@ namespace SunSync.Models
         //upload entry domain
         public string UploadEntryDomain { set; get; }
 
+        /// <summary>
+        /// load sync settings from the database by job id
+        /// </summary>
+        /// <param name="syncId">job id</param>
+        /// <returns>
+        /// return null if not exist
+        /// </returns>
         public static SyncSetting LoadSyncSettingByJobId(string syncId)
         {
             SyncSetting setting = null;
@@ -60,10 +67,6 @@ namespace SunSync.Models
                         }
                     }
                 }
-            }
-            else
-            {
-                //todo
             }
             return setting;
         }

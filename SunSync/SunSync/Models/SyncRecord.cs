@@ -44,7 +44,7 @@ namespace SunSync.Models
                     .Append("[chunk_upload_threshold] INTEGER  NULL,")
                     .Append("[sync_thread_count] INTEGER  NULL,")
                     .Append("[upload_entry_domain] VARCHAR(255)  NULL,")
-                    .Append("[sync_date_time] DATE  NULL )").ToString();
+                    .Append("[sync_date_time] DATE  NULL )").ToString(); 
                 SQLiteConnection.CreateFile(jobsDb);
                 string conStr = new SQLiteConnectionStringBuilder { DataSource = jobsDb }.ToString();
                 using (SQLiteConnection sqlCon = new SQLiteConnection(conStr))
