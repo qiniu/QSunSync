@@ -101,9 +101,6 @@ namespace SunSync.Models
             return syncRecords;
         }
 
-       
-
-
         public static void RecordSyncJob(string syncId, DateTime syncDateTime, SyncSetting syncSetting)
         {
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
@@ -130,9 +127,7 @@ namespace SunSync.Models
 
                             sqlCmd.Parameters["@sync_id"].Value = syncId;
                             sqlCmd.ExecuteNonQuery();
-                        }
-                        using (SQLiteCommand sqlCmd = new SQLiteCommand(sqlCon))
-                        {
+
                             //do insert
                             sqlCmd.CommandText = queryInsert;
                             sqlCmd.Parameters.Add("@sync_id", System.Data.DbType.String);

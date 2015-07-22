@@ -34,7 +34,7 @@ namespace SunSync.Models
         public static CachedHash GetCachedHashByLocalPath(string localPath, SQLiteConnection localHashDB)
         {
             CachedHash cachedHash = new CachedHash();
-            string querySql = "SELECT etag, last_modified FROM cached_hash WHERE local_path=@local_path";
+            string querySql = "SELECT [etag], [last_modified] FROM [cached_hash] WHERE [local_path]=@local_path";
             using (SQLiteCommand sqlCmd = new SQLiteCommand(localHashDB))
             {
                 sqlCmd.CommandText = querySql;
@@ -54,7 +54,7 @@ namespace SunSync.Models
 
         public static void UpdateCachedHash(string localPath, string etag, string lastModified, SQLiteConnection localHashDB)
         {
-            string updateSql = "UPDATE cached_hash SET etag=@etag, last_modified=@last_modified WHERE local_path=@local_path";
+            string updateSql = "UPDATE [cached_hash] SET [etag]=@etag, [last_modified]=@last_modified WHERE [local_path]=@local_path";
             using (SQLiteCommand sqlCmd = new SQLiteCommand(localHashDB))
             {
                 sqlCmd.CommandText = updateSql;
@@ -71,7 +71,7 @@ namespace SunSync.Models
 
         public static void InsertCachedHash(string localPath, string etag, string lastModified, SQLiteConnection localHashDB)
         {
-            string insertSql = "INSERT INTO cached_hash (local_path, etag, last_modified) VALUES (@local_path, @etag, @last_modified)";
+            string insertSql = "INSERT INTO [cached_hash] ([local_path], [etag], [last_modified]) VALUES (@local_path, @etag, @last_modified)";
             using (SQLiteCommand sqlCmd = new SQLiteCommand(insertSql, localHashDB))
             {
                 sqlCmd.CommandText = insertSql;
