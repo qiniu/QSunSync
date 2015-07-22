@@ -32,6 +32,9 @@ namespace SunSync.Models
             if (!File.Exists(jobsDb))
             {
                 //db not exist, create it
+                SQLiteConnection.CreateFile(jobsDb);
+
+                //create table
                 string sqlStr = new StringBuilder()
                     .Append("CREATE TABLE [sync_jobs]")
                     .Append("([sync_id] CHAR(32)  UNIQUE NOT NULL, ")
@@ -45,7 +48,6 @@ namespace SunSync.Models
                     .Append("[sync_thread_count] INTEGER  NULL,")
                     .Append("[upload_entry_domain] VARCHAR(255)  NULL,")
                     .Append("[sync_date_time] DATE  NULL )").ToString(); 
-                SQLiteConnection.CreateFile(jobsDb);
                 string conStr = new SQLiteConnectionStringBuilder { DataSource = jobsDb }.ToString();
                 using (SQLiteConnection sqlCon = new SQLiteConnection(conStr))
                 {

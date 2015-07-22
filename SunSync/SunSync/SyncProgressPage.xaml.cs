@@ -155,30 +155,15 @@ namespace SunSync
 
             //current file info
             FileInfo fileInfo = new FileInfo(fileFullPath);
-            string lmdStr = fileInfo.LastWriteTimeUtc.ToFileTime().ToString();
+            string lastModified = fileInfo.LastWriteTimeUtc.ToFileTime().ToString();
 
             //cached file info
-            string cachedEtag = "";
-            string cachedLmd = "";
-            string querySql = "SELECT etag, last_modified FROM cached_hash WHERE local_path=@local_path";
-            using (SQLiteCommand sqlCmd = new SQLiteCommand(this.localHashDB))
-            {
-                sqlCmd.CommandText=querySql;
-                sqlCmd.Parameters.Add("@local_path",System.Data.DbType.String);
-                sqlCmd.Parameters["@local_path"].Value = fileFullPath;
-                using (SQLiteDataReader dr = sqlCmd.ExecuteReader())
-                {
-                    if (dr.Read())
-                    {
-                        cachedEtag = dr["etag"].ToString();
-                        cachedLmd = dr["last_modified"].ToString();
-                    }
-                }
-            }
-
+            CachedHash cachedHash = CachedHash.GetCachedHashByLocalPath(fileFullPath, this.localHashDB);
+            string cachedEtag = cachedHash.Etag;
+            string cachedLmd = cachedHash.LastModified;
             if (!string.IsNullOrEmpty(cachedEtag) && !string.IsNullOrEmpty(cachedLmd))
             {
-                if (cachedLmd.Equals(lmdStr))
+                if (cachedLmd.Equals(lastModified))
                 {
                     //file not modified
                     hash = cachedEtag;
@@ -186,38 +171,17 @@ namespace SunSync
                 else
                 {
                     //file modified, calc the hash and update db
-                    string newHash = QETag.hash(fileFullPath);
-                    string updateSql = "UPDATE cached_hash SET etag=@etag, last_modified=@last_modified WHERE local_path=@local_path";
-                    using (SQLiteCommand sqlCmd = new SQLiteCommand(this.localHashDB))
-                    {
-                        sqlCmd.CommandText=updateSql;
-                        sqlCmd.Parameters.Add("@etag",System.Data.DbType.String);
-                        sqlCmd.Parameters.Add("@last_modified", System.Data.DbType.String);
-                        sqlCmd.Parameters.Add("@local_path", System.Data.DbType.String);
-                        sqlCmd.Parameters["@etag"].Value=newHash;
-                        sqlCmd.Parameters["@last_modified"].Value=lmdStr;
-                        sqlCmd.Parameters["@local_path"].Value=fileFullPath;
-                        sqlCmd.ExecuteNonQuery();
-                    }
-                    hash = newHash;
+                    string newEtag = QETag.hash(fileFullPath);
+                    hash = newEtag;
+                    CachedHash.UpdateCachedHash(fileFullPath, newEtag, lastModified, this.localHashDB);
                 }
             }
             else
             {
                 //no record, calc hash and insert into db
-                string newHash = QETag.hash(fileFullPath);
-                string insertSql ="INSERT INTO cached_hash (local_path, etag, last_modified) VALUES (@local_path, @etag, @last_modified)";
-                using (SQLiteCommand sqlCmd = new SQLiteCommand(insertSql, this.localHashDB))
-                {
-                    sqlCmd.CommandText = insertSql;
-                    sqlCmd.Parameters.Add("@etag", System.Data.DbType.String);
-                    sqlCmd.Parameters.Add("@last_modified", System.Data.DbType.String);
-                    sqlCmd.Parameters.Add("@local_path", System.Data.DbType.String);
-                    sqlCmd.Parameters["@etag"].Value = newHash;
-                    sqlCmd.Parameters["@last_modified"].Value = lmdStr;
-                    sqlCmd.Parameters["@local_path"].Value = fileFullPath;
-                    sqlCmd.ExecuteNonQuery();
-                }
+                string newEtag = QETag.hash(fileFullPath);
+                hash = newEtag;
+                CachedHash.InsertCachedHash(fileFullPath, newEtag, lastModified, this.localHashDB);
             }
 
             return hash;
@@ -247,7 +211,7 @@ namespace SunSync
         }
 
 
-        internal void check()
+        internal void prepBeforeRunJob()
         {
             try
             {
@@ -287,30 +251,18 @@ namespace SunSync
             //open or create hash.db
             try
             {
-                if (!File.Exists(this.localHashDBPath))
-                {
-                    SQLiteConnection.CreateFile(this.localHashDBPath);
-                    string conStr = new SQLiteConnectionStringBuilder { DataSource = this.localHashDBPath }.ToString();
-                    string sqlStr = "CREATE TABLE [cached_hash] ([local_path] TEXT, [etag] CHAR(28), [last_modified] VARCHAR(50))";
-                    using (SQLiteConnection sqlCon = new SQLiteConnection(conStr))
-                    {
-                        sqlCon.Open();
-                        using (SQLiteCommand sqlCmd = new SQLiteCommand(sqlStr, sqlCon))
-                        {
-                            sqlCmd.ExecuteNonQuery();
-                        }
-                    }
-                }
+                CachedHash.CreateCachedHashDBIfNone(this.localHashDBPath);
             }
             catch (Exception ex)
             {
+                //todo log
                 Console.WriteLine(ex);
             }
         }
         //main job scheduler
         internal void runSyncJob()
         {
-            this.check();
+            this.prepBeforeRunJob();
             //open database
             string conStr = new SQLiteConnectionStringBuilder { DataSource = this.localHashDBPath }.ToString();
             this.localHashDB = new SQLiteConnection(conStr);
@@ -361,6 +313,7 @@ namespace SunSync
                 }
                 catch (Exception ex)
                 {
+                    //todo log
                     Console.WriteLine(ex);
                 }
 
