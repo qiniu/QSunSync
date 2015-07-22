@@ -202,7 +202,12 @@ namespace SunSync
             }
             else
             {
-                Log.Error("get buckets failed due to " + bucketsResult.ResponseInfo.ToString());
+                Log.Error(string.Format("get buckets unknown error, {0}:{1}:{2}:{3}", bucketsResult.ResponseInfo.StatusCode,
+                        bucketsResult.ResponseInfo.Error, bucketsResult.ResponseInfo.ReqId, bucketsResult.Response));
+                Dispatcher.Invoke(new Action(delegate
+                {
+                    this.SettingsErrorTextBlock.Text = "未知错误，请联系七牛";
+                }));
             }
         }
 
@@ -247,7 +252,7 @@ namespace SunSync
         {
             this.SyncSettingTabControl.SelectedIndex = 0;
             //check ak & sk
-            if (string.IsNullOrEmpty(this.account.AccessKey) 
+            if (string.IsNullOrEmpty(this.account.AccessKey)
                 || string.IsNullOrEmpty(this.account.SecretKey))
             {
                 this.SettingsErrorTextBlock.Text = "请返回设置 AK & SK";
@@ -261,7 +266,7 @@ namespace SunSync
                 return;
             }
 
-            if (this.SyncTargetBucketsComboBox.SelectedIndex==-1)
+            if (this.SyncTargetBucketsComboBox.SelectedIndex == -1)
             {
                 this.SettingsErrorTextBlock.Text = "请选择同步的目标空间";
                 return;
@@ -280,22 +285,33 @@ namespace SunSync
             StatResult statResult = this.bucketManager.stat(this.syncTargetBucket, "NONE_EXIST_KEY");
             if (statResult.ResponseInfo.isNetworkBroken())
             {
-                this.SyncSettingTabControl.SelectedIndex = 0;
                 this.SettingsErrorTextBlock.Text = "网络故障";
                 return;
             }
+
             if (statResult.ResponseInfo.StatusCode == 401)
             {
                 //ak & sk not right
-                this.SyncSettingTabControl.SelectedIndex = 0;
                 this.SettingsErrorTextBlock.Text = "AK 或 SK 不正确";
                 return;
             }
             else if (statResult.ResponseInfo.StatusCode == 631)
             {
                 //bucket not exist
-                this.SyncSettingTabControl.SelectedIndex = 0;
                 this.SettingsErrorTextBlock.Text = "指定空间不存在";
+                return;
+            }
+            else if (statResult.ResponseInfo.StatusCode == 612
+                || statResult.ResponseInfo.StatusCode == 200)
+            {
+                //file exists or not
+                //ignore
+            }
+            else
+            {
+                this.SettingsErrorTextBlock.Text = "未知错误，请联系七牛";
+                Log.Error(string.Format("get buckets unknown error, {0}:{1}:{2}:{3}", statResult.ResponseInfo.StatusCode,
+                       statResult.ResponseInfo.Error, statResult.ResponseInfo.ReqId, statResult.Response));
                 return;
             }
 

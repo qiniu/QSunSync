@@ -131,13 +131,22 @@ namespace SunSync
                         this.SettingsErrorTextBlock.Text = "AK 或 SK 设置不正确";
                     }));
                 }
-                else
+                else if (statResult.ResponseInfo.StatusCode == 612 || statResult.ResponseInfo.StatusCode == 631)
                 {
-                    Log.Error("failed due to " + statResult.ResponseInfo.ToString());
+                    Log.Error("ak & sk is valid");
                     Dispatcher.Invoke(new Action(delegate
                     {
                         this.SettingsErrorTextBlock.Text = "";
                         this.mainWindow.GotoHomePage();
+                    }));
+                }
+                else
+                {
+                    Log.Error(string.Format("valid ak&sk unknown error, {0}:{1}:{2}:{3}", statResult.ResponseInfo.StatusCode,
+                        statResult.ResponseInfo.Error, statResult.ResponseInfo.ReqId, statResult.Response));
+                    Dispatcher.Invoke(new Action(delegate
+                    {
+                        this.SettingsErrorTextBlock.Text = "未知错误，请联系七牛";
                     }));
                 }
             }

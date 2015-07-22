@@ -31,7 +31,7 @@ namespace SunSync.Models
             SQLiteConnection.CreateFile(jobsDbPath);
 
             //create table
-            string sqlStr = new StringBuilder()
+            string sqlCreate = new StringBuilder()
                 .Append("CREATE TABLE [sync_jobs]")
                 .Append("([sync_id] CHAR(32)  UNIQUE NOT NULL, ")
                 .Append("[sync_local_dir] VARCHAR(255)  NOT NULL,")
@@ -48,8 +48,9 @@ namespace SunSync.Models
             using (SQLiteConnection sqlCon = new SQLiteConnection(conStr))
             {
                 sqlCon.Open();
-                using (SQLiteCommand sqlCmd = new SQLiteCommand(sqlStr, sqlCon))
+                using (SQLiteCommand sqlCmd = new SQLiteCommand(sqlCon))
                 {
+                    sqlCmd.CommandText = sqlCreate;
                     sqlCmd.ExecuteNonQuery();
                 }
             }
@@ -96,7 +97,7 @@ namespace SunSync.Models
         {
             string conStr = new SQLiteConnectionStringBuilder { DataSource = jobsDbPath }.ToString();
             string queryDelete = "DELETE FROM [sync_jobs] WHERE [sync_id]=@sync_id";
-            string queryInsert = new StringBuilder().Append("REPLACE INTO [sync_jobs] ([sync_id], [sync_local_dir], [sync_target_bucket], ")
+            string queryInsert = new StringBuilder().Append("INSERT INTO [sync_jobs] ([sync_id], [sync_local_dir], [sync_target_bucket], ")
                 .Append("[sync_prefix], [ignore_dir], [overwrite_file], [default_chunk_size], [chunk_upload_threshold], [sync_thread_count], ")
                 .Append("[upload_entry_domain], [sync_date_time]) VALUES ( @sync_id, @sync_local_dir, @sync_target_bucket, @sync_prefix, @ignore_dir, ")
                 .Append("@overwrite_file, @default_chunk_size, @chunk_upload_threshold, @sync_thread_count, @upload_entry_domain, @sync_date_time)").ToString();
