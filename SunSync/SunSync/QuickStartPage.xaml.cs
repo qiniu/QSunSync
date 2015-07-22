@@ -67,7 +67,7 @@ namespace SunSync
                 //db not exist, create it
                 string sqlStr = new StringBuilder()
                     .Append("CREATE TABLE [sync_jobs]")
-                    .Append("([sync_id] CHAR(32)  UNIQUE NOT NULL PRIMARY KEY, ")
+                    .Append("([sync_id] CHAR(32)  UNIQUE NOT NULL, ")
                     .Append("[sync_local_dir] VARCHAR(255)  NOT NULL,")
                     .Append("[sync_target_bucket] VARCHAR(64)  NOT NULL,")
                     .Append("[sync_prefix] VARCHAR(255),")

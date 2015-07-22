@@ -73,23 +73,25 @@ namespace SunSync.Models
                     sqlCon.Open();
                     using (SQLiteCommand sqlCmd = new SQLiteCommand(queryStr, sqlCon))
                     {
-                        SQLiteDataReader dr = sqlCmd.ExecuteReader();
-                        while (dr.Read())
+                        using (SQLiteDataReader dr = sqlCmd.ExecuteReader())
                         {
-                            SyncRecord record = new SyncRecord();
-                            record.SyncId = Convert.ToString(dr["sync_id"]);
-                            record.SyncLocalDir = Convert.ToString(dr["sync_local_dir"]);
-                            record.SyncTargetBucket = Convert.ToString(dr["sync_target_bucket"]);
-                            record.SyncPrefix = Convert.ToString(dr["sync_prefix"]);
-                            record.IgnoreDir = Convert.ToBoolean(dr["ignore_dir"]);
-                            record.OverwriteFile = Convert.ToBoolean(dr["overwrite_file"]);
-                            record.DefaultChunkSize = Convert.ToInt32(dr["default_chunk_size"]);
-                            record.ChunkUploadThreshold = Convert.ToInt32(dr["chunk_upload_threshold"]);
-                            record.SyncThreadCount = Convert.ToInt32(dr["sync_thread_count"]);
-                            record.UploadEntryDomain = Convert.ToString(dr["upload_entry_domain"]);
-                            record.SyncDateTime = Convert.ToDateTime(dr["sync_date_time"]);
-                            record.SyncDateTimeStr = record.SyncDateTime.ToString("yyyy-MM-dd HH:mm:ss");
-                            syncRecords.Add(record);
+                            while (dr.Read())
+                            {
+                                SyncRecord record = new SyncRecord();
+                                record.SyncId = Convert.ToString(dr["sync_id"]);
+                                record.SyncLocalDir = Convert.ToString(dr["sync_local_dir"]);
+                                record.SyncTargetBucket = Convert.ToString(dr["sync_target_bucket"]);
+                                record.SyncPrefix = Convert.ToString(dr["sync_prefix"]);
+                                record.IgnoreDir = Convert.ToBoolean(dr["ignore_dir"]);
+                                record.OverwriteFile = Convert.ToBoolean(dr["overwrite_file"]);
+                                record.DefaultChunkSize = Convert.ToInt32(dr["default_chunk_size"]);
+                                record.ChunkUploadThreshold = Convert.ToInt32(dr["chunk_upload_threshold"]);
+                                record.SyncThreadCount = Convert.ToInt32(dr["sync_thread_count"]);
+                                record.UploadEntryDomain = Convert.ToString(dr["upload_entry_domain"]);
+                                record.SyncDateTime = Convert.ToDateTime(dr["sync_date_time"]);
+                                record.SyncDateTimeStr = record.SyncDateTime.ToString("yyyy-MM-dd HH:mm:ss");
+                                syncRecords.Add(record);
+                            }
                         }
                     }
                 }
@@ -115,19 +117,21 @@ namespace SunSync.Models
                         sqlCmd.CommandText = query;
                         sqlCmd.Parameters.Add("@sync_id", System.Data.DbType.String);
                         sqlCmd.Parameters["@sync_id"].Value = syncId;
-                        SQLiteDataReader dr = sqlCmd.ExecuteReader();
-                        if (dr.Read())
+                        using (SQLiteDataReader dr = sqlCmd.ExecuteReader())
                         {
-                            setting = new SyncSetting();
-                            setting.SyncLocalDir = Convert.ToString(dr["sync_local_dir"]);
-                            setting.SyncTargetBucket = Convert.ToString(dr["sync_target_bucket"]);
-                            setting.SyncPrefix = Convert.ToString(dr["sync_prefix"]);
-                            setting.IgnoreDir = Convert.ToBoolean(dr["ignore_dir"]);
-                            setting.OverwriteFile = Convert.ToBoolean(dr["overwrite_file"]);
-                            setting.DefaultChunkSize = Convert.ToInt32(dr["default_chunk_size"]);
-                            setting.ChunkUploadThreshold = Convert.ToInt32(dr["chunk_upload_threshold"]);
-                            setting.SyncThreadCount = Convert.ToInt32(dr["sync_thread_count"]);
-                            setting.UploadEntryDomain = Convert.ToString(dr["upload_entry_domain"]);
+                            if (dr.Read())
+                            {
+                                setting = new SyncSetting();
+                                setting.SyncLocalDir = Convert.ToString(dr["sync_local_dir"]);
+                                setting.SyncTargetBucket = Convert.ToString(dr["sync_target_bucket"]);
+                                setting.SyncPrefix = Convert.ToString(dr["sync_prefix"]);
+                                setting.IgnoreDir = Convert.ToBoolean(dr["ignore_dir"]);
+                                setting.OverwriteFile = Convert.ToBoolean(dr["overwrite_file"]);
+                                setting.DefaultChunkSize = Convert.ToInt32(dr["default_chunk_size"]);
+                                setting.ChunkUploadThreshold = Convert.ToInt32(dr["chunk_upload_threshold"]);
+                                setting.SyncThreadCount = Convert.ToInt32(dr["sync_thread_count"]);
+                                setting.UploadEntryDomain = Convert.ToString(dr["upload_entry_domain"]);
+                            }
                         }
                     }
                 }
@@ -148,41 +152,57 @@ namespace SunSync.Models
             if (File.Exists(jobsDb))
             {
                 string conStr = new SQLiteConnectionStringBuilder { DataSource = jobsDb }.ToString();
-                string query = new StringBuilder().Append("INSERT INTO [sync_jobs] ([sync_id], [sync_local_dir], [sync_target_bucket], ")
+                string queryDelete = "DELETE FROM [sync_jobs] WHERE [sync_id]=@sync_id";
+                string queryInsert = new StringBuilder().Append("REPLACE INTO [sync_jobs] ([sync_id], [sync_local_dir], [sync_target_bucket], ")
                     .Append("[sync_prefix], [ignore_dir], [overwrite_file], [default_chunk_size], [chunk_upload_threshold], [sync_thread_count], ")
                     .Append("[upload_entry_domain], [sync_date_time]) VALUES ( @sync_id, @sync_local_dir, @sync_target_bucket, @sync_prefix, @ignore_dir, ")
                     .Append("@overwrite_file, @default_chunk_size, @chunk_upload_threshold, @sync_thread_count, @upload_entry_domain, @sync_date_time)").ToString();
                 using (SQLiteConnection sqlCon = new SQLiteConnection(conStr))
                 {
                     sqlCon.Open();
-                    using (SQLiteCommand sqlCmd = new SQLiteCommand(sqlCon))
-                    {
-                        sqlCmd.CommandText = query;
-                        sqlCmd.Parameters.Add("@sync_id", System.Data.DbType.String);
-                        sqlCmd.Parameters.Add("@sync_local_dir", System.Data.DbType.String);
-                        sqlCmd.Parameters.Add("@sync_target_bucket", System.Data.DbType.String);
-                        sqlCmd.Parameters.Add("@sync_prefix", System.Data.DbType.String);
-                        sqlCmd.Parameters.Add("@ignore_dir", System.Data.DbType.Boolean);
-                        sqlCmd.Parameters.Add("@overwrite_file", System.Data.DbType.Boolean);
-                        sqlCmd.Parameters.Add("@default_chunk_size", System.Data.DbType.Int32);
-                        sqlCmd.Parameters.Add("@chunk_upload_threshold", System.Data.DbType.Int32);
-                        sqlCmd.Parameters.Add("@sync_thread_count", System.Data.DbType.Int32);
-                        sqlCmd.Parameters.Add("@upload_entry_domain", System.Data.DbType.String);
-                        sqlCmd.Parameters.Add("@sync_date_time", System.Data.DbType.DateTime);
+                    using(SQLiteTransaction sqlTrans=sqlCon.BeginTransaction()){
+                        using (SQLiteCommand sqlCmd = new SQLiteCommand(sqlCon))
+                        {
+                            //do delete if exists
+                            sqlCmd.CommandText = queryDelete;
+                            sqlCmd.Parameters.Add("@sync_id",System.Data.DbType.String);
 
-                        sqlCmd.Parameters["@sync_id"].Value = syncId;
-                        sqlCmd.Parameters["@sync_local_dir"].Value = syncSetting.SyncLocalDir;
-                        sqlCmd.Parameters["@sync_target_bucket"].Value = syncSetting.SyncTargetBucket;
-                        sqlCmd.Parameters["@sync_prefix"].Value = syncSetting.SyncPrefix;
-                        sqlCmd.Parameters["@ignore_dir"].Value = syncSetting.IgnoreDir;
-                        sqlCmd.Parameters["@overwrite_file"].Value = syncSetting.OverwriteFile;
-                        sqlCmd.Parameters["@default_chunk_size"].Value = syncSetting.DefaultChunkSize;
-                        sqlCmd.Parameters["@chunk_upload_threshold"].Value = syncSetting.ChunkUploadThreshold;
-                        sqlCmd.Parameters["@sync_thread_count"].Value = syncSetting.SyncThreadCount;
-                        sqlCmd.Parameters["@upload_entry_domain"].Value = syncSetting.UploadEntryDomain;
-                        sqlCmd.Parameters["@sync_date_time"].Value = syncDateTime;
+                            sqlCmd.Parameters["@sync_id"].Value = syncId;
+                            sqlCmd.ExecuteNonQuery();
+                        }
+                        using (SQLiteCommand sqlCmd = new SQLiteCommand(sqlCon))
+                        {
+                            //do insert
+                            sqlCmd.CommandText = queryInsert;
+                            sqlCmd.Parameters.Add("@sync_id", System.Data.DbType.String);
+                            sqlCmd.Parameters.Add("@sync_local_dir", System.Data.DbType.String);
+                            sqlCmd.Parameters.Add("@sync_target_bucket", System.Data.DbType.String);
+                            sqlCmd.Parameters.Add("@sync_prefix", System.Data.DbType.String);
+                            sqlCmd.Parameters.Add("@ignore_dir", System.Data.DbType.Boolean);
+                            sqlCmd.Parameters.Add("@overwrite_file", System.Data.DbType.Boolean);
+                            sqlCmd.Parameters.Add("@default_chunk_size", System.Data.DbType.Int32);
+                            sqlCmd.Parameters.Add("@chunk_upload_threshold", System.Data.DbType.Int32);
+                            sqlCmd.Parameters.Add("@sync_thread_count", System.Data.DbType.Int32);
+                            sqlCmd.Parameters.Add("@upload_entry_domain", System.Data.DbType.String);
+                            sqlCmd.Parameters.Add("@sync_date_time", System.Data.DbType.DateTime);
 
-                        sqlCmd.ExecuteNonQuery();
+                            sqlCmd.Parameters["@sync_id"].Value = syncId;
+                            sqlCmd.Parameters["@sync_local_dir"].Value = syncSetting.SyncLocalDir;
+                            sqlCmd.Parameters["@sync_target_bucket"].Value = syncSetting.SyncTargetBucket;
+                            sqlCmd.Parameters["@sync_prefix"].Value = syncSetting.SyncPrefix;
+                            sqlCmd.Parameters["@ignore_dir"].Value = syncSetting.IgnoreDir;
+                            sqlCmd.Parameters["@overwrite_file"].Value = syncSetting.OverwriteFile;
+                            sqlCmd.Parameters["@default_chunk_size"].Value = syncSetting.DefaultChunkSize;
+                            sqlCmd.Parameters["@chunk_upload_threshold"].Value = syncSetting.ChunkUploadThreshold;
+                            sqlCmd.Parameters["@sync_thread_count"].Value = syncSetting.SyncThreadCount;
+                            sqlCmd.Parameters["@upload_entry_domain"].Value = syncSetting.UploadEntryDomain;
+                            sqlCmd.Parameters["@sync_date_time"].Value = syncDateTime;
+
+                            sqlCmd.ExecuteNonQuery();
+                        }
+
+                        //commit
+                        sqlTrans.Commit();
                     }
                 }
             }

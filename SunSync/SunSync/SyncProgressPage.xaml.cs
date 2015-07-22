@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using SunSync.Models;
+﻿using SunSync.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -25,6 +24,7 @@ namespace SunSync
         private SyncSetting syncSetting;
         private MainWindow mainWindow;
 
+        private string jobId;
         private string jobLogDir;
         private DateTime jobStart;
         private object progressLock;
@@ -77,69 +77,12 @@ namespace SunSync
         {
             this.syncSetting = syncSetting;
 
-            string jobName = string.Join("\t", new string[] { syncSetting.SyncLocalDir, syncSetting.SyncTargetBucket});
-            string jobFileName = Tools.urlsafeBase64Encode(jobName);
+            string jobName = string.Join("\t", new string[] { syncSetting.SyncLocalDir, syncSetting.SyncTargetBucket });
+            this.jobId = Tools.md5Hash(jobName);
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
-            this.jobLogDir = System.IO.Path.Combine(myDocPath, "qsunbox", "logs", jobFileName);
+            this.jobLogDir = System.IO.Path.Combine(myDocPath, "qsunbox", "logs", jobId);
             this.localHashDBPath = System.IO.Path.Combine(myDocPath, "qsunbox", "hash.db");
-
-            try
-            {
-                if (!Directory.Exists(this.jobLogDir))
-                {
-                    Directory.CreateDirectory(this.jobLogDir);
-                }
-
-                //write sync settings to db
-                string syncId = Tools.md5Hash(jobName);
-                DateTime syncDateTime = DateTime.Now;
-                Tools.recordSyncJob(syncId, syncDateTime, this.syncSetting);
-            }
-            catch (Exception)
-            {
-                //todo
-            }
-
-            //create the upload log files
-            try
-            {
-                this.fileExistsLogPath = System.IO.Path.Combine(this.jobLogDir, "exists.log");
-                this.fileOverwriteLogPath = System.IO.Path.Combine(this.jobLogDir, "overwrite.log");
-                this.fileNotOverwriteLogPath = System.IO.Path.Combine(this.jobLogDir, "not_overwrite.log");
-                this.fileUploadSuccessLogPath = System.IO.Path.Combine(this.jobLogDir, "success.log");
-                this.fileUploadErrorLogPath = System.IO.Path.Combine(this.jobLogDir, "error.log");
-
-                this.fileExistsWriter = new StreamWriter(fileExistsLogPath, false, Encoding.UTF8);
-                this.fileOverwriteWriter = new StreamWriter(fileOverwriteLogPath, false, Encoding.UTF8);
-                this.fileNotOverwriteWriter = new StreamWriter(fileNotOverwriteLogPath, false, Encoding.UTF8);
-                this.fileUploadSuccessWriter = new StreamWriter(fileUploadSuccessLogPath, false, Encoding.UTF8);
-                this.fileUploadErrorWriter = new StreamWriter(fileUploadErrorLogPath, false, Encoding.UTF8);
-            }
-            catch (Exception) { }
-
-            //open or create hash.db
-            try
-            {
-                if (!File.Exists(this.localHashDBPath))
-                {
-                    SQLiteConnection.CreateFile(this.localHashDBPath);
-                    string conStr = new SQLiteConnectionStringBuilder { DataSource = this.localHashDBPath }.ToString();                       
-                    string sqlStr = "CREATE TABLE [cached_hash] ([local_path] TEXT, [etag] CHAR(28), [last_modified] VARCHAR(50))";
-                    using (SQLiteConnection sqlCon = new SQLiteConnection(conStr))
-                    {
-                        sqlCon.Open();
-                        using (SQLiteCommand sqlCmd = new SQLiteCommand(sqlStr, sqlCon))
-                        {
-                            sqlCmd.ExecuteNonQuery();
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-            }
         }
 
         private void SyncProgressPageLoaded_EventHandler(object sender, RoutedEventArgs e)
@@ -223,11 +166,13 @@ namespace SunSync
                 sqlCmd.CommandText=querySql;
                 sqlCmd.Parameters.Add("@local_path",System.Data.DbType.String);
                 sqlCmd.Parameters["@local_path"].Value = fileFullPath;
-                SQLiteDataReader dr = sqlCmd.ExecuteReader();
-                if (dr.Read())
+                using (SQLiteDataReader dr = sqlCmd.ExecuteReader())
                 {
-                    cachedEtag = dr["etag"].ToString();
-                    cachedLmd = dr["last_modified"].ToString();
+                    if (dr.Read())
+                    {
+                        cachedEtag = dr["etag"].ToString();
+                        cachedLmd = dr["last_modified"].ToString();
+                    }
                 }
             }
 
@@ -301,9 +246,71 @@ namespace SunSync
             }
         }
 
+
+        internal void check()
+        {
+            try
+            {
+                if (!Directory.Exists(this.jobLogDir))
+                {
+                    Directory.CreateDirectory(this.jobLogDir);
+                }
+
+                //write sync settings to db
+                DateTime syncDateTime = DateTime.Now;
+                Tools.recordSyncJob(this.jobId, syncDateTime, this.syncSetting);
+            }
+            catch (Exception ex)
+            {
+                //todo
+                Console.WriteLine(ex);
+                Console.WriteLine(ex.StackTrace);
+            }
+
+            //create the upload log files
+            try
+            {
+                this.fileExistsLogPath = System.IO.Path.Combine(this.jobLogDir, "exists.log");
+                this.fileOverwriteLogPath = System.IO.Path.Combine(this.jobLogDir, "overwrite.log");
+                this.fileNotOverwriteLogPath = System.IO.Path.Combine(this.jobLogDir, "not_overwrite.log");
+                this.fileUploadSuccessLogPath = System.IO.Path.Combine(this.jobLogDir, "success.log");
+                this.fileUploadErrorLogPath = System.IO.Path.Combine(this.jobLogDir, "error.log");
+
+                this.fileExistsWriter = new StreamWriter(fileExistsLogPath, false, Encoding.UTF8);
+                this.fileOverwriteWriter = new StreamWriter(fileOverwriteLogPath, false, Encoding.UTF8);
+                this.fileNotOverwriteWriter = new StreamWriter(fileNotOverwriteLogPath, false, Encoding.UTF8);
+                this.fileUploadSuccessWriter = new StreamWriter(fileUploadSuccessLogPath, false, Encoding.UTF8);
+                this.fileUploadErrorWriter = new StreamWriter(fileUploadErrorLogPath, false, Encoding.UTF8);
+            }
+            catch (Exception) { }
+
+            //open or create hash.db
+            try
+            {
+                if (!File.Exists(this.localHashDBPath))
+                {
+                    SQLiteConnection.CreateFile(this.localHashDBPath);
+                    string conStr = new SQLiteConnectionStringBuilder { DataSource = this.localHashDBPath }.ToString();
+                    string sqlStr = "CREATE TABLE [cached_hash] ([local_path] TEXT, [etag] CHAR(28), [last_modified] VARCHAR(50))";
+                    using (SQLiteConnection sqlCon = new SQLiteConnection(conStr))
+                    {
+                        sqlCon.Open();
+                        using (SQLiteCommand sqlCmd = new SQLiteCommand(sqlStr, sqlCon))
+                        {
+                            sqlCmd.ExecuteNonQuery();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
         //main job scheduler
         internal void runSyncJob()
         {
+            this.check();
             //open database
             string conStr = new SQLiteConnectionStringBuilder { DataSource = this.localHashDBPath }.ToString();
             this.localHashDB = new SQLiteConnection(conStr);

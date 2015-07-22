@@ -371,11 +371,6 @@ namespace SunSync
                 this.ThreadCountLabel.Content = this.ThreadCountSlider.Value + "";
             }
         }
-
-      
-
-
-        
     }
 
 }
