@@ -17,6 +17,11 @@ namespace SunSync
         public MainWindow()
         {
             InitializeComponent();
+
+            //init log
+            Log.init();
+
+            //init pages
             this.quickStartPage = new QuickStartPage(this);
             this.accountSettingPage = new AccountSettingPage(this);
             this.syncSettingPage = new SyncSettingPage(this);

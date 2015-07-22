@@ -15,18 +15,15 @@ namespace SunSync.Models
 
         public static void CreateCachedHashDBIfNone(string localHashDBPath)
         {
-            if (!File.Exists(localHashDBPath))
+            SQLiteConnection.CreateFile(localHashDBPath);
+            string conStr = new SQLiteConnectionStringBuilder { DataSource = localHashDBPath }.ToString();
+            string sqlStr = "CREATE TABLE [cached_hash] ([local_path] TEXT, [etag] CHAR(28), [last_modified] VARCHAR(50))";
+            using (SQLiteConnection sqlCon = new SQLiteConnection(conStr))
             {
-                SQLiteConnection.CreateFile(localHashDBPath);
-                string conStr = new SQLiteConnectionStringBuilder { DataSource = localHashDBPath }.ToString();
-                string sqlStr = "CREATE TABLE [cached_hash] ([local_path] TEXT, [etag] CHAR(28), [last_modified] VARCHAR(50))";
-                using (SQLiteConnection sqlCon = new SQLiteConnection(conStr))
+                sqlCon.Open();
+                using (SQLiteCommand sqlCmd = new SQLiteCommand(sqlStr, sqlCon))
                 {
-                    sqlCon.Open();
-                    using (SQLiteCommand sqlCmd = new SQLiteCommand(sqlStr, sqlCon))
-                    {
-                        sqlCmd.ExecuteNonQuery();
-                    }
+                    sqlCmd.ExecuteNonQuery();
                 }
             }
         }

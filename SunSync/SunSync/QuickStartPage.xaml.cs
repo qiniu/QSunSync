@@ -1,5 +1,7 @@
 ﻿using SunSync.Models;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -13,12 +15,15 @@ namespace SunSync
     {
         private MainWindow mainWindow;
         private Dictionary<int, string> syncRecordDict;
+        private string jobsDbPath;
 
         public QuickStartPage(MainWindow mainWindow)
         {
             InitializeComponent();
             this.mainWindow = mainWindow;
             this.syncRecordDict = new Dictionary<int, string>();
+            string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunbox", "jobs.db");
         }
 
         /// <summary>
@@ -28,8 +33,15 @@ namespace SunSync
         /// <param name="e"></param>
         private void QuickStartPageLoaded_EventHandler(object sender, RoutedEventArgs e)
         {
-            SyncRecord.CreateSyncRecordDBIfNone();
-            this.LoadSyncRecords();
+            if (!File.Exists(this.jobsDbPath))
+            {
+                SyncRecord.CreateSyncRecordDB(this.jobsDbPath);
+            }
+            else
+            {
+                this.loadSyncRecords();
+            }
+
             this.checkAccountSetting();
         }
 
@@ -56,27 +68,35 @@ namespace SunSync
         /// <summary>
         /// load recent sync jobs
         /// </summary>
-        private void LoadSyncRecords()
+        internal void loadSyncRecords()
         {
-            List<SyncRecord> syncRecords = SyncRecord.LoadRecentSyncJobs();
-
-            this.SyncHistoryListBox.Items.Clear();
-            this.syncRecordDict.Clear();
-            int index = 0;
-            foreach (SyncRecord record in syncRecords)
+            try
             {
-                ListBoxItem listBoxItem = new ListBoxItem();
-                Style ctlStyle = Application.Current.TryFindResource("jobListItemResource") as Style;
-                listBoxItem.DataContext = record;
-                listBoxItem.Style = ctlStyle;
-                listBoxItem.MouseDoubleClick += listBoxItem_MouseDoubleClick;
-                this.syncRecordDict.Add(index, record.SyncId);
-                this.SyncHistoryListBox.Items.Add(listBoxItem);
-                index += 1;
+                List<SyncRecord> syncRecords = SyncRecord.LoadRecentSyncJobs(this.jobsDbPath);
+                this.SyncHistoryListBox.Items.Clear();
+                this.syncRecordDict.Clear();
+                int index = 0;
+                foreach (SyncRecord record in syncRecords)
+                {
+                    ListBoxItem listBoxItem = new ListBoxItem();
+                    Style ctlStyle = Application.Current.TryFindResource("jobListItemResource") as Style;
+                    listBoxItem.DataContext = record;
+                    listBoxItem.Style = ctlStyle;
+                    listBoxItem.MouseDoubleClick += listBoxItem_MouseDoubleClick;
+                    this.syncRecordDict.Add(index, record.SyncId);
+                    this.SyncHistoryListBox.Items.Add(listBoxItem);
+                    index += 1;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error("load recent sync jobs failed, " + ex.Message);
+                //todo popup
             }
         }
 
-        private void listBoxItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+
+        internal void listBoxItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             int selectedIndex = this.SyncHistoryListBox.SelectedIndex;
             if (selectedIndex != -1)
@@ -89,7 +109,7 @@ namespace SunSync
                 }
                 else
                 {
-                    //todo
+                    Log.Error("load sync setting by id failed, " + syncId);
                 }
             }
         }
@@ -97,9 +117,15 @@ namespace SunSync
         /// <summary>
         /// check ak & sk settings
         /// </summary>
-        private void checkAccountSetting()
+        internal void checkAccountSetting()
         {
             Account account = Account.TryLoadAccount();
+            if (account == null)
+            {
+                Log.Info("no account info found");
+                return;
+            }
+
             if (string.IsNullOrEmpty(account.AccessKey) || string.IsNullOrEmpty(account.SecretKey))
             {
                 this.CreateNewTask_TextBlock.Foreground = System.Windows.Media.Brushes.Gray;

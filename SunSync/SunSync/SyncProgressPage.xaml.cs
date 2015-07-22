@@ -65,10 +65,13 @@ namespace SunSync
         private string localHashDBPath;
         private SQLiteConnection localHashDB;
 
+        private string jobsDbPath;
         public SyncProgressPage(MainWindow mainWindow)
         {
             InitializeComponent();
             this.mainWindow = mainWindow;
+            string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunbox", "jobs.db");
             this.resetSyncProgress();
         }
 
@@ -220,9 +223,15 @@ namespace SunSync
                     Directory.CreateDirectory(this.jobLogDir);
                 }
 
-                //write sync settings to db
-                DateTime syncDateTime = DateTime.Now;
-                SyncRecord.RecordSyncJob(this.jobId, syncDateTime, this.syncSetting);
+                if (!File.Exists(this.jobsDbPath))
+                {
+                    SyncRecord.CreateSyncRecordDB(this.jobsDbPath);
+                }
+                else
+                {
+                    DateTime syncDateTime = DateTime.Now;
+                    SyncRecord.RecordSyncJob(this.jobId, syncDateTime, this.syncSetting, this.jobsDbPath);
+                }
             }
             catch (Exception ex)
             {

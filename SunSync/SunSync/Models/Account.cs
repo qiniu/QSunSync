@@ -20,23 +20,24 @@ namespace SunSync.Models
         /// </summary>
         public static Account TryLoadAccount()
         {
-            Account acct = new Account();
+            Account acct = null;
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             string accPath = System.IO.Path.Combine(myDocPath, "qsunbox", "account.json");
             if (File.Exists(accPath))
             {
                 string accData = "";
+                using (StreamReader sr = new StreamReader(accPath, Encoding.UTF8))
+                {
+                    accData = sr.ReadToEnd();
+                }
                 try
                 {
-                    using (StreamReader sr = new StreamReader(accPath, Encoding.UTF8))
-                    {
-                        accData = sr.ReadToEnd();
-                    }
+                    acct = new Account();
                     acct = JsonConvert.DeserializeObject<Account>(accData);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    //ignore the exception
+                    Log.Error("parse account info failed, " + ex.Message);
                 }
             }
             return acct;
