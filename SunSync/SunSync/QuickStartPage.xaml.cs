@@ -23,6 +23,19 @@ namespace SunSync
             this.mainWindow = mainWindow;
             this.syncRecordDict = new Dictionary<int, string>();
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string myAppPath = System.IO.Path.Combine(myDocPath, "qsunbox");
+            if (!Directory.Exists(myAppPath))
+            {
+                try
+                {
+                    Directory.CreateDirectory(myAppPath);
+                }
+                catch (Exception ex)
+                {
+                    Log.Fatal(string.Format("unable to create my app path {0} due to {1}",myAppPath,ex.Message));
+                    App.Current.Shutdown(0);
+                }
+            }
             this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunbox", "jobs.db");
         }
 

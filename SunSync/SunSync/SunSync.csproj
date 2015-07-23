@@ -58,6 +58,12 @@
   <PropertyGroup>
     <ApplicationIcon>sunsync.ico</ApplicationIcon>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>qiniu.pfx</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\..\qiniu-csharp-sdk\Qiniu\Qiniu\bin\x86\Release\Newtonsoft.Json.dll</HintPath>
@@ -170,6 +176,7 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
     <AppDesigner Include="Properties\" />
+    <None Include="qiniu.pfx" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Pictures\cloud.png" />
