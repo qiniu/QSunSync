@@ -19,7 +19,7 @@ namespace SunSync
             InitializeComponent();
 
             //init log
-            Log.init();
+            Log.Init();
 
             //init pages
             this.quickStartPage = new QuickStartPage(this);

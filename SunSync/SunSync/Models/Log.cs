@@ -9,7 +9,7 @@ namespace SunSync.Models
     class Log
     {
         private static TraceSource logSource = new TraceSource("QSunSync");
-        public static void init()
+        public static void Init()
         {
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             string syncLogPath = System.IO.Path.Combine(myDocPath, "qsunbox", "sync.log");
@@ -20,6 +20,7 @@ namespace SunSync.Models
 
             TextWriterTraceListener prodListener = new TextWriterTraceListener(syncLogPath);
             prodListener.Filter = new EventTypeFilter(SourceLevels.Information);
+            prodListener.TraceOutputOptions = TraceOptions.None;
             logSource.Listeners.Add(prodListener);
 
             /*

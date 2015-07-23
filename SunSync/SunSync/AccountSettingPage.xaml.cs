@@ -133,7 +133,7 @@ namespace SunSync
                 }
                 else if (statResult.ResponseInfo.StatusCode == 612 || statResult.ResponseInfo.StatusCode == 631)
                 {
-                    Log.Error("ak & sk is valid");
+                    Log.Info("ak & sk is valid");
                     Dispatcher.Invoke(new Action(delegate
                     {
                         this.SettingsErrorTextBlock.Text = "";
