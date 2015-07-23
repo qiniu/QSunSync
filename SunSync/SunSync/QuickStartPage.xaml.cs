@@ -33,7 +33,6 @@ namespace SunSync
                 catch (Exception ex)
                 {
                     Log.Fatal(string.Format("unable to create my app path {0} due to {1}",myAppPath,ex.Message));
-                    App.Current.Shutdown(0);
                 }
             }
             this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunbox", "jobs.db");
@@ -48,7 +47,14 @@ namespace SunSync
         {
             if (!File.Exists(this.jobsDbPath))
             {
-                SyncRecord.CreateSyncRecordDB(this.jobsDbPath);
+                try
+                {
+                    SyncRecord.CreateSyncRecordDB(this.jobsDbPath);
+                }
+                catch (Exception ex)
+                {
+                    Log.Fatal("create sync db failed, " + ex.Message);
+                }
             }
             else
             {
@@ -104,7 +110,6 @@ namespace SunSync
             catch (Exception ex)
             {
                 Log.Error("load recent sync jobs failed, " + ex.Message);
-                //todo popup
             }
         }
 
