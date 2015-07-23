@@ -64,5 +64,13 @@ namespace SunSync.Models
             logSource.TraceEvent(TraceEventType.Critical, 0, string.Format("[{0}] {1}", timestamp, message));
             logSource.Flush();
         }
+
+        public static void Close()
+        {
+            if (logSource != null)
+            {
+                logSource.Close();
+            }
+        }
     }
 }

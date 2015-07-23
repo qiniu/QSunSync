@@ -193,7 +193,9 @@
     <Resource Include="Pictures\result.png" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="sunsync.ico" />
+    <Content Include="sunsync.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Pictures\reload.png" />

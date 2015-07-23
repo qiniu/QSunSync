@@ -1,6 +1,7 @@
 ﻿using SunSync.Models;
 using System;
 using System.Windows;
+using System.Windows.Forms;
 
 namespace SunSync
 {
@@ -9,6 +10,7 @@ namespace SunSync
     /// </summary>
     public partial class MainWindow : Window
     {
+        private NotifyIcon nIcon;
         private QuickStartPage quickStartPage;
         private AccountSettingPage accountSettingPage;
         private SyncSettingPage syncSettingPage;
@@ -17,9 +19,28 @@ namespace SunSync
         public MainWindow()
         {
             InitializeComponent();
-
             //init log
             Log.Init();
+
+            try
+            {
+                //init tray
+                this.nIcon = new NotifyIcon();
+                this.nIcon.Text = "QSunSync七牛云数据同步";
+                this.nIcon.BalloonTipText = "QSunSync七牛云数据同步";
+                this.nIcon.Icon = new System.Drawing.Icon("sunsync.ico");
+                this.nIcon.Visible = false;
+                this.nIcon.MouseDoubleClick += NotifyIcon_MouseDoubleClick_EventHandler;
+                this.nIcon.ShowBalloonTip(2000);
+                MenuItem exitItem = new MenuItem("退出 QSunSync");
+                exitItem.Click += ExitApp_EventHandler;
+                ContextMenu ctxMenu = new ContextMenu(new MenuItem[] { exitItem });
+                this.nIcon.ContextMenu = ctxMenu;
+            }
+            catch (Exception ex)
+            {
+                Log.Error("init the tray icon failed, " + ex.Message);
+            }
 
             //init pages
             this.quickStartPage = new QuickStartPage(this);
@@ -27,6 +48,17 @@ namespace SunSync
             this.syncSettingPage = new SyncSettingPage(this);
             this.syncProgressPage = new SyncProgressPage(this);
             this.syncResultPage = new SyncResultPage(this);
+        }
+
+        private void ExitApp_EventHandler(object sender, EventArgs e)
+        {
+            MessageBoxResult msgResult = System.Windows.MessageBox.Show("确认退出 QSunSync？", "退出 QSunSync",
+                MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (msgResult.Equals(MessageBoxResult.Yes))
+            {
+                Log.Close();
+                Environment.Exit(1);
+            }
         }
 
         //default page
@@ -78,6 +110,21 @@ namespace SunSync
                 this.syncResultPage.LoadSyncResult(jobId, spentTime, fileOverwrite, fileExistsCount, fileExistsLogPath, fileOverwriteCount, fileOverwriteLogPath,
                     fileNotOverwriteCount, fileNotOverwriteLogPath, fileUploadErrorCount, fileUploadErrorLogPath, fileUploadSuccessCount, fileUploadSuccessLogPath);
             }));
+        }
+
+        private void MainWindow_Closing_EventHandler(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            e.Cancel = true;
+            this.WindowState = WindowState.Minimized;
+            this.ShowInTaskbar = false;
+            this.nIcon.Visible = true;
+        }
+
+        private void NotifyIcon_MouseDoubleClick_EventHandler(object sender, MouseEventArgs e)
+        {
+            this.WindowState = WindowState.Normal;
+            this.nIcon.Visible = false;
+            this.ShowInTaskbar = true;
         }
     }
 }
