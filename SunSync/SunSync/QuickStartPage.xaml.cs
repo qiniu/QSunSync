@@ -32,7 +32,7 @@ namespace SunSync
                 }
                 catch (Exception ex)
                 {
-                    Log.Fatal(string.Format("unable to create my app path {0} due to {1}",myAppPath,ex.Message));
+                    Log.Fatal(string.Format("unable to create my app path {0} due to {1}", myAppPath, ex.Message));
                 }
             }
             this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunbox", "jobs.db");
@@ -138,14 +138,9 @@ namespace SunSync
         internal void checkAccountSetting()
         {
             Account account = Account.TryLoadAccount();
-            if (account == null)
-            {
-                Log.Info("no account info found");
-                return;
-            }
-
             if (string.IsNullOrEmpty(account.AccessKey) || string.IsNullOrEmpty(account.SecretKey))
             {
+                Log.Info("no account info found");
                 this.CreateNewTask_TextBlock.Foreground = System.Windows.Media.Brushes.Gray;
                 this.CreateNewTask_TextBlock.IsEnabled = false;
             }

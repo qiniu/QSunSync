@@ -101,21 +101,15 @@ namespace SunSync
         private void initBucketManager()
         {
             this.account = Account.TryLoadAccount();
-            if (this.account == null)
+
+            if (string.IsNullOrEmpty(account.AccessKey) || string.IsNullOrEmpty(account.SecretKey))
             {
-                Log.Info("no account info found");
+                Log.Info("account info not set");
+                this.SettingsErrorTextBlock.Text = "请返回设置 AK 和 SK";
                 return;
             }
-            else
-            {
-                if (string.IsNullOrEmpty(account.AccessKey) || string.IsNullOrEmpty(account.SecretKey))
-                {
-                    this.SettingsErrorTextBlock.Text = "请返回设置 AK 和 SK";
-                    return;
-                }
-                Mac mac = new Mac(this.account.AccessKey, this.account.SecretKey);
-                this.bucketManager = new BucketManager(mac);
-            }
+            Mac mac = new Mac(this.account.AccessKey, this.account.SecretKey);
+            this.bucketManager = new BucketManager(mac);
         }
 
         /// <summary>

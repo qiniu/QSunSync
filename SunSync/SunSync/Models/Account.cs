@@ -20,7 +20,7 @@ namespace SunSync.Models
         /// </summary>
         public static Account TryLoadAccount()
         {
-            Account acct = null;
+            Account acct = new Account();
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             string accPath = System.IO.Path.Combine(myDocPath, "qsunbox", "account.json");
             if (File.Exists(accPath))
@@ -32,7 +32,6 @@ namespace SunSync.Models
                 }
                 try
                 {
-                    acct = new Account();
                     acct = JsonConvert.DeserializeObject<Account>(accData);
                 }
                 catch (Exception ex)

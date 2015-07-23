@@ -53,10 +53,6 @@ namespace SunSync
         private void loadAccountInfo()
         {
             Account acct = Account.TryLoadAccount();
-            if (acct == null)
-            {
-                return;
-            }
             if (!string.IsNullOrEmpty(acct.AccessKey))
             {
                 this.AccessKeyTextBox.Text = acct.AccessKey;
