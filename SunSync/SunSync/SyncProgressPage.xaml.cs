@@ -164,8 +164,45 @@ namespace SunSync
             }
         }
 
+        internal void processDirCount(string rootDir, string targetDir)
+        {
+            try
+            {
+                string[] fileEntries = Directory.GetFiles(targetDir);
+                foreach (string fileName in fileEntries)
+                {
+                    this.totalCount += 1;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(string.Format("counting: get files from {0} failed due to {1}", targetDir, ex.Message));
+            }
+
+            if (this.cancelSignal)
+            {
+                return;
+            }
+
+            try
+            {
+                string[] subDirs = Directory.GetDirectories(targetDir);
+                foreach (string subDir in subDirs)
+                {
+                    if (this.cancelSignal)
+                    {
+                        return;
+                    }
+                    processDirCount(rootDir, subDir);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(string.Format("counting: get dirs from {0} failed due to {1}", targetDir, ex.Message));
+            }
+        }
         
-        internal void processDir(string rootDir, string targetDir)
+        internal void processDirUpload(string rootDir, string targetDir)
         {
             try
             {
@@ -207,7 +244,7 @@ namespace SunSync
                     {
                         return;
                     }
-                    processDir(rootDir, subDir);
+                    processDirUpload(rootDir, subDir);
                 }
             }
             catch (Exception ex)
@@ -221,7 +258,6 @@ namespace SunSync
         internal void uploadFiles(List<string> filesToUpload)
         {
             ManualResetEvent[] doneEvents = null;
-            this.totalCount = filesToUpload.Count;
             int taskMax = filesToUpload.Count;
             doneEvents = new ManualResetEvent[taskMax];
             ThreadPool.SetMinThreads(taskMax, taskMax);
@@ -340,7 +376,12 @@ namespace SunSync
 
             //list dirs
             string localSyncDir = syncSetting.SyncLocalDir;
-            processDir(localSyncDir, localSyncDir);
+            //count
+            this.updateUploadLog(string.Format("正在计算{0}下文件总数...", localSyncDir));
+            this.processDirCount(localSyncDir, localSyncDir);
+            //upload
+            this.updateUploadLog(string.Format("开始同步{0}下所有文件...", localSyncDir));
+            this.processDirUpload(localSyncDir, localSyncDir);
             if (!this.cancelSignal)
             {
                 //finish the remained

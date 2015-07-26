@@ -76,7 +76,7 @@ namespace SunSync.Models
 
             bool overwriteKey = false;
             //get local hash
-            string localHash = CachedHash.GetLocalHash(fileFullPath,this.syncProgressPage.LocalHashDB());
+            string localHash = CachedHash.GetLocalHash(fileFullPath, this.syncProgressPage.LocalHashDB());
             StatResult statResult = bucketManager.stat(this.syncSetting.SyncTargetBucket, fileKey);
 
             if (!string.IsNullOrEmpty(statResult.Hash))
@@ -125,11 +125,12 @@ namespace SunSync.Models
             putPolicy.SetExpires(24 * 30 * 3600);
             string uptoken = Auth.createUploadToken(putPolicy, mac);
             long fileLength = new FileInfo(fileFullPath).Length;
+            this.syncProgressPage.updateUploadLog("开始上传文件 " + fileFullPath);
             uploadManger.uploadFile(fileFullPath, fileKey, uptoken, new UploadOptions(null, null, false,
                 new UpProgressHandler(delegate(string key, double percent)
                 {
                     string uploadProgress = string.Format("{0}", percent.ToString("P"));
-                    this.syncProgressPage.updateSingleFileProgress(taskId,fileFullPath,fileKey,uploadProgress);
+                    this.syncProgressPage.updateSingleFileProgress(taskId, fileFullPath, fileKey, uploadProgress);
 
                 }), new UpCancellationSignal(delegate()
                 {
