@@ -64,6 +64,9 @@
   <PropertyGroup>
     <AssemblyOriginatorKeyFile>qiniu.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
+  <PropertyGroup>
+    <NoWin32Manifest>true</NoWin32Manifest>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\..\qiniu-csharp-sdk\Qiniu\Qiniu\bin\x86\Release\Newtonsoft.Json.dll</HintPath>
