@@ -56,6 +56,7 @@ namespace SunSync
                 MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (msgResult.Equals(MessageBoxResult.Yes))
             {
+                this.nIcon.Dispose();
                 Log.Close();
                 Environment.Exit(1);
             }

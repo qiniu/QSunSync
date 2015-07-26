@@ -7,17 +7,6 @@ namespace SunSync.Models
     class Tools
     {
         /// <summary>
-        /// url safe base64 encoding
-        /// </summary>
-        /// <param name="str">str to encode</param>
-        /// <returns>str encoded</returns>
-        public static string urlsafeBase64Encode(string str)
-        {
-            byte[] data = Encoding.UTF8.GetBytes(str);
-            return Convert.ToBase64String(data, 0, data.Length).Replace('+', '-').Replace('/', '_');
-        }
-
-        /// <summary>
         /// md5 hash in hex string
         /// </summary>
         /// <param name="str">str to hash</param>
