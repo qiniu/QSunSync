@@ -195,6 +195,7 @@
   <ItemGroup>
     <Resource Include="Pictures\sun_logo.jpg" />
     <Resource Include="Pictures\qiniu_logo.jpg" />
+    <Resource Include="Pictures\sunsync.ico" />
     <Content Include="sunsync.ico">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
