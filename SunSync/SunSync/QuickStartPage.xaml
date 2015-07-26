@@ -13,7 +13,8 @@
             <RowDefinition Height="*"></RowDefinition>
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0">
-            <Image Source="Pictures/logo.jpg" Height="100"></Image>
+            <Image Source="Pictures/sun_logo.jpg" Height="100" 
+                   MouseLeftButtonUp="ChangeTopBgImage_EventHandler" Name="TopLogoImage" Margin="0"></Image>
         </StackPanel>
         <Grid Grid.Row="2">
         <Grid.ColumnDefinitions>

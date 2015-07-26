@@ -22,7 +22,7 @@ namespace SunSync.Models
         {
             Account acct = new Account();
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string accPath = System.IO.Path.Combine(myDocPath, "qsunbox", "account.json");
+            string accPath = System.IO.Path.Combine(myDocPath, "qsunsync", "account.json");
             if (File.Exists(accPath))
             {
                 string accData = "";

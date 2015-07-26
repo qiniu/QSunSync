@@ -212,6 +212,7 @@ namespace SunSync
         /// <param name="e"></param>
         private void ReloadBucketButton_EventHandler(object sender, RoutedEventArgs e)
         {
+            this.SettingsErrorTextBlock.Text = "";
             new Thread(new ThreadStart(this.reloadBuckets)).Start();
         }
 

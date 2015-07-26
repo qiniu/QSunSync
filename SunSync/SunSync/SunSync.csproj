@@ -188,12 +188,13 @@
   <ItemGroup>
     <Resource Include="Pictures\back.png" />
     <Resource Include="Pictures\home.png" />
-    <Resource Include="Pictures\logo.jpg" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Pictures\result.png" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="Pictures\sun_logo.jpg" />
+    <Resource Include="Pictures\qiniu_logo.jpg" />
     <Content Include="sunsync.ico">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

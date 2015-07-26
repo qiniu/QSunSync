@@ -64,7 +64,7 @@ namespace SunSync.Models
             recorderKey = Tools.md5Hash(recorderKey);
 
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string recordPath = System.IO.Path.Combine(myDocPath, "qsunbox", "record");
+            string recordPath = System.IO.Path.Combine(myDocPath, "qsunsync", "record");
             if (!Directory.Exists(recordPath))
             {
                 Directory.CreateDirectory(recordPath);

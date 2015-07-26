@@ -91,9 +91,9 @@ namespace SunSync
             this.jobId = Tools.md5Hash(jobName);
 
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunbox", "jobs.db");
-            this.jobLogDir = System.IO.Path.Combine(myDocPath, "qsunbox", "logs", jobId);
-            this.localHashDBPath = System.IO.Path.Combine(myDocPath, "qsunbox", "hash.db");
+            this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunsync", "jobs.db");
+            this.jobLogDir = System.IO.Path.Combine(myDocPath, "qsunsync", "logs", jobId);
+            this.localHashDBPath = System.IO.Path.Combine(myDocPath, "qsunsync", "hash.db");
         }
 
         private void SyncProgressPageLoaded_EventHandler(object sender, RoutedEventArgs e)

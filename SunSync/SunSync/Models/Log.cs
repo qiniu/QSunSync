@@ -12,7 +12,7 @@ namespace SunSync.Models
         public static void Init()
         {
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string syncLogPath = System.IO.Path.Combine(myDocPath, "qsunbox", "sync.log");
+            string syncLogPath = System.IO.Path.Combine(myDocPath, "qsunsync", "sync.log");
 
             logSource.Switch = new SourceSwitch("logSwitch");
             logSource.Switch.Level = SourceLevels.All;

@@ -5,6 +5,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media.Imaging;
 
 namespace SunSync
 {
@@ -16,6 +17,8 @@ namespace SunSync
         private MainWindow mainWindow;
         private Dictionary<int, string> syncRecordDict;
         private string jobsDbPath;
+        private List<string> topBGImages;
+        private int clickCount;
 
         public QuickStartPage(MainWindow mainWindow)
         {
@@ -23,7 +26,7 @@ namespace SunSync
             this.mainWindow = mainWindow;
             this.syncRecordDict = new Dictionary<int, string>();
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string myAppPath = System.IO.Path.Combine(myDocPath, "qsunbox");
+            string myAppPath = System.IO.Path.Combine(myDocPath, "qsunsync");
             if (!Directory.Exists(myAppPath))
             {
                 try
@@ -35,7 +38,11 @@ namespace SunSync
                     Log.Fatal(string.Format("unable to create my app path {0} due to {1}", myAppPath, ex.Message));
                 }
             }
-            this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunbox", "jobs.db");
+            this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunsync", "jobs.db");
+            this.topBGImages = new List<string>();
+            this.topBGImages.Add("Pictures/sun_logo.jpg");
+            this.topBGImages.Add("Pictures/qiniu_logo.jpg");
+            this.clickCount = 0;
         }
 
         /// <summary>
@@ -149,6 +156,14 @@ namespace SunSync
                 this.CreateNewTask_TextBlock.Foreground = System.Windows.Media.Brushes.MediumBlue;
                 this.CreateNewTask_TextBlock.IsEnabled = true;
             }
+        }
+
+        private void ChangeTopBgImage_EventHandler(object sender, MouseButtonEventArgs e)
+        {
+            int imgCnt = this.topBGImages.Count;
+            clickCount += 1;
+            int index = clickCount % imgCnt;
+            this.TopLogoImage.Source = new BitmapImage(new Uri(this.topBGImages[index], UriKind.Relative));
         }
     }
 }

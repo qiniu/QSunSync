@@ -72,7 +72,7 @@ namespace SunSync
             //write settings to local file
             string accData = JsonConvert.SerializeObject(account);
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string appDir = System.IO.Path.Combine(myDocPath, "qsunbox");
+            string appDir = System.IO.Path.Combine(myDocPath, "qsunsync");
             try
             {
                 if (!Directory.Exists(appDir))
