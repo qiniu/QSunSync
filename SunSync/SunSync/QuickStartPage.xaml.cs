@@ -39,9 +39,9 @@ namespace SunSync
                 }
             }
             this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunsync", "jobs.db");
-            this.topBGImages = new List<string>();
-            this.topBGImages.Add("Pictures/sun_logo.jpg");
+            this.topBGImages = new List<string>(); 
             this.topBGImages.Add("Pictures/qiniu_logo.jpg");
+            this.topBGImages.Add("Pictures/sun_logo.jpg");   
             this.clickCount = 0;
         }
 

@@ -166,11 +166,16 @@ namespace SunSync
 
         internal void processDirCount(string rootDir, string targetDir)
         {
+            this.updateUploadLog(string.Format("正在遍历目录 {0} ...",targetDir));
             try
             {
                 string[] fileEntries = Directory.GetFiles(targetDir);
                 foreach (string fileName in fileEntries)
                 {
+                    if (this.cancelSignal)
+                    {
+                        break;
+                    }
                     this.totalCount += 1;
                 }
             }

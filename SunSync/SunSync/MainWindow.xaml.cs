@@ -26,8 +26,8 @@ namespace SunSync
             {
                 //init tray
                 this.nIcon = new NotifyIcon();
-                this.nIcon.Text = "QSunSync七牛云数据同步";
-                this.nIcon.BalloonTipText = "QSunSync七牛云数据同步";
+                this.nIcon.Text = "QSunSync 七牛云文件同步";
+                this.nIcon.BalloonTipText = "QSunSync 七牛云文件同步";
                 this.nIcon.Icon = new System.Drawing.Icon("sunsync.ico");
                 this.nIcon.Visible = false;
                 this.nIcon.MouseDoubleClick += NotifyIcon_MouseDoubleClick_EventHandler;

@@ -8,7 +8,7 @@ using System.Windows;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("QSunSync")]
-[assembly: AssemblyDescription("七牛云数据同步工具")]
+[assembly: AssemblyDescription("七牛云文件同步工具")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("上海七牛信息技术有限公司")]
 [assembly: AssemblyProduct("QSunSync")]
@@ -51,5 +51,5 @@ using System.Windows;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.2.2.0")]
-[assembly: AssemblyFileVersion("1.2.2.0")]
+[assembly: AssemblyVersion("1.2.3.0")]
+[assembly: AssemblyFileVersion("1.2.3.0")]
