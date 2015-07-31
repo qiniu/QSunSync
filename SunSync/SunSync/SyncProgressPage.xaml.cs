@@ -6,11 +6,6 @@ using System.Text;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Documents;
-using Qiniu.Http;
-using Qiniu.Storage;
-using Qiniu.Util;
-using Qiniu.Storage.Model;
 using System.Collections.ObjectModel;
 using System.Data.SQLite;
 
@@ -27,6 +22,7 @@ namespace SunSync
         private string jobId;
         private string jobLogDir;
         private DateTime jobStart;
+
         private object progressLock;
         private object uploadLogLock;
 
@@ -109,6 +105,8 @@ namespace SunSync
 
         private void SyncProgressPageLoaded_EventHandler(object sender, RoutedEventArgs e)
         {
+            //clear cache status
+            this.cacheDone = false;
             this.lastUploadPoint = null;
             //clear old sync status
             this.resetSyncStatus();
@@ -208,8 +206,6 @@ namespace SunSync
                     catch (Exception ex)
                     {
                         Log.Error(string.Format("write sync dir cache failed for {0} due to {1}", fileName, ex.Message));
-                        this.updateUploadLog("同步发生严重错误，请查看日志信息。");
-                        return;
                     }
                 }
             }
@@ -237,7 +233,7 @@ namespace SunSync
             }
             catch (Exception ex)
             {
-                Log.Error(string.Format("counting: get dirs from {0} failed due to {1}", targetDir, ex.Message));
+                Log.Error(string.Format("listing: get dirs from {0} failed due to {1}", targetDir, ex.Message));
             }
         }
 
@@ -268,14 +264,15 @@ namespace SunSync
                             }
                         }
 
-                        if (batchOpFiles.Count < this.syncSetting.SyncThreadCount)
+                        if (this.batchOpFiles.Count < this.syncSetting.SyncThreadCount)
                         {
-                            batchOpFiles.Add(fileName);
+                            this.batchOpFiles.Add(fileName);
                         }
                         else
                         {
-                            this.uploadFiles(batchOpFiles);
+                            this.uploadFiles(this.batchOpFiles);
                             this.batchOpFiles.Clear();
+                            this.batchOpFiles.Add(fileName);
                         }
                     }
                 }
@@ -458,12 +455,14 @@ namespace SunSync
                 {
                     this.syncDirCacheWriter.Flush();
                     this.syncDirCacheWriter.Close();
+                    this.cacheDone = true;
+
+                    Log.Info(string.Format("list dir {0} last for {1} s", localSyncDir, DateTime.Now.Subtract(startListTime).TotalSeconds));
                 }
                 catch (Exception ex)
                 {
-                    Log.Error(string.Format("close cache file {0} failed due to {1}", this.cacheFile, ex.Message));
+                    Log.Error(string.Format("flush or close cache file {0} failed due to {1}", this.cacheFile, ex.Message));
                 }
-                Log.Info(string.Format("list dir {0} last for {1} s", localSyncDir, DateTime.Now.Subtract(startListTime).TotalSeconds));
             }
             //upload
             this.updateUploadLog(string.Format("开始同步{0}下所有文件...", localSyncDir));
