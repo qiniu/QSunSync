@@ -215,7 +215,6 @@
     </None>
     <AppDesigner Include="Properties\" />
     <None Include="qiniu.pfx" />
-    <None Include="SunSync_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Pictures\cloud.png" />

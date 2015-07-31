@@ -71,14 +71,16 @@ namespace SunSync
 
         private string cacheDir;
         private string cacheFile;
+        private bool cacheDone;
         private StreamWriter syncDirCacheWriter;
+        private string lastUploadPoint;
 
         public SyncProgressPage(MainWindow mainWindow)
         {
             InitializeComponent();
             this.mainWindow = mainWindow;
             this.batchOpFiles = new List<string>();
-            this.resetSyncProgress();
+            this.resetSyncStatus();
         }
 
         public SQLiteConnection LocalHashDB()
@@ -100,22 +102,23 @@ namespace SunSync
             this.localHashDBPath = System.IO.Path.Combine(myDocPath, "qsunsync", "hash.db");
             this.cacheDir = System.IO.Path.Combine(myDocPath, "qsunsync", "cache");
 
-            string cacheId = Tools.md5Hash(string.Format("{0}@{1}",this.jobId,System.DateTime.Now.ToFileTime()));
+            string cacheId = Tools.md5Hash(string.Format("{0}@{1}", this.jobId, System.DateTime.Now.ToFileTime()));
             this.cacheFile = System.IO.Path.Combine(cacheDir, cacheId);
 
         }
 
         private void SyncProgressPageLoaded_EventHandler(object sender, RoutedEventArgs e)
         {
+            this.lastUploadPoint = null;
             //clear old sync status
-            this.resetSyncProgress();
+            this.resetSyncStatus();
 
             //run new sync job
             Thread jobThread = new Thread(new ThreadStart(this.runSyncJob));
             jobThread.Start();
         }
 
-        private void resetSyncProgress()
+        private void resetSyncStatus()
         {
             this.doneCount = 0;
             this.totalCount = 0;
@@ -124,7 +127,7 @@ namespace SunSync
             this.fileExistsCount = 0;
             this.fileExistsLock = new object();
             this.fileOverwriteCount = 0;
-            this.fileOverwriteLock = new object(); 
+            this.fileOverwriteLock = new object();
             this.fileNotOverwriteCount = 0;
             this.fileNotOverwriteLock = new object();
             this.fileUploadErrorCount = 0;
@@ -140,6 +143,18 @@ namespace SunSync
             ObservableCollection<UploadInfo> dataSource = new ObservableCollection<UploadInfo>();
             this.UploadProgressDataGrid.DataContext = dataSource;
             this.batchOpFiles.Clear();
+        }
+
+        internal void dropCacheFile()
+        {
+            try
+            {
+                File.Delete(this.cacheFile);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(string.Format("drop cache file {0} failed due to {1}", this.cacheFile, ex.Message));
+            }
         }
 
         internal void closeLogWriters()
@@ -175,7 +190,7 @@ namespace SunSync
 
         internal void processDir(string rootDir, string targetDir)
         {
-            this.updateUploadLog(string.Format("正在遍历目录 {0} ...",targetDir));
+            this.updateUploadLog(string.Format("正在遍历目录 {0} ...", targetDir));
             try
             {
                 string[] fileEntries = Directory.GetFiles(targetDir);
@@ -226,11 +241,12 @@ namespace SunSync
             }
         }
 
-        internal void processUpload(string cacheFile)
+        internal void processUpload(string cacheFile, string lastUploadedPoint)
         {
             try
             {
                 string fileName = null;
+                bool hit = false;
                 using (StreamReader sw = new StreamReader(this.cacheFile, Encoding.UTF8))
                 {
                     while ((fileName = sw.ReadLine()) != null)
@@ -238,6 +254,18 @@ namespace SunSync
                         if (this.cancelSignal)
                         {
                             return;
+                        }
+
+                        if (!hit)
+                        {
+                            if (!string.IsNullOrEmpty(lastUploadPoint) && !fileName.Equals(lastUploadPoint))
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                hit = true;
+                            }
                         }
 
                         if (batchOpFiles.Count < this.syncSetting.SyncThreadCount)
@@ -254,13 +282,17 @@ namespace SunSync
             }
             catch (Exception ex)
             {
-                Log.Error(string.Format("open cache file {0} failed due to {1}", this.cacheFile, ex.Message));
+                Log.Fatal(string.Format("open cache file {0} failed due to {1}", this.cacheFile, ex.Message));
             }
         }
 
 
         internal void uploadFiles(List<string> filesToUpload)
         {
+            if (filesToUpload.Count > 0)
+            {
+                this.lastUploadPoint = filesToUpload[0];
+            }
             ManualResetEvent[] doneEvents = null;
             int taskMax = filesToUpload.Count;
             doneEvents = new ManualResetEvent[taskMax];
@@ -280,7 +312,7 @@ namespace SunSync
             }
             catch (Exception ex)
             {
-                Log.Error("wait for job to complete error, "+ex.Message);
+                Log.Error("wait for job to complete error, " + ex.Message);
             }
         }
 
@@ -416,21 +448,26 @@ namespace SunSync
 
             //list dirs
             string localSyncDir = syncSetting.SyncLocalDir;
-            //list & count
-            this.updateUploadLog(string.Format("正在计算{0}下文件总数...", localSyncDir));
-            this.processDir(localSyncDir, localSyncDir);
-            try
+            if (!File.Exists(this.cacheFile) || !cacheDone)
             {
-                this.syncDirCacheWriter.Flush();
-                this.syncDirCacheWriter.Close();
-            }
-            catch (Exception ex)
-            {
-                Log.Error(string.Format("close cache file {0} failed due to {1}", this.cacheFile, ex.Message));
+                DateTime startListTime = DateTime.Now;
+                //list & count
+                this.updateUploadLog(string.Format("正在遍历{0}下文件...", localSyncDir));
+                this.processDir(localSyncDir, localSyncDir);
+                try
+                {
+                    this.syncDirCacheWriter.Flush();
+                    this.syncDirCacheWriter.Close();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("close cache file {0} failed due to {1}", this.cacheFile, ex.Message));
+                }
+                Log.Info(string.Format("list dir {0} last for {1} s", localSyncDir, DateTime.Now.Subtract(startListTime).TotalSeconds));
             }
             //upload
             this.updateUploadLog(string.Format("开始同步{0}下所有文件...", localSyncDir));
-            this.processUpload(this.cacheFile);
+            this.processUpload(this.cacheFile, this.lastUploadPoint);
             if (!this.cancelSignal && this.batchOpFiles.Count > 0)
             {
                 //finish the remained
@@ -438,14 +475,13 @@ namespace SunSync
                 this.batchOpFiles.Clear();
             }
 
-
+            //set finish signal
+            this.finishSignal = true;
+            this.closeLogWriters();
+            this.localHashDB.Close();
             if (!this.cancelSignal)
             {
-                //set finish signal
-                this.finishSignal = true;
-                this.closeLogWriters();
-                this.localHashDB.Close();
-
+                this.dropCacheFile();
                 //job auto finish, jump to result page
                 DateTime jobEnd = System.DateTime.Now;
                 this.mainWindow.GotoSyncResultPage(this.jobId, jobEnd - jobStart, this.syncSetting.OverwriteFile, this.fileExistsCount, this.fileExistsLogPath, this.fileOverwriteCount,
@@ -591,7 +627,7 @@ namespace SunSync
             if (this.cancelSignal)
             {
                 //reset
-                this.resetSyncProgress();
+                this.resetSyncStatus();
                 this.UploadActionButton.IsEnabled = true;
                 this.UploadActionButton.Content = "暂停";
                 Thread jobThread = new Thread(new ThreadStart(this.runSyncJob));
@@ -619,13 +655,12 @@ namespace SunSync
 
         private void ManualFinishButton_EventHandler(object sender, RoutedEventArgs e)
         {
+            this.dropCacheFile();
             DateTime jobEnd = System.DateTime.Now;
             this.mainWindow.GotoSyncResultPage(this.jobId, jobEnd - jobStart, this.syncSetting.OverwriteFile, this.fileExistsCount, this.fileExistsLogPath, this.fileOverwriteCount,
                this.fileOverwriteLogPath, this.fileNotOverwriteCount, this.fileNotOverwriteLogPath, this.fileUploadErrorCount, this.fileUploadErrorLogPath,
                this.fileUploadSuccessCount, this.fileUploadSuccessLogPath);
         }
-
-       
 
     }
 }
