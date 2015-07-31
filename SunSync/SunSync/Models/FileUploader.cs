@@ -52,7 +52,7 @@ namespace SunSync.Models
             }
             //add prefix
             fileKey = this.syncSetting.SyncPrefix + fileKey;
-            this.syncProgressPage.updateUploadLog("准备上传文件 " + fileFullPath);
+            
             //set upload params
             Qiniu.Common.Config.UPLOAD_HOST = this.syncSetting.UploadEntryDomain;
             Qiniu.Common.Config.UP_HOST = this.syncSetting.UploadEntryDomain;
@@ -111,6 +111,7 @@ namespace SunSync.Models
             }
 
             //if file not exists or need to overwrite
+            this.syncProgressPage.updateUploadLog("准备上传文件 " + fileFullPath);
             UploadManager uploadManger = new UploadManager(new Qiniu.Storage.Persistent.ResumeRecorder(recordPath),
                 new Qiniu.Storage.Persistent.KeyGenerator(delegate() { return recorderKey; }));
             PutPolicy putPolicy = new PutPolicy();

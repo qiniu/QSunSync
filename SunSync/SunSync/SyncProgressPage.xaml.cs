@@ -69,6 +69,10 @@ namespace SunSync
 
         private List<string> batchOpFiles;
 
+        private string cacheDir;
+        private string cacheFile;
+        private StreamWriter syncDirCacheWriter;
+
         public SyncProgressPage(MainWindow mainWindow)
         {
             InitializeComponent();
@@ -94,6 +98,11 @@ namespace SunSync
             this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunsync", "jobs.db");
             this.jobLogDir = System.IO.Path.Combine(myDocPath, "qsunsync", "logs", jobId);
             this.localHashDBPath = System.IO.Path.Combine(myDocPath, "qsunsync", "hash.db");
+            this.cacheDir = System.IO.Path.Combine(myDocPath, "qsunsync", "cache");
+
+            string cacheId = Tools.md5Hash(string.Format("{0}@{1}",this.jobId,System.DateTime.Now.ToFileTime()));
+            this.cacheFile = System.IO.Path.Combine(cacheDir, cacheId);
+
         }
 
         private void SyncProgressPageLoaded_EventHandler(object sender, RoutedEventArgs e)
@@ -164,7 +173,7 @@ namespace SunSync
             }
         }
 
-        internal void processDirCount(string rootDir, string targetDir)
+        internal void processDir(string rootDir, string targetDir)
         {
             this.updateUploadLog(string.Format("正在遍历目录 {0} ...",targetDir));
             try
@@ -177,6 +186,16 @@ namespace SunSync
                         break;
                     }
                     this.totalCount += 1;
+                    try
+                    {
+                        this.syncDirCacheWriter.WriteLine(fileName);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(string.Format("write sync dir cache failed for {0} due to {1}", fileName, ex.Message));
+                        this.updateUploadLog("同步发生严重错误，请查看日志信息。");
+                        return;
+                    }
                 }
             }
             catch (Exception ex)
@@ -198,7 +217,7 @@ namespace SunSync
                     {
                         return;
                     }
-                    processDirCount(rootDir, subDir);
+                    processDir(rootDir, subDir);
                 }
             }
             catch (Exception ex)
@@ -206,56 +225,36 @@ namespace SunSync
                 Log.Error(string.Format("counting: get dirs from {0} failed due to {1}", targetDir, ex.Message));
             }
         }
-        
-        internal void processDirUpload(string rootDir, string targetDir)
+
+        internal void processUpload(string cacheFile)
         {
             try
             {
-                string[] fileEntries = Directory.GetFiles(targetDir);
-                foreach (string fileName in fileEntries)
+                string fileName = null;
+                using (StreamReader sw = new StreamReader(this.cacheFile, Encoding.UTF8))
                 {
-                    if (this.cancelSignal)
+                    while ((fileName = sw.ReadLine()) != null)
                     {
-                        return;
-                    }
-                    if (batchOpFiles.Count < this.syncSetting.SyncThreadCount)
-                    {
-                        batchOpFiles.Add(fileName);
-                    }
-                    else
-                    {
-                        this.uploadFiles(batchOpFiles);
-                        this.batchOpFiles.Clear();
+                        if (this.cancelSignal)
+                        {
+                            return;
+                        }
+
+                        if (batchOpFiles.Count < this.syncSetting.SyncThreadCount)
+                        {
+                            batchOpFiles.Add(fileName);
+                        }
+                        else
+                        {
+                            this.uploadFiles(batchOpFiles);
+                            this.batchOpFiles.Clear();
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
-                this.updateUploadLog(string.Format("无法获取路径 {0} 下文件列表, {1}", targetDir, ex.Message));
-                Log.Error(string.Format("get files from {0} failed due to {1}", targetDir, ex.Message));
-            }
-
-            if (this.cancelSignal)
-            {
-                return;
-            }
-
-            try
-            {
-                string[] subDirs = Directory.GetDirectories(targetDir);
-                foreach (string subDir in subDirs)
-                {
-                    if (this.cancelSignal)
-                    {
-                        return;
-                    }
-                    processDirUpload(rootDir, subDir);
-                }
-            }
-            catch (Exception ex)
-            {
-                this.updateUploadLog(string.Format("无法获取路径 {0} 下文件夹列表, {1}", targetDir, ex.Message));
-                Log.Error(string.Format("get dirs from {0} failed due to {1}", targetDir, ex.Message));
+                Log.Error(string.Format("open cache file {0} failed due to {1}", this.cacheFile, ex.Message));
             }
         }
 
@@ -285,8 +284,9 @@ namespace SunSync
             }
         }
 
-        internal void prepBeforeRunJob()
+        internal bool prepBeforeRunJob()
         {
+            bool checkOk = true;
             if (!Directory.Exists(this.jobLogDir))
             {
                 try
@@ -295,10 +295,25 @@ namespace SunSync
                 }
                 catch (Exception ex)
                 {
+                    checkOk = false;
                     Log.Error(string.Format("create job log dir {0} failed due to {1},", this.jobLogDir, ex.Message));
                 }
             }
 
+            if (!Directory.Exists(this.cacheDir))
+            {
+                try
+                {
+                    Directory.CreateDirectory(this.cacheDir);
+                }
+                catch (Exception ex)
+                {
+                    checkOk = false;
+                    Log.Error(string.Format("create list cache dir {0} failed due to {1},", this.cacheDir, ex.Message));
+                }
+            }
+
+            //check jobs db
             if (!File.Exists(this.jobsDbPath))
             {
                 try
@@ -307,6 +322,7 @@ namespace SunSync
                 }
                 catch (Exception ex)
                 {
+                    checkOk = false;
                     Log.Error("create sync record db failed, " + ex.Message);
                 }
             }
@@ -319,6 +335,7 @@ namespace SunSync
                 }
                 catch (Exception ex)
                 {
+                    checkOk = false;
                     Log.Error("record sync job failed, " + ex.Message);
                 }
             }
@@ -345,6 +362,7 @@ namespace SunSync
             }
             catch (Exception ex)
             {
+                checkOk = false;
                 Log.Error("init the log writer failed, " + ex.Message);
             }
 
@@ -356,14 +374,31 @@ namespace SunSync
                 }
                 catch (Exception ex)
                 {
+                    checkOk = false;
                     Log.Error("create cached hash db failed, " + ex.Message);
                 }
             }
+
+            try
+            {
+                this.syncDirCacheWriter = new StreamWriter(this.cacheFile, false, Encoding.UTF8);
+            }
+            catch (Exception ex)
+            {
+                checkOk = false;
+                Log.Error(string.Format("open cache file {0} failed due to {1}", this.cacheFile, ex.Message));
+            }
+            return checkOk;
         }
         //main job scheduler
         internal void runSyncJob()
         {
-            this.prepBeforeRunJob();
+            bool checkOk = this.prepBeforeRunJob();
+            if (!checkOk)
+            {
+                this.updateUploadLog("同步发生严重错误，请查看日志信息。");
+                return;
+            }
             //open database
             string conStr = new SQLiteConnectionStringBuilder { DataSource = this.localHashDBPath }.ToString();
             this.localHashDB = new SQLiteConnection(conStr);
@@ -381,25 +416,36 @@ namespace SunSync
 
             //list dirs
             string localSyncDir = syncSetting.SyncLocalDir;
-            //count
+            //list & count
             this.updateUploadLog(string.Format("正在计算{0}下文件总数...", localSyncDir));
-            this.processDirCount(localSyncDir, localSyncDir);
+            this.processDir(localSyncDir, localSyncDir);
+            try
+            {
+                this.syncDirCacheWriter.Flush();
+                this.syncDirCacheWriter.Close();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(string.Format("close cache file {0} failed due to {1}", this.cacheFile, ex.Message));
+            }
             //upload
             this.updateUploadLog(string.Format("开始同步{0}下所有文件...", localSyncDir));
-            this.processDirUpload(localSyncDir, localSyncDir);
-            if (!this.cancelSignal)
+            this.processUpload(this.cacheFile);
+            if (!this.cancelSignal && this.batchOpFiles.Count > 0)
             {
                 //finish the remained
                 this.uploadFiles(this.batchOpFiles);
                 this.batchOpFiles.Clear();
             }
 
-            //set finish signal
-            this.finishSignal = true;
-            this.closeLogWriters();
-            this.localHashDB.Close();
+
             if (!this.cancelSignal)
             {
+                //set finish signal
+                this.finishSignal = true;
+                this.closeLogWriters();
+                this.localHashDB.Close();
+
                 //job auto finish, jump to result page
                 DateTime jobEnd = System.DateTime.Now;
                 this.mainWindow.GotoSyncResultPage(this.jobId, jobEnd - jobStart, this.syncSetting.OverwriteFile, this.fileExistsCount, this.fileExistsLogPath, this.fileOverwriteCount,
