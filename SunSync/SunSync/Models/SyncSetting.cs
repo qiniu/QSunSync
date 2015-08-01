@@ -11,6 +11,8 @@ namespace SunSync.Models
         public string SyncTargetBucket { set; get; }
         //prefix
         public string SyncPrefix { set; get; }
+        //check new files
+        public bool CheckNewFiles { set; get; }
         //ignore dir
         public bool IgnoreDir { set; get; }
         //overwrite same file
@@ -57,6 +59,7 @@ namespace SunSync.Models
                                 setting.SyncLocalDir = Convert.ToString(dr["sync_local_dir"]);
                                 setting.SyncTargetBucket = Convert.ToString(dr["sync_target_bucket"]);
                                 setting.SyncPrefix = Convert.ToString(dr["sync_prefix"]);
+                                setting.CheckNewFiles = Convert.ToBoolean(dr["check_new_files"]);
                                 setting.IgnoreDir = Convert.ToBoolean(dr["ignore_dir"]);
                                 setting.OverwriteFile = Convert.ToBoolean(dr["overwrite_file"]);
                                 setting.DefaultChunkSize = Convert.ToInt32(dr["default_chunk_size"]);

@@ -15,6 +15,7 @@ namespace SunSync.Models
         public string SyncLocalDir { set; get; }
         public string SyncTargetBucket { set; get; }
         public string SyncPrefix { set; get; }
+        public bool CheckNewFiles { set; get; }
         public bool IgnoreDir { set; get; }
         public bool OverwriteFile { set; get; }
         public int DefaultChunkSize { set; get; }
@@ -37,6 +38,7 @@ namespace SunSync.Models
                 .Append("[sync_local_dir] VARCHAR(255)  NOT NULL,")
                 .Append("[sync_target_bucket] VARCHAR(64)  NOT NULL,")
                 .Append("[sync_prefix] VARCHAR(255),")
+                .Append("[check_new_files] BOOLEAN NULL,")
                 .Append("[ignore_dir] BOOLEAN  NULL,")
                 .Append("[overwrite_file] BOOLEAN  NULL,")
                 .Append("[default_chunk_size] INTEGER  NULL,")
@@ -76,6 +78,7 @@ namespace SunSync.Models
                             record.SyncLocalDir = Convert.ToString(dr["sync_local_dir"]);
                             record.SyncTargetBucket = Convert.ToString(dr["sync_target_bucket"]);
                             record.SyncPrefix = Convert.ToString(dr["sync_prefix"]);
+                            record.CheckNewFiles = Convert.ToBoolean(dr["check_new_files"]);
                             record.IgnoreDir = Convert.ToBoolean(dr["ignore_dir"]);
                             record.OverwriteFile = Convert.ToBoolean(dr["overwrite_file"]);
                             record.DefaultChunkSize = Convert.ToInt32(dr["default_chunk_size"]);
@@ -98,7 +101,7 @@ namespace SunSync.Models
             string conStr = new SQLiteConnectionStringBuilder { DataSource = jobsDbPath }.ToString();
             string queryDelete = "DELETE FROM [sync_jobs] WHERE [sync_id]=@sync_id";
             string queryInsert = new StringBuilder().Append("INSERT INTO [sync_jobs] ([sync_id], [sync_local_dir], [sync_target_bucket], ")
-                .Append("[sync_prefix], [ignore_dir], [overwrite_file], [default_chunk_size], [chunk_upload_threshold], [sync_thread_count], ")
+                .Append("[sync_prefix], [check_new_files], [ignore_dir], [overwrite_file], [default_chunk_size], [chunk_upload_threshold], [sync_thread_count], ")
                 .Append("[upload_entry_domain], [sync_date_time]) VALUES ( @sync_id, @sync_local_dir, @sync_target_bucket, @sync_prefix, @ignore_dir, ")
                 .Append("@overwrite_file, @default_chunk_size, @chunk_upload_threshold, @sync_thread_count, @upload_entry_domain, @sync_date_time)").ToString();
             using (SQLiteConnection sqlCon = new SQLiteConnection(conStr))
@@ -121,6 +124,7 @@ namespace SunSync.Models
                         sqlCmd.Parameters.Add("@sync_local_dir", System.Data.DbType.String);
                         sqlCmd.Parameters.Add("@sync_target_bucket", System.Data.DbType.String);
                         sqlCmd.Parameters.Add("@sync_prefix", System.Data.DbType.String);
+                        sqlCmd.Parameters.Add("@check_new_files",System.Data.DbType.Boolean);
                         sqlCmd.Parameters.Add("@ignore_dir", System.Data.DbType.Boolean);
                         sqlCmd.Parameters.Add("@overwrite_file", System.Data.DbType.Boolean);
                         sqlCmd.Parameters.Add("@default_chunk_size", System.Data.DbType.Int32);
@@ -133,6 +137,7 @@ namespace SunSync.Models
                         sqlCmd.Parameters["@sync_local_dir"].Value = syncSetting.SyncLocalDir;
                         sqlCmd.Parameters["@sync_target_bucket"].Value = syncSetting.SyncTargetBucket;
                         sqlCmd.Parameters["@sync_prefix"].Value = syncSetting.SyncPrefix;
+                        sqlCmd.Parameters["@check_new_files"].Value = syncSetting.CheckNewFiles;
                         sqlCmd.Parameters["@ignore_dir"].Value = syncSetting.IgnoreDir;
                         sqlCmd.Parameters["@overwrite_file"].Value = syncSetting.OverwriteFile;
                         sqlCmd.Parameters["@default_chunk_size"].Value = syncSetting.DefaultChunkSize;

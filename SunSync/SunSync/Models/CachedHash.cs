@@ -83,6 +83,19 @@ namespace SunSync.Models
             }
         }
 
+        public static void InsertOrUpdateCachedHash(string localPath, string etag, string lastModified, SQLiteConnection localHashDB)
+        {
+            CachedHash cachedHash = GetCachedHashByLocalPath(localPath, localHashDB);
+            if (!string.IsNullOrEmpty(cachedHash.LocalPath))
+            {
+                UpdateCachedHash(localPath, etag, lastModified, localHashDB);
+            }
+            else
+            {
+                InsertCachedHash(localPath, etag, lastModified, localHashDB);
+            }
+        }
+
         public static string GetLocalHash(string fileFullPath, SQLiteConnection localHashDB)
         {
             string hash = "";

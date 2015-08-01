@@ -44,7 +44,7 @@
             </StackPanel>
             <StackPanel Margin="5">
                 <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                <Button Content="暂停" FontSize="14" Width="120" Height="32" Margin="10 0" Click="UploadActionButton_EventHandler" x:Name="UploadActionButton"></Button>
+                <Button Content="停止" FontSize="14" Width="120" Height="32" Margin="10 0" Click="HaltActionButton_EventHandler" x:Name="HaltActionButton"></Button>
                 <Button Content="结束" FontSize="14" Width="120" Height="32" Margin="10 0" Click="ManualFinishButton_EventHandler" x:Name="ManualFinishButton"></Button>
                 </StackPanel>
             </StackPanel>

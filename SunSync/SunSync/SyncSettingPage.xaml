@@ -22,9 +22,9 @@
                 </StackPanel>
             </Border>
         </StackPanel>
-        <StackPanel Grid.Row="1" Margin="10">
+        <StackPanel Grid.Row="1" Margin="5">
             <StackPanel Orientation="Vertical">
-                <TabControl Height="420" Name="SyncSettingTabControl">
+                <TabControl Height="430" Name="SyncSettingTabControl">
                     <TabItem Header="基本设置" FontSize="16">
                         <StackPanel Orientation="Vertical" Width="500" Margin="10">
                             <StackPanel>
@@ -69,6 +69,9 @@
                                                      Name="PrefixTextBox" Foreground="Green"></TextBox>
                                         </StackPanel>
                                         <StackPanel Margin="5">
+                                            <CheckBox Content="检查本地增量文件" FontSize="16" Name="CheckNewFilesCheckBox" VerticalContentAlignment="Center"></CheckBox>
+                                        </StackPanel>
+                                        <StackPanel Margin="5">
                                             <CheckBox Content="忽略文件名相对路径" FontSize="16" Name="IgnoreRelativePathCheckBox" VerticalContentAlignment="Center"></CheckBox>
                                         </StackPanel>
                                         <StackPanel Margin="5">
@@ -77,7 +80,7 @@
                                     </StackPanel>
                                 </GroupBox>
                             </StackPanel>
-                            <StackPanel Margin="0 5">
+                            <StackPanel Margin="0 ">
                                 <GroupBox Header="高级参数" FontSize="16">
                                     <StackPanel Orientation="Vertical" Margin="5">
                                         <StackPanel Orientation="Horizontal" Margin="5">

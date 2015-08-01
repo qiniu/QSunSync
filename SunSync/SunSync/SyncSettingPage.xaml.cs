@@ -24,6 +24,8 @@ namespace SunSync
         private string syncTargetBucket;
         //prefix
         private string syncPrefix;
+        //check new files
+        private bool checkNewFiles;
         //ignore dir
         private bool ignoreDir;
         //overwrite same file
@@ -128,6 +130,7 @@ namespace SunSync
                 this.SyncTargetBucketsComboBox.SelectedIndex = -1;
                 //advanced settings
                 this.PrefixTextBox.Text = "";
+                this.CheckNewFilesCheckBox.IsChecked = false;
                 this.OverwriteFileCheckBox.IsChecked = false;
                 this.IgnoreRelativePathCheckBox.IsChecked = false;
                 this.ChunkDefaultSizeComboBox.SelectedIndex = 2; //512KB
@@ -144,6 +147,7 @@ namespace SunSync
                 //advanced settings
                 this.PrefixTextBox.Text = syncSetting.SyncPrefix;
                 this.OverwriteFileCheckBox.IsChecked = syncSetting.OverwriteFile;
+                this.CheckNewFilesCheckBox.IsChecked = syncSetting.CheckNewFiles;
                 this.IgnoreRelativePathCheckBox.IsChecked = syncSetting.IgnoreDir;
                 this.ThreadCountSlider.Value = syncSetting.SyncThreadCount;
                 this.ThreadCountLabel.Content = syncSetting.SyncThreadCount.ToString();
@@ -316,6 +320,7 @@ namespace SunSync
 
             //optional settings
             this.syncPrefix = this.PrefixTextBox.Text.Trim();
+            this.checkNewFiles = this.CheckNewFilesCheckBox.IsChecked.Value;
             this.ignoreDir = this.IgnoreRelativePathCheckBox.IsChecked.Value;
             this.overwriteFile = this.OverwriteFileCheckBox.IsChecked.Value;
             switch (this.ChunkDefaultSizeComboBox.SelectedIndex)
@@ -364,6 +369,7 @@ namespace SunSync
             syncSetting.SyncLocalDir = this.syncLocalDir;
             syncSetting.SyncTargetBucket = this.syncTargetBucket;
             syncSetting.SyncPrefix = this.syncPrefix;
+            syncSetting.CheckNewFiles = this.checkNewFiles;
             syncSetting.IgnoreDir = this.ignoreDir;
             syncSetting.OverwriteFile = this.overwriteFile;
             syncSetting.SyncThreadCount = this.syncThreadCount;

@@ -1,12 +1,10 @@
-﻿using Qiniu.Http;
+﻿using Newtonsoft.Json;
+using Qiniu.Http;
 using Qiniu.Storage;
 using Qiniu.Storage.Model;
 using Qiniu.Util;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading;
 
 namespace SunSync.Models
@@ -52,7 +50,7 @@ namespace SunSync.Models
             }
             //add prefix
             fileKey = this.syncSetting.SyncPrefix + fileKey;
-            
+
             //set upload params
             Qiniu.Common.Config.UPLOAD_HOST = this.syncSetting.UploadEntryDomain;
             Qiniu.Common.Config.UP_HOST = this.syncSetting.UploadEntryDomain;
@@ -74,14 +72,13 @@ namespace SunSync.Models
             Mac mac = new Mac(SystemConfig.ACCESS_KEY, SystemConfig.SECRET_KEY);
             BucketManager bucketManager = new BucketManager(mac);
 
-            bool overwriteKey = false;
-            //get local hash
-            string localHash = CachedHash.GetLocalHash(fileFullPath, this.syncProgressPage.LocalHashDB());
+            bool overwriteUpload = false;
             StatResult statResult = bucketManager.stat(this.syncSetting.SyncTargetBucket, fileKey);
 
             if (!string.IsNullOrEmpty(statResult.Hash))
             {
-                //check hash 
+                //file exists in bucket
+                string localHash = CachedHash.GetLocalHash(fileFullPath, this.syncProgressPage.LocalHashDB());
                 if (localHash.Equals(statResult.Hash))
                 {
                     //same file, no need to upload
@@ -96,7 +93,7 @@ namespace SunSync.Models
                 {
                     if (this.syncSetting.OverwriteFile)
                     {
-                        overwriteKey = true;
+                        overwriteUpload = true;
                         this.syncProgressPage.updateUploadLog("空间已存在，将覆盖 " + fileFullPath);
                     }
                     else
@@ -115,7 +112,7 @@ namespace SunSync.Models
             UploadManager uploadManger = new UploadManager(new Qiniu.Storage.Persistent.ResumeRecorder(recordPath),
                 new Qiniu.Storage.Persistent.KeyGenerator(delegate() { return recorderKey; }));
             PutPolicy putPolicy = new PutPolicy();
-            if (overwriteKey)
+            if (overwriteUpload)
             {
                 putPolicy.Scope = this.syncSetting.SyncTargetBucket + ":" + fileKey;
             }
@@ -147,7 +144,19 @@ namespace SunSync.Models
                     }
                     else
                     {
-                        if (overwriteKey)
+                        //write new file hash to local db
+                        if (!overwriteUpload)
+                        {
+                            FileInfo fileInfo = new FileInfo(fileFullPath);
+                            string fileLmd = fileInfo.LastWriteTimeUtc.ToFileTime().ToString();
+                            PutRet putRet = JsonConvert.DeserializeObject<PutRet>(response);
+                            string fileHash = putRet.Hash;
+                            CachedHash.InsertOrUpdateCachedHash(fileFullPath, fileHash, fileLmd, this.syncProgressPage.LocalHashDB());
+                            Log.Info(string.Format("insert or update qiniu hash to local: '{0}' => '{1}'", fileFullPath, fileHash));
+                        }
+
+                        //update 
+                        if (overwriteUpload)
                         {
                             this.syncProgressPage.addFileOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.SyncTargetBucket,
                                  fileFullPath, fileKey));
