@@ -107,8 +107,8 @@ namespace SunSync
             this.resetSyncStatus();
 
             //run new sync job
-            Thread jobThread = new Thread(new ThreadStart(this.runSyncJob));
-            jobThread.Start();
+            Thread jobThread = new Thread(new ParameterizedThreadStart(this.runSyncJob));
+            jobThread.Start(false);
         }
 
         private void resetSyncStatus()
@@ -385,8 +385,9 @@ namespace SunSync
             return checkOk;
         }
         //main job scheduler
-        internal void runSyncJob()
+        internal void runSyncJob(object resumeObject)
         {
+            bool resume = (bool)resumeObject;
             DateTime startListTime = DateTime.Now;
             bool checkOk = this.initRunJob();
             if (!checkOk)
@@ -412,7 +413,7 @@ namespace SunSync
             //list dirs
             string localSyncDir = syncSetting.SyncLocalDir;
             //list & count
-            if (!File.Exists(this.cacheFilePathDone) || this.syncSetting.CheckNewFiles)
+            if (!File.Exists(this.cacheFilePathDone) || (!resume && this.syncSetting.CheckNewFiles))
             {
                 this.updateUploadLog(string.Format("正在遍历{0}下文件...", localSyncDir));
                 this.createDirCache(localSyncDir);
@@ -443,24 +444,37 @@ namespace SunSync
             }
         }
 
-        
         //halt or resume button click
         private void HaltActionButton_EventHandler(object sender, RoutedEventArgs e)
         {
             this.HaltActionButton.IsEnabled = false;
-            this.cancelSignal = true;
-            Thread checkThread = new Thread(new ThreadStart(delegate
+            if (this.cancelSignal)
             {
-                while (!this.finishSignal)
+                //reset
+                this.resetSyncStatus();
+                this.HaltActionButton.IsEnabled = true;
+                this.HaltActionButton.Content = "暂停";
+                Thread jobThread = new Thread(new ParameterizedThreadStart(this.runSyncJob));
+                jobThread.Start(true);
+            }
+            else
+            {
+                this.cancelSignal = true;
+                Thread checkThread = new Thread(new ThreadStart(delegate
                 {
-                    Thread.Sleep(1000);
-                }
-                Dispatcher.Invoke(new Action(delegate
-                {
-                    this.ManualFinishButton.IsEnabled = true;
+                    while (!this.finishSignal)
+                    {
+                        Thread.Sleep(1000);
+                    }
+                    Dispatcher.Invoke(new Action(delegate
+                    {
+                        this.HaltActionButton.IsEnabled = true;
+                        this.HaltActionButton.Content = "恢复";
+                        this.ManualFinishButton.IsEnabled = true;
+                    }));
                 }));
-            }));
-            checkThread.Start();
+                checkThread.Start();
+            }
         }
 
         //manual finish button click
