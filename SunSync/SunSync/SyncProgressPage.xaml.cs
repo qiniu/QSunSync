@@ -97,8 +97,8 @@ namespace SunSync
             this.cacheDir = System.IO.Path.Combine(myDocPath, "qsunsync", "cache");
 
             string cacheId = jobId;
-            this.cacheFilePathDone = System.IO.Path.Combine(cacheDir, cacheId,".done");
-            this.cacheFilePathTemp = System.IO.Path.Combine(cacheDir,cacheId,".temp");
+            this.cacheFilePathDone = System.IO.Path.Combine(cacheDir, cacheId+".done");
+            this.cacheFilePathTemp = System.IO.Path.Combine(cacheDir,cacheId+".temp");
         }
 
         private void SyncProgressPageLoaded_EventHandler(object sender, RoutedEventArgs e)
@@ -138,32 +138,34 @@ namespace SunSync
             this.batchOpFiles.Clear();
         }
 
-       
-       internal void createDirCache(string localSyncDir)
-       {
-           try
-           {
-               DateTime startCacheTime = DateTime.Now;
 
-               using (StreamWriter sw = new StreamWriter(this.cacheFilePathTemp, false, Encoding.UTF8))
-               {
-                   processDir(localSyncDir, localSyncDir, sw);
-               }
-               Log.Info(string.Format("cache dir {0} last for {1} s", localSyncDir, DateTime.Now.Subtract(startCacheTime).TotalSeconds));
-           }
-           catch (Exception ex)
-           {
-               Log.Error(string.Format(string.Format("cache dir {0} failed due to {1}",localSyncDir,ex.Message)));
-           }
+        internal void createDirCache(string localSyncDir)
+        {
+            try
+            {
+                DateTime startCacheTime = DateTime.Now;
 
-           try
-           {
-               File.Move(this.cacheFilePathTemp,this.cacheFilePathDone);
-           }catch(Exception ex)
-           {
-               Log.Error(string.Format("move temp cache {0} to final cache {1} failed due to {2}",this.cacheFilePathTemp,this.cacheFilePathDone,ex.Message));
-           }
-       }
+                using (StreamWriter sw = new StreamWriter(this.cacheFilePathTemp, false, Encoding.UTF8))
+                {
+                    processDir(localSyncDir, localSyncDir, sw);
+                }
+                Log.Info(string.Format("cache dir {0} last for {1} s", localSyncDir, DateTime.Now.Subtract(startCacheTime).TotalSeconds));
+            }
+            catch (Exception ex)
+            {
+                Log.Error(string.Format(string.Format("cache dir {0} failed due to {1}", localSyncDir, ex.Message)));
+            }
+
+            try
+            {
+                File.Delete(this.cacheFilePathDone);
+                File.Move(this.cacheFilePathTemp, this.cacheFilePathDone);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(string.Format("move temp cache {0} to final cache {1} failed due to {2}", this.cacheFilePathTemp, this.cacheFilePathDone, ex.Message));
+            }
+        }
 
         internal void processDir(string rootDir, string targetDir,StreamWriter sw)
         {
@@ -177,7 +179,6 @@ namespace SunSync
                     {
                         break;
                     }
-                    this.totalCount += 1;
                     try
                     {
                         sw.WriteLine(fileName);
@@ -220,10 +221,21 @@ namespace SunSync
         {
             try
             {
-                string fileName = null;
-                using (StreamReader sw = new StreamReader(this.cacheFilePathDone, Encoding.UTF8))
+                string filePath = null;
+                
+                //count
+                using (StreamReader sr = new StreamReader(this.cacheFilePathDone, Encoding.UTF8))
                 {
-                    while ((fileName = sw.ReadLine()) != null)
+                    while ((filePath = sr.ReadLine()) != null)
+                    {
+                        this.totalCount += 1;
+                    }
+                }
+
+                //upload
+                using (StreamReader sr = new StreamReader(this.cacheFilePathDone, Encoding.UTF8))
+                {
+                    while ((filePath = sr.ReadLine()) != null)
                     {
                         if (this.cancelSignal)
                         {
@@ -232,13 +244,13 @@ namespace SunSync
          
                         if (this.batchOpFiles.Count < this.syncSetting.SyncThreadCount)
                         {
-                            this.batchOpFiles.Add(fileName);
+                            this.batchOpFiles.Add(filePath);
                         }
                         else
                         {
                             this.uploadFiles(this.batchOpFiles);
                             this.batchOpFiles.Clear();
-                            this.batchOpFiles.Add(fileName);
+                            this.batchOpFiles.Add(filePath);
                         }
                     }
                 }
@@ -375,10 +387,16 @@ namespace SunSync
         //main job scheduler
         internal void runSyncJob()
         {
+            DateTime startListTime = DateTime.Now;
             bool checkOk = this.initRunJob();
             if (!checkOk)
             {
                 this.updateUploadLog("同步发生严重错误，请查看日志信息。");
+                Dispatcher.Invoke(new Action(delegate
+                {
+                    this.ManualFinishButton.IsEnabled = true;
+                    this.HaltActionButton.IsEnabled = false;
+                }));
                 return;
             }
             //open database
@@ -391,15 +409,8 @@ namespace SunSync
             this.finishSignal = false;
             this.cancelSignal = false;
 
-            Dispatcher.Invoke(new Action(delegate
-            {
-                this.ManualFinishButton.IsEnabled = false;
-            }));
-
             //list dirs
             string localSyncDir = syncSetting.SyncLocalDir;
-
-            DateTime startListTime = DateTime.Now;
             //list & count
             if (!File.Exists(this.cacheFilePathDone) || this.syncSetting.CheckNewFiles)
             {

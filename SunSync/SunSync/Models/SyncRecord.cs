@@ -102,7 +102,7 @@ namespace SunSync.Models
             string queryDelete = "DELETE FROM [sync_jobs] WHERE [sync_id]=@sync_id";
             string queryInsert = new StringBuilder().Append("INSERT INTO [sync_jobs] ([sync_id], [sync_local_dir], [sync_target_bucket], ")
                 .Append("[sync_prefix], [check_new_files], [ignore_dir], [overwrite_file], [default_chunk_size], [chunk_upload_threshold], [sync_thread_count], ")
-                .Append("[upload_entry_domain], [sync_date_time]) VALUES ( @sync_id, @sync_local_dir, @sync_target_bucket, @sync_prefix, @ignore_dir, ")
+                .Append("[upload_entry_domain], [sync_date_time]) VALUES ( @sync_id, @sync_local_dir, @sync_target_bucket, @sync_prefix, @check_new_files, @ignore_dir, ")
                 .Append("@overwrite_file, @default_chunk_size, @chunk_upload_threshold, @sync_thread_count, @upload_entry_domain, @sync_date_time)").ToString();
             using (SQLiteConnection sqlCon = new SQLiteConnection(conStr))
             {
