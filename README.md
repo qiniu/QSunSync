@@ -6,7 +6,7 @@
 
 ##ÏÂÔØ
 
-[QSunSync-v1.2.3](http://qdisk.qiniudn.com/QSunSync-v1.2.3.zip) 
+[QSunSync-v1.2.4](http://qdisk.qiniudn.com/QSunSync-v1.2.4.zip) 
 
 ##¹¦ÄÜ½éÉÜ
 
