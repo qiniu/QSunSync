@@ -137,7 +137,7 @@ namespace SunSync
                 this.ChunkUploadThresholdSlider.Value = 10;//10MB
                 this.ThreadCountSlider.Value = 10;
                 this.ThreadCountLabel.Content = "10";
-                this.UploadEntryDomainComboBox.SelectedIndex = 1;
+                this.UploadEntryDomainComboBox.SelectedIndex = 0;
             }
             else
             {
@@ -153,7 +153,7 @@ namespace SunSync
                 this.ThreadCountLabel.Content = syncSetting.SyncThreadCount.ToString();
                 this.ChunkUploadThresholdSlider.Value = syncSetting.ChunkUploadThreshold / 1024 / 1024;
                 int defaultChunkSizeIndex = 2;
-                int defaultUploadEntryIndex = 1;
+                int defaultUploadEntryIndex = 0;
                 if (this.defaultChunkDict.ContainsKey(syncSetting.DefaultChunkSize))
                 {
                     defaultChunkSizeIndex = this.defaultChunkDict[syncSetting.DefaultChunkSize];

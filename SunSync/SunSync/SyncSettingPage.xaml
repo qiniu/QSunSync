@@ -59,13 +59,13 @@
                         </StackPanel>
                     </TabItem>
                     <TabItem Header="高级设置" FontSize="16">
-                        <StackPanel Orientation="Vertical" Width="520" Margin="0">
+                        <StackPanel Orientation="Vertical" Width="520" Margin="0 5">
                             <StackPanel>
                                 <GroupBox Header="可选参数" FontSize="16">
                                     <StackPanel Orientation="Vertical" Margin="5">
                                         <StackPanel Orientation="Horizontal" Margin="5">
                                             <Label FontSize="16" Content="附加前缀" VerticalAlignment="Center"></Label>
-                                            <TextBox Width="400" Height="48" Margin="10 0" VerticalContentAlignment="Center"
+                                            <TextBox Width="350" Margin="10 0" VerticalContentAlignment="Center"
                                                      Name="PrefixTextBox" Foreground="Green"></TextBox>
                                         </StackPanel>
                                         <StackPanel Margin="5">
@@ -85,7 +85,7 @@
                                     <StackPanel Orientation="Vertical" Margin="5">
                                         <StackPanel Orientation="Horizontal" Margin="5">
                                             <Label Content="分片默认大小" VerticalAlignment="Center"></Label>
-                                            <ComboBox Width="300" VerticalAlignment="Center" Margin="10 0" Name="ChunkDefaultSizeComboBox">
+                                            <ComboBox Width="320" VerticalAlignment="Center" Margin="10 0" Name="ChunkDefaultSizeComboBox">
                                                 <ComboBoxItem Content="128KB"/>
                                                 <ComboBoxItem Content="256KB"/>
                                                 <ComboBoxItem Content="512KB"/>
@@ -96,7 +96,7 @@
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="5">
                                             <Label Content="分片上传阈值" VerticalAlignment="Center"></Label>
-                                            <Slider  Width="300" VerticalAlignment="Center" Margin="10 0" Minimum="4" Maximum="100"
+                                            <Slider  Width="320" VerticalAlignment="Center" Margin="10 0" Minimum="4" Maximum="100"
                                                      Name="ChunkUploadThresholdSlider" 
                                                       IsSnapToTickEnabled="True" TickFrequency="1"
                                                      VerticalContentAlignment="Center" ValueChanged="ChunkUploadThresholdChange_EventHandler"/>
@@ -104,7 +104,7 @@
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="5">
                                             <Label Content="同步的并发数" VerticalAlignment="Center"></Label>
-                                            <Slider  Width="300" VerticalAlignment="Center" Margin="10 0" Minimum="1" Maximum="64"
+                                            <Slider  Width="320" VerticalAlignment="Center" Margin="10 0" Minimum="1" Maximum="64"
                                                      Name="ThreadCountSlider"
                                                       IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="ThreadCountChange_EventHandler"
                                                      />
