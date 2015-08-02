@@ -59,7 +59,7 @@
                         </StackPanel>
                     </TabItem>
                     <TabItem Header="高级设置" FontSize="16">
-                        <StackPanel Orientation="Vertical" Width="500" Margin="0">
+                        <StackPanel Orientation="Vertical" Width="520" Margin="0">
                             <StackPanel>
                                 <GroupBox Header="可选参数" FontSize="16">
                                     <StackPanel Orientation="Vertical" Margin="5">
@@ -69,13 +69,13 @@
                                                      Name="PrefixTextBox" Foreground="Green"></TextBox>
                                         </StackPanel>
                                         <StackPanel Margin="5">
-                                            <CheckBox Content="检查本地增量文件" FontSize="16" Name="CheckNewFilesCheckBox" VerticalContentAlignment="Center"></CheckBox>
+                                            <CheckBox Content="检查本地增量文件" FontSize="16" Name="CheckNewFilesCheckBox" VerticalContentAlignment="Center" Margin="5 0"></CheckBox>
                                         </StackPanel>
                                         <StackPanel Margin="5">
-                                            <CheckBox Content="忽略文件名相对路径" FontSize="16" Name="IgnoreRelativePathCheckBox" VerticalContentAlignment="Center"></CheckBox>
+                                            <CheckBox Content="忽略文件名相对路径" FontSize="16" Name="IgnoreRelativePathCheckBox" VerticalContentAlignment="Center" Margin="5 0"></CheckBox>
                                         </StackPanel>
                                         <StackPanel Margin="5">
-                                            <CheckBox Content="空间中同名文件强制覆盖" FontSize="16" Name="OverwriteFileCheckBox" VerticalContentAlignment="Center"></CheckBox>
+                                            <CheckBox Content="空间中同名文件强制覆盖" FontSize="16" Name="OverwriteFileCheckBox" VerticalContentAlignment="Center" Margin="5 0"></CheckBox>
                                         </StackPanel>
                                     </StackPanel>
                                 </GroupBox>

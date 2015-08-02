@@ -129,6 +129,7 @@ namespace SunSync
             this.fileUploadSuccessLock = new object();
             this.cancelSignal = false;
             this.finishSignal = false;
+            this.HaltActionButton.Content = "暂停";
             this.HaltActionButton.IsEnabled = true;
             this.ManualFinishButton.IsEnabled = false;
             this.UploadProgressTextBlock.Text = "";
@@ -141,6 +142,18 @@ namespace SunSync
 
         internal void createDirCache(string localSyncDir)
         {
+            if (File.Exists(this.cacheFilePathDone))
+            {
+                try
+                {
+                    File.Delete(this.cacheFilePathDone);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("delete old cache file {0} failed due to {1}", this.cacheFilePathDone, ex.Message));
+                }
+            }
+
             try
             {
                 DateTime startCacheTime = DateTime.Now;
@@ -149,6 +162,7 @@ namespace SunSync
                 {
                     processDir(localSyncDir, localSyncDir, sw);
                 }
+
                 Log.Info(string.Format("cache dir {0} last for {1} s", localSyncDir, DateTime.Now.Subtract(startCacheTime).TotalSeconds));
             }
             catch (Exception ex)
@@ -156,14 +170,16 @@ namespace SunSync
                 Log.Error(string.Format(string.Format("cache dir {0} failed due to {1}", localSyncDir, ex.Message)));
             }
 
-            try
+            if (!this.cancelSignal)
             {
-                File.Delete(this.cacheFilePathDone);
-                File.Move(this.cacheFilePathTemp, this.cacheFilePathDone);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(string.Format("move temp cache {0} to final cache {1} failed due to {2}", this.cacheFilePathTemp, this.cacheFilePathDone, ex.Message));
+                try
+                {
+                    File.Move(this.cacheFilePathTemp, this.cacheFilePathDone);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("move temp cache {0} to final cache {1} failed due to {2}", this.cacheFilePathTemp, this.cacheFilePathDone, ex.Message));
+                }
             }
         }
 
@@ -420,10 +436,13 @@ namespace SunSync
                 this.createDirCache(localSyncDir);
             }
 
-            //upload
-            this.updateUploadLog(string.Format("开始同步{0}下所有文件...", localSyncDir));
-            this.processUpload(this.cacheFilePathDone);
-     
+            if (!this.cancelSignal)
+            {
+                //upload
+                this.updateUploadLog(string.Format("开始同步{0}下所有文件...", localSyncDir));
+                this.processUpload(this.cacheFilePathDone);
+            }
+
             if (!this.cancelSignal && this.batchOpFiles.Count > 0)
             {
                 //finish the remained
