@@ -64,6 +64,7 @@ namespace SunSync
 
         private void SyncResultLoaded_EventHandler(object sender, RoutedEventArgs e)
         {
+            Log.Info(string.Format("sync last total time {0}",this.spentTimeStr(this.spentTime.TotalSeconds)));
             //set title
             this.SyncResultTitleTextBlock.Text = this.spentTimeStr(this.spentTime.TotalSeconds);
 

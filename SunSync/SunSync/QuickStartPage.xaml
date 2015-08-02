@@ -47,7 +47,13 @@
                               MouseLeftButtonUp="SetAccount_EventHandler"
                               Cursor="Hand"
                               ></TextBlock>
-
+                    <TextBlock TextDecorations="Underline"
+                              Text="关于" Margin="0"
+                              FontSize="16"
+                              Foreground="MediumBlue"
+                              MouseLeftButtonUp="AboutApp_EventHandler"
+                              Cursor="Hand"
+                              ></TextBlock>
                 </StackPanel>
             </StackPanel>
         </Grid>

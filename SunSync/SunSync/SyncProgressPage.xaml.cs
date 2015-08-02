@@ -406,6 +406,7 @@ namespace SunSync
             this.localHashDB.Open();
             //start job
             this.jobStart = System.DateTime.Now;
+            Log.Info(string.Format("start to sync dir {0}",this.syncSetting.SyncLocalDir));
             //set before run status
             this.finishSignal = false;
             this.cancelSignal = false;

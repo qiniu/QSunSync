@@ -1,6 +1,7 @@
 ﻿using SunSync.Models;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -164,6 +165,15 @@ namespace SunSync
             clickCount += 1;
             int index = clickCount % imgCnt;
             this.TopLogoImage.Source = new BitmapImage(new Uri(this.topBGImages[index], UriKind.Relative));
+        }
+
+        private void AboutApp_EventHandler(object sender, MouseButtonEventArgs e)
+        {
+            try
+            {
+                Process.Start("https://github.com/jemygraw/qsunsync");
+            }
+            catch (Exception) { }
         }
     }
 }
