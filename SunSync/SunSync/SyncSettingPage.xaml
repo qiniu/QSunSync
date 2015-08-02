@@ -112,7 +112,7 @@
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="5">
                                             <Label Content="上传入口域名" VerticalAlignment="Center"></Label>
-                                            <ComboBox Width="300" VerticalAlignment="Center" Margin="10 0" Name="UploadEntryDomainComboBox">
+                                            <ComboBox Width="320" VerticalAlignment="Center" Margin="10 0" Name="UploadEntryDomainComboBox">
                                                 <ComboBoxItem Content="http://up.qiniu.com      直接上传"></ComboBoxItem>
                                                 <ComboBoxItem Content="http://upload.qiniu.com  加速上传"></ComboBoxItem>
                                                 <ComboBoxItem Content="http://up.qiniug.com     海外上传"></ComboBoxItem>
