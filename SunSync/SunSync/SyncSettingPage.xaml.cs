@@ -185,7 +185,7 @@ namespace SunSync
             }
             else if (bucketsResult.ResponseInfo.isNetworkBroken())
             {
-                Log.Error("network error, " + bucketsResult.ResponseInfo.ToString());
+                Log.Error("get buckets network error, " + bucketsResult.ResponseInfo.ToString());
                 Dispatcher.Invoke(new Action(delegate
                 {
                     this.SettingsErrorTextBlock.Text = "网络故障";

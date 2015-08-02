@@ -27,10 +27,16 @@ namespace SunSync.Models
         {
             if (syncProgressPage.checkCancelSignal())
             {
-                doneEvent.Set();
+                this.doneEvent.Set();
                 return;
             }
             string fileFullPath = file.ToString();
+            if (!File.Exists(fileFullPath))
+            {
+                Log.Error(string.Format("file not found error, {0}", fileFullPath));
+                this.doneEvent.Set();
+                return;
+            }
             //check ignore dir
             string fileKey = "";
             if (this.syncSetting.IgnoreDir)
@@ -86,7 +92,7 @@ namespace SunSync.Models
                         fileFullPath, fileKey));
                     this.syncProgressPage.updateUploadLog("空间已存在，跳过文件 " + fileFullPath);
                     this.syncProgressPage.updateTotalUploadProgress();
-                    doneEvent.Set();
+                    this.doneEvent.Set();
                     return;
                 }
                 else
@@ -101,7 +107,7 @@ namespace SunSync.Models
                         this.syncProgressPage.updateUploadLog("空间已存在，不覆盖 " + fileFullPath);
                         this.syncProgressPage.addFileNotOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.SyncTargetBucket,
                             fileFullPath, fileKey));
-                        doneEvent.Set();
+                        this.doneEvent.Set();
                         return;
                     }
                 }
@@ -152,7 +158,7 @@ namespace SunSync.Models
                             PutRet putRet = JsonConvert.DeserializeObject<PutRet>(response);
                             string fileHash = putRet.Hash;
                             CachedHash.InsertOrUpdateCachedHash(fileFullPath, fileHash, fileLmd, this.syncProgressPage.LocalHashDB());
-                            Log.Info(string.Format("insert or update qiniu hash to local: '{0}' => '{1}'", fileFullPath, fileHash));
+                            Log.Debug(string.Format("insert or update qiniu hash to local: '{0}' => '{1}'", fileFullPath, fileHash));
                         }
 
                         //update 
@@ -167,7 +173,7 @@ namespace SunSync.Models
                         this.syncProgressPage.updateTotalUploadProgress();
                     }
 
-                    doneEvent.Set();
+                    this.doneEvent.Set();
                 }));
         }
     }

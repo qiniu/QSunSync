@@ -111,7 +111,7 @@ namespace SunSync
             StatResult statResult = bucketManager.stat("NONE_EXIST_BUCKET", "NONE_EXIST_KEY");
             if (statResult.ResponseInfo.isNetworkBroken())
             {
-                Log.Error("network error, " + statResult.ResponseInfo.ToString());
+                Log.Error("stat file network error, " + statResult.ResponseInfo.ToString());
                 Dispatcher.Invoke(new Action(delegate
                 {
                     this.SettingsErrorTextBlock.Text = "网络故障";
