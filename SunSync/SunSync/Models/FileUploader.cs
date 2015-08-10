@@ -4,6 +4,7 @@ using Qiniu.Storage;
 using Qiniu.Storage.Model;
 using Qiniu.Util;
 using System;
+using System.Data.SQLite;
 using System.IO;
 using System.Threading;
 
@@ -15,12 +16,14 @@ namespace SunSync.Models
         private ManualResetEvent doneEvent;
         private SyncProgressPage syncProgressPage;
         private int taskId;
+        private SQLiteConnection localHashDB;
         public FileUploader(SyncSetting syncSetting, ManualResetEvent doneEvent, SyncProgressPage syncProgressPage, int taskId)
         {
             this.syncSetting = syncSetting;
             this.doneEvent = doneEvent;
             this.syncProgressPage = syncProgressPage;
             this.taskId = taskId;
+            this.localHashDB = syncProgressPage.LocalHashDB();
         }
 
         public void uploadFile(object file)
@@ -84,7 +87,60 @@ namespace SunSync.Models
             if (!string.IsNullOrEmpty(statResult.Hash))
             {
                 //file exists in bucket
-                string localHash = CachedHash.GetLocalHash(fileFullPath, this.syncProgressPage.LocalHashDB());
+                string localHash = "";
+                //current file info
+                FileInfo fileInfo = new FileInfo(fileFullPath);
+                string lastModified = fileInfo.LastWriteTimeUtc.ToFileTime().ToString();
+
+                //cached file info
+                try
+                {
+                    CachedHash cachedHash = CachedHash.GetCachedHashByLocalPath(fileFullPath, localHashDB);
+                    string cachedEtag = cachedHash.Etag;
+                    string cachedLmd = cachedHash.LastModified;
+                    if (!string.IsNullOrEmpty(cachedEtag) && !string.IsNullOrEmpty(cachedLmd))
+                    {
+                        if (cachedLmd.Equals(lastModified))
+                        {
+                            //file not modified
+                            localHash = cachedEtag;
+                        }
+                        else
+                        {
+                            //file modified, calc the hash and update db
+                            string newEtag = QETag.hash(fileFullPath);
+                            localHash = newEtag;
+                            try
+                            {
+                                CachedHash.UpdateCachedHash(fileFullPath, newEtag, lastModified, localHashDB);
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Error(string.Format("update local hash failed {0}", ex.Message));
+                            }
+                        }
+                    }
+                    else
+                    {
+                        //no record, calc hash and insert into db
+                        string newEtag = QETag.hash(fileFullPath);
+                        localHash = newEtag;
+                        try
+                        {
+                            CachedHash.InsertCachedHash(fileFullPath, newEtag, lastModified, localHashDB);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error(string.Format("insert local hash failed {0}", ex.Message));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("get hash from local db failed {0}", ex.Message));
+                    localHash = QETag.hash(fileFullPath);
+                }
+                
                 if (localHash.Equals(statResult.Hash))
                 {
                     //same file, no need to upload
@@ -157,7 +213,17 @@ namespace SunSync.Models
                             string fileLmd = fileInfo.LastWriteTimeUtc.ToFileTime().ToString();
                             PutRet putRet = JsonConvert.DeserializeObject<PutRet>(response);
                             string fileHash = putRet.Hash;
-                            CachedHash.InsertOrUpdateCachedHash(fileFullPath, fileHash, fileLmd, this.syncProgressPage.LocalHashDB());
+                            if (this.localHashDB != null)
+                            {
+                                try
+                                {
+                                    CachedHash.InsertOrUpdateCachedHash(fileFullPath, fileHash, fileLmd, this.localHashDB);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Error(string.Format("insert or update cached hash error {0}", ex.Message));
+                                }
+                            }
                             Log.Debug(string.Format("insert or update qiniu hash to local: '{0}' => '{1}'", fileFullPath, fileHash));
                         }
 

@@ -332,32 +332,6 @@ namespace SunSync
                 }
             }
 
-            //check jobs db
-            if (!File.Exists(this.jobsDbPath))
-            {
-                try
-                {
-                    SyncRecord.CreateSyncRecordDB(this.jobsDbPath);
-                }
-                catch (Exception ex)
-                {
-                    checkOk = false;
-                    Log.Error("create sync record db failed, " + ex.Message);
-                }
-            }
-            else
-            {
-                DateTime syncDateTime = DateTime.Now;
-                try
-                {
-                    SyncRecord.RecordSyncJob(this.jobId, syncDateTime, this.syncSetting, this.jobsDbPath);
-                }
-                catch (Exception ex)
-                {
-                    checkOk = false;
-                    Log.Error("record sync job failed, " + ex.Message);
-                }
-            }
             //create the upload log files
             try
             {
@@ -384,6 +358,36 @@ namespace SunSync
                 checkOk = false;
                 Log.Error("init the log writer failed, " + ex.Message);
             }
+            
+            return checkOk;
+        }
+
+        internal void createOptionalDB()
+        {
+            //check jobs db
+            if (!File.Exists(this.jobsDbPath))
+            {
+                try
+                {
+                    SyncRecord.CreateSyncRecordDB(this.jobsDbPath);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("create sync record db failed, " + ex.Message);
+                }
+            }
+            else
+            {
+                DateTime syncDateTime = DateTime.Now;
+                try
+                {
+                    SyncRecord.RecordSyncJob(this.jobId, syncDateTime, this.syncSetting, this.jobsDbPath);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("record sync job failed, " + ex.Message);
+                }
+            }
 
             if (!File.Exists(this.localHashDBPath))
             {
@@ -393,13 +397,11 @@ namespace SunSync
                 }
                 catch (Exception ex)
                 {
-                    checkOk = false;
                     Log.Error("create cached hash db failed, " + ex.Message);
                 }
             }
-            
-            return checkOk;
         }
+
         //main job scheduler
         internal void runSyncJob(object resumeObject)
         {
@@ -416,10 +418,30 @@ namespace SunSync
                 }));
                 return;
             }
-            //open database
-            string conStr = new SQLiteConnectionStringBuilder { DataSource = this.localHashDBPath }.ToString();
-            this.localHashDB = new SQLiteConnection(conStr);
-            this.localHashDB.Open();
+            //create optional db
+            this.createOptionalDB();
+            try
+            {
+                //open database
+                string conStr = new SQLiteConnectionStringBuilder { DataSource = this.localHashDBPath }.ToString();
+                this.localHashDB = new SQLiteConnection(conStr);
+                this.localHashDB.Open();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(string.Format("open local hash db failed due to {0}",ex.Message));
+                if (this.localHashDB != null)
+                {
+                    try {
+                        this.localHashDB.Close();
+                    }
+                    catch (Exception ex2)
+                    {
+                        Log.Error(string.Format("close local hash db failed due to {0}",ex2.Message));
+                    }
+                }
+                this.localHashDB = null;
+            }
             //start job
             this.jobStart = System.DateTime.Now;
             Log.Info(string.Format("start to sync dir {0}",this.syncSetting.SyncLocalDir));
@@ -453,7 +475,17 @@ namespace SunSync
             //set finish signal
             this.finishSignal = true;
             this.closeLogWriters();
-            this.localHashDB.Close();
+            if (this.localHashDB != null)
+            {
+                try
+                {
+                    this.localHashDB.Close();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("job finish close local hash db failed {0}", ex.Message));
+                }
+            }
             if (!this.cancelSignal)
             {
                 //job auto finish, jump to result page

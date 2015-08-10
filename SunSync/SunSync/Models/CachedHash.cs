@@ -95,44 +95,5 @@ namespace SunSync.Models
                 InsertCachedHash(localPath, etag, lastModified, localHashDB);
             }
         }
-
-        public static string GetLocalHash(string fileFullPath, SQLiteConnection localHashDB)
-        {
-            string hash = "";
-
-            //current file info
-            FileInfo fileInfo = new FileInfo(fileFullPath);
-            string lastModified = fileInfo.LastWriteTimeUtc.ToFileTime().ToString();
-
-            //cached file info
-            CachedHash cachedHash = CachedHash.GetCachedHashByLocalPath(fileFullPath, localHashDB);
-            string cachedEtag = cachedHash.Etag;
-            string cachedLmd = cachedHash.LastModified;
-            if (!string.IsNullOrEmpty(cachedEtag) && !string.IsNullOrEmpty(cachedLmd))
-            {
-                if (cachedLmd.Equals(lastModified))
-                {
-                    //file not modified
-                    hash = cachedEtag;
-                }
-                else
-                {
-                    //file modified, calc the hash and update db
-                    string newEtag = QETag.hash(fileFullPath);
-                    hash = newEtag;
-                    CachedHash.UpdateCachedHash(fileFullPath, newEtag, lastModified, localHashDB);
-                }
-            }
-            else
-            {
-                //no record, calc hash and insert into db
-                string newEtag = QETag.hash(fileFullPath);
-                hash = newEtag;
-                CachedHash.InsertCachedHash(fileFullPath, newEtag, lastModified, localHashDB);
-            }
-
-            return hash;
-        }
-
     }
 }
