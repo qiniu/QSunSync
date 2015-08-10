@@ -4,9 +4,14 @@
 
 `QSunSync`是使用`C# + WPF`开发的用于将本地文件同步到七牛云端空间的Windows客户端。该客户端的特点就是简单易用，而且方便增量同步。
 
-##下载
+##下载安装
 
-[QSunSync-v1.2.4](http://7rfgu2.com1.z0.glb.clouddn.com/QSunSync-v1.2.4.zip) 
+地址： [QSunSync-v1.2.4](http://7rfgu2.com1.z0.glb.clouddn.com/QSunSync-v1.2.4.zip) 
+
+1. 该软件的使用需要`.NET Framework 4.0`支持，可以从 [微软官方下载中心](https://www.microsoft.com/zh-cn/download/details.aspx?id=17718) 下载安装。  
+2. 该软件使用了`SQLite`数据库来记录本地文件的hash值，所以需要在`.NET Framework4.0`安装完成之后，安装`SQLite`支持软件，这个可以从 [这里](
+http://7rfgu2.com1.z0.glb.clouddn.com/sqlite_net4.0.exe) 下载，该软件仅仅是一个依赖库，不会对原有系统稳定性造成影响。  
+3. 然后下载`QSunSync`解压缩后，双击 `QSunSync.exe` 打开就可以使用了。 
 
 ##功能介绍
 
@@ -27,13 +32,7 @@
 1. 这个项目是使用 Visual Studio 2012 开发的，所以这个版本以上的都可以；  
 2. 这个项目依赖另外一个项目提供的SDK，这个项目是 [qiniu-csharp-sdk](https://github.com/jemygraw/qiniu-csharp-sdk)；  
 3. 然后，编译吧。  
-
-##下载安装
-
-1. 该软件的使用需要`.NET Framework 4.0`支持，可以从 [微软官方下载中心](https://www.microsoft.com/zh-cn/download/details.aspx?id=17718) 下载安装。  
-2. 该软件使用了`SQLite`数据库来记录本地文件的hash值，所以需要在`.NET Framework4.0`安装完成之后，安装`SQLite`支持软件，这个可以从 [这里](
-http://7rfgu2.com1.z0.glb.clouddn.com/sqlite_net4.0.exe) 下载。  
-3. 然后下载`QSunSync`解压缩后，双击 `QSunSync.exe` 打开就可以使用了。  
+ 
 
 ##使用方式
 
