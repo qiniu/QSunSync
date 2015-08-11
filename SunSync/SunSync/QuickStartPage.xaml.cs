@@ -171,7 +171,7 @@ namespace SunSync
         {
             try
             {
-                Process.Start("https://github.com/jemygraw/qsunsync");
+                Process.Start("https://github.com/qiniu-lab/qsunsync");
             }
             catch (Exception) { }
         }

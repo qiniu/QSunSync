@@ -141,6 +141,11 @@ namespace SunSync
             }
             else
             {
+                //back compatable
+                if (this.syncSetting.SyncThreadCount > 60)
+                {
+                    this.syncSetting.SyncThreadCount = 60;
+                }
                 //basic settings
                 this.SyncLocalFolderTextBox.Text = syncSetting.SyncLocalDir;
                 this.SyncTargetBucketsComboBox.SelectedIndex = -1;

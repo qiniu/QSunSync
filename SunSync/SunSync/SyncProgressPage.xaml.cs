@@ -406,7 +406,7 @@ namespace SunSync
         internal void runSyncJob(object resumeObject)
         {
             bool resume = (bool)resumeObject;
-            DateTime startListTime = DateTime.Now;
+            this.jobStart = DateTime.Now;
             bool checkOk = this.initRunJob();
             if (!checkOk)
             {
@@ -490,7 +490,7 @@ namespace SunSync
             {
                 //job auto finish, jump to result page
                 DateTime jobEnd = System.DateTime.Now;
-                this.mainWindow.GotoSyncResultPage(this.jobId, jobEnd - jobStart, this.syncSetting.OverwriteFile, this.fileExistsCount, this.fileExistsLogPath, this.fileOverwriteCount,
+                this.mainWindow.GotoSyncResultPage(this.jobId, jobEnd - this.jobStart, this.syncSetting.OverwriteFile, this.fileExistsCount, this.fileExistsLogPath, this.fileOverwriteCount,
                 this.fileOverwriteLogPath, this.fileNotOverwriteCount, this.fileNotOverwriteLogPath, this.fileUploadErrorCount, this.fileUploadErrorLogPath,
                 this.fileUploadSuccessCount, this.fileUploadSuccessLogPath);
             }
@@ -533,7 +533,7 @@ namespace SunSync
         private void ManualFinishButton_EventHandler(object sender, RoutedEventArgs e)
         {
             DateTime jobEnd = System.DateTime.Now;
-            this.mainWindow.GotoSyncResultPage(this.jobId, jobEnd - jobStart, this.syncSetting.OverwriteFile, this.fileExistsCount, this.fileExistsLogPath, this.fileOverwriteCount,
+            this.mainWindow.GotoSyncResultPage(this.jobId, jobEnd - this.jobStart, this.syncSetting.OverwriteFile, this.fileExistsCount, this.fileExistsLogPath, this.fileOverwriteCount,
                this.fileOverwriteLogPath, this.fileNotOverwriteCount, this.fileNotOverwriteLogPath, this.fileUploadErrorCount, this.fileUploadErrorLogPath,
                this.fileUploadSuccessCount, this.fileUploadSuccessLogPath);
         }
