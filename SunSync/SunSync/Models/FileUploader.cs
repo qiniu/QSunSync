@@ -83,15 +83,14 @@ namespace SunSync.Models
 
             bool overwriteUpload = false;
             StatResult statResult = bucketManager.stat(this.syncSetting.SyncTargetBucket, fileKey);
-
+            //current file info
+            FileInfo fileInfo = new FileInfo(fileFullPath);
+           string lastModified = fileInfo.LastWriteTimeUtc.ToFileTime().ToString();
+                long fileLength = fileInfo.Length;
             if (!string.IsNullOrEmpty(statResult.Hash))
             {
                 //file exists in bucket
                 string localHash = "";
-                //current file info
-                FileInfo fileInfo = new FileInfo(fileFullPath);
-                string lastModified = fileInfo.LastWriteTimeUtc.ToFileTime().ToString();
-
                 //cached file info
                 try
                 {
@@ -184,14 +183,12 @@ namespace SunSync.Models
             }
             putPolicy.SetExpires(24 * 30 * 3600);
             string uptoken = Auth.createUploadToken(putPolicy, mac);
-            long fileLength = new FileInfo(fileFullPath).Length;
+
             this.syncProgressPage.updateUploadLog("开始上传文件 " + fileFullPath);
             uploadManger.uploadFile(fileFullPath, fileKey, uptoken, new UploadOptions(null, null, false,
                 new UpProgressHandler(delegate(string key, double percent)
                 {
-                    string uploadProgress = string.Format("{0}", percent.ToString("P"));
-                    this.syncProgressPage.updateSingleFileProgress(taskId, fileFullPath, fileKey, uploadProgress);
-
+                    this.syncProgressPage.updateSingleFileProgress(taskId, fileFullPath, fileKey,fileLength, percent);
                 }), new UpCancellationSignal(delegate()
                 {
                     return this.syncProgressPage.checkCancelSignal();
@@ -209,7 +206,6 @@ namespace SunSync.Models
                         //write new file hash to local db
                         if (!overwriteUpload)
                         {
-                            FileInfo fileInfo = new FileInfo(fileFullPath);
                             string fileLmd = fileInfo.LastWriteTimeUtc.ToFileTime().ToString();
                             PutRet putRet = JsonConvert.DeserializeObject<PutRet>(response);
                             string fileHash = putRet.Hash;

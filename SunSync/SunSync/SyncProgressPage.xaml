@@ -28,9 +28,10 @@
                        HorizontalGridLinesBrush="{StaticResource GrayGridLine}"
                      >
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="本地文件名" Binding="{Binding LocalPath}" Width="320"></DataGridTextColumn>
-                    <DataGridTextColumn Header="空间文件名" Binding="{Binding FileKey}" Width="240"></DataGridTextColumn>
-                    <DataGridTextColumn Header="上传进度" Binding="{Binding Progress}" Width="100"></DataGridTextColumn>
+                    <DataGridTextColumn Header="本地文件名" Binding="{Binding LocalPath}" Width="300"></DataGridTextColumn>
+                    <DataGridTextColumn Header="空间文件名" Binding="{Binding FileKey}" Width="200"></DataGridTextColumn>
+                    <DataGridTextColumn Header="上传进度" Binding="{Binding Progress}" Width="80"></DataGridTextColumn>
+                    <DataGridTextColumn Header="上传速度" Binding="{Binding Speed}" Width="80"></DataGridTextColumn>
                 </DataGrid.Columns>
             </DataGrid>
             <StackPanel Height="50">

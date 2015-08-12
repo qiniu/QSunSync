@@ -27,6 +27,10 @@ namespace SunSync
         private object uploadLogLock;
 
         private UploadInfo[] uploadInfos;
+        private object uploadInfoLock;
+        //key is fileKey
+        //value is datetime in milliseconds +":"+uploadedBytes
+        private Dictionary<string, string> uploadedBytes;
 
         private object fileExistsLock;
         private object fileOverwriteLock;
@@ -74,6 +78,7 @@ namespace SunSync
             InitializeComponent();
             this.mainWindow = mainWindow;
             this.batchOpFiles = new List<string>();
+            this.uploadedBytes = new Dictionary<string, string>();
             this.resetSyncStatus();
         }
 
@@ -127,6 +132,7 @@ namespace SunSync
             this.fileUploadErrorLock = new object();
             this.fileUploadSuccessCount = 0;
             this.fileUploadSuccessLock = new object();
+            this.uploadInfoLock = new object();
             this.cancelSignal = false;
             this.finishSignal = false;
             this.HaltActionButton.Content = "暂停";
@@ -280,6 +286,7 @@ namespace SunSync
 
         internal void uploadFiles(List<string> filesToUpload)
         {
+            this.uploadedBytes.Clear();
             ManualResetEvent[] doneEvents = null;
             int taskMax = filesToUpload.Count;
             doneEvents = new ManualResetEvent[taskMax];
@@ -658,12 +665,60 @@ namespace SunSync
             }));
         }
 
-        internal void updateSingleFileProgress(int taskId, string fileFullPath, string fileKey, string uploadProgress)
+        internal void updateSingleFileProgress(int taskId, string fileFullPath, string fileKey, long fileLength, double percent)
         {
-            UploadInfo uploadInfo = this.uploadInfos[taskId];
-            uploadInfo.LocalPath = fileFullPath;
-            uploadInfo.FileKey = fileKey;
-            uploadInfo.Progress = uploadProgress;
+            lock (this.uploadInfoLock)
+            {
+                //calc
+                string uploadProgress = string.Format("{0}", percent.ToString("P"));
+                long newUploaded = (long)(fileLength * percent);
+                TimeSpan ts = DateTime.Now.Subtract(new DateTime(1970, 1, 1, 0, 0, 0));
+                long newMills = (long)(ts.TotalMilliseconds);
+
+                //set
+                UploadInfo uploadInfo = this.uploadInfos[taskId];
+                uploadInfo.LocalPath = fileFullPath;
+                uploadInfo.FileKey = fileKey;
+                uploadInfo.Progress = uploadProgress;
+                if (this.uploadedBytes.ContainsKey(fileKey))
+                {
+                    if (newUploaded < fileLength)
+                    {
+                        string lastUploadInfo = this.uploadedBytes[fileKey];
+                        string[] lastUploadItems = lastUploadInfo.Split(':');
+
+                        long oldUploaded = Convert.ToInt64(lastUploadItems[0]);
+                        long oldMills = Convert.ToInt64(lastUploadItems[1]);
+
+                        long deltaBytes = newUploaded - oldUploaded;
+                        long deltaMillis = newMills - oldMills;
+
+                        if (deltaMillis > 0 && deltaBytes > 0)
+                        {
+                            //KB/s
+                            double speed = (deltaBytes / 1.024) / deltaMillis;
+                            if (speed > 1024)
+                            {
+                                speed = speed / 1024;
+                                uploadInfo.Speed = string.Format("{0} MB/s", speed.ToString("F1"));
+                            }
+                            else
+                            {
+                                uploadInfo.Speed = string.Format("{0} KB/s", speed.ToString("F1"));
+                            }
+                        }
+                    }
+                    else
+                    {
+                        uploadInfo.Speed = "---";
+                    }
+                }
+                else
+                {
+                    this.uploadedBytes.Add(fileKey, string.Format("{0}:{1}", newUploaded, newMills));
+                    uploadInfo.Speed = "---";
+                }
+            }
             Dispatcher.Invoke(new Action(delegate
             {
                 ObservableCollection<UploadInfo> dataSource = new ObservableCollection<UploadInfo>();
