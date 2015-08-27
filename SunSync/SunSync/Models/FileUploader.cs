@@ -66,9 +66,7 @@ namespace SunSync.Models
             Qiniu.Common.Config.PUT_THRESHOLD = this.syncSetting.ChunkUploadThreshold;
             Qiniu.Common.Config.CHUNK_SIZE = this.syncSetting.DefaultChunkSize;
 
-            //support resume upload
-            string recorderKey = this.syncSetting.SyncLocalDir + ":" + this.syncSetting.SyncTargetBucket + ":" + fileKey;
-            recorderKey = Tools.md5Hash(recorderKey);
+          
 
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             string recordPath = System.IO.Path.Combine(myDocPath, "qsunsync", "record");
@@ -86,7 +84,12 @@ namespace SunSync.Models
             //current file info
             FileInfo fileInfo = new FileInfo(fileFullPath);
            string lastModified = fileInfo.LastWriteTimeUtc.ToFileTime().ToString();
-                long fileLength = fileInfo.Length;
+              //support resume upload
+            string recorderKey = string.Format("{0}:{1}:{2}:{3}:{4}",this.syncSetting.SyncLocalDir,
+                this.syncSetting.SyncTargetBucket,fileKey,fileFullPath,lastModified);
+            recorderKey = Tools.md5Hash(recorderKey);
+
+            long fileLength = fileInfo.Length;
             if (!string.IsNullOrEmpty(statResult.Hash))
             {
                 //file exists in bucket
@@ -139,7 +142,7 @@ namespace SunSync.Models
                     Log.Error(string.Format("get hash from local db failed {0}", ex.Message));
                     localHash = QETag.hash(fileFullPath);
                 }
-                
+
                 if (localHash.Equals(statResult.Hash))
                 {
                     //same file, no need to upload
