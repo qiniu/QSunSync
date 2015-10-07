@@ -138,6 +138,7 @@
     <Compile Include="Models\FileUploader.cs" />
     <Compile Include="Models\Log.cs" />
     <Compile Include="Models\PutRet.cs" />
+    <Compile Include="Models\SyncLog.cs" />
     <Compile Include="Models\SyncRecord.cs" />
     <Compile Include="Models\SyncSetting.cs" />
     <Compile Include="Models\SystemConfig.cs" />

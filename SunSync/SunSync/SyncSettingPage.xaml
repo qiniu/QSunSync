@@ -4,7 +4,7 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       mc:Ignorable="d" 
-      d:DesignHeight="560" d:DesignWidth="680"
+      d:DesignHeight="670" d:DesignWidth="680"
 	Title="SyncSettingPage" Loaded="SyncSettingPageLoaded_EventHandler">
 
     <Grid>
@@ -24,7 +24,7 @@
         </StackPanel>
         <StackPanel Grid.Row="1" Margin="5">
             <StackPanel Orientation="Vertical">
-                <TabControl Height="430" Name="SyncSettingTabControl">
+                <TabControl Height="500" Name="SyncSettingTabControl">
                     <TabItem Header="基本设置" FontSize="16">
                         <StackPanel Orientation="Vertical" Width="500" Margin="10">
                             <StackPanel>
@@ -52,19 +52,21 @@
                                     </Button>
                                 </StackPanel>
                             </StackPanel>
-                            
+                            <StackPanel>
+                                <CheckBox Name="CheckRemoteDuplicateCheckBox" Content="上传前检查空间同名文件" FontSize="16" Margin="0 10" VerticalAlignment="Center"></CheckBox>
+                            </StackPanel>
                             <StackPanel>
                                 <TextBlock Name="SettingsErrorTextBlock" Text="" Margin="0 10" Foreground="Red"></TextBlock>
                             </StackPanel>
                         </StackPanel>
                     </TabItem>
                     <TabItem Header="高级设置" FontSize="16">
-                        <StackPanel Orientation="Vertical" Width="520" Margin="0 5">
+                        <StackPanel Orientation="Vertical" Width="560" Margin="0">
                             <StackPanel>
                                 <GroupBox Header="可选参数" FontSize="16">
                                     <StackPanel Orientation="Vertical" Margin="5">
                                         <StackPanel Orientation="Horizontal" Margin="5">
-                                            <Label FontSize="16" Content="附加前缀" VerticalAlignment="Center"></Label>
+                                            <Label FontSize="16" Content="附加文件前缀" VerticalAlignment="Center" Width="110"></Label>
                                             <TextBox Width="350" Margin="10 0" VerticalContentAlignment="Center"
                                                      Name="PrefixTextBox" Foreground="Green"></TextBox>
                                         </StackPanel>
@@ -72,10 +74,20 @@
                                             <CheckBox Content="检查本地增量文件" FontSize="16" Name="CheckNewFilesCheckBox" VerticalContentAlignment="Center" Margin="5 0"></CheckBox>
                                         </StackPanel>
                                         <StackPanel Margin="5">
-                                            <CheckBox Content="忽略文件名相对路径" FontSize="16" Name="IgnoreRelativePathCheckBox" VerticalContentAlignment="Center" Margin="5 0"></CheckBox>
+                                            <CheckBox Content="忽略文件名相对路径" FontSize="16" Name="IgnoreDirCheckBox" VerticalContentAlignment="Center" Margin="5 0"></CheckBox>
                                         </StackPanel>
                                         <StackPanel Margin="5">
                                             <CheckBox Content="空间中同名文件强制覆盖" FontSize="16" Name="OverwriteFileCheckBox" VerticalContentAlignment="Center" Margin="5 0"></CheckBox>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="5">
+                                            <Label FontSize="16" Content="按前缀跳过" VerticalAlignment="Center" Width="110"></Label>
+                                            <TextBox Width="350" Margin="10 0" VerticalContentAlignment="Center"
+                                                     Name="SkipPrefixesTextBox" Foreground="Green"></TextBox>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="5">
+                                            <Label FontSize="16" Content="按后缀跳过" VerticalAlignment="Center" Width="110"></Label>
+                                            <TextBox Width="350" Margin="10 0" VerticalContentAlignment="Center"
+                                                     Name="SkipSuffixesTextBox" Foreground="Green"></TextBox>
                                         </StackPanel>
                                     </StackPanel>
                                 </GroupBox>
@@ -84,7 +96,7 @@
                                 <GroupBox Header="高级参数" FontSize="16">
                                     <StackPanel Orientation="Vertical" Margin="5">
                                         <StackPanel Orientation="Horizontal" Margin="5">
-                                            <Label Content="分片默认大小" VerticalAlignment="Center"></Label>
+                                            <Label Content="分片默认大小" VerticalAlignment="Center" Width="110"></Label>
                                             <ComboBox Width="320" VerticalAlignment="Center" Margin="10 0" Name="ChunkDefaultSizeComboBox">
                                                 <ComboBoxItem Content="128KB"/>
                                                 <ComboBoxItem Content="256KB"/>
@@ -95,7 +107,7 @@
                                             </ComboBox>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="5">
-                                            <Label Content="分片上传阈值" VerticalAlignment="Center"></Label>
+                                            <Label Content="分片上传阈值" VerticalAlignment="Center" Width="110"></Label>
                                             <Slider  Width="320" VerticalAlignment="Center" Margin="10 0" Minimum="4" Maximum="100"
                                                      Name="ChunkUploadThresholdSlider" 
                                                       IsSnapToTickEnabled="True" TickFrequency="1"
@@ -103,7 +115,7 @@
                                             <Label Name="ChunkUploadThresholdLabel" FontSize="10" VerticalContentAlignment="Center">10MB</Label>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="5">
-                                            <Label Content="同步的并发数" VerticalAlignment="Center"></Label>
+                                            <Label Content="同步的并发数" VerticalAlignment="Center" Width="110"></Label>
                                             <Slider  Width="320" VerticalAlignment="Center" Margin="10 0" Minimum="1" Maximum="60"
                                                      Name="ThreadCountSlider"
                                                       IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="ThreadCountChange_EventHandler"
@@ -111,7 +123,7 @@
                                             <Label Name="ThreadCountLabel" FontSize="10" VerticalContentAlignment="Center"></Label>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="5">
-                                            <Label Content="上传入口域名" VerticalAlignment="Center"></Label>
+                                            <Label Content="上传入口域名" VerticalAlignment="Center" Width="110"></Label>
                                             <ComboBox Width="320" VerticalAlignment="Center" Margin="10 0" Name="UploadEntryDomainComboBox">
                                                 <ComboBoxItem Content="http://up.qiniu.com      直接上传"></ComboBoxItem>
                                                 <ComboBoxItem Content="http://upload.qiniu.com  加速上传"></ComboBoxItem>

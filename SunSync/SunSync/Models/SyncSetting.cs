@@ -9,12 +9,18 @@ namespace SunSync.Models
         public string SyncLocalDir { set; get; }
         //target bucket
         public string SyncTargetBucket { set; get; }
+        //check remote duplicate
+        public bool CheckRemoteDuplicate { set; get; }
         //prefix
         public string SyncPrefix { set; get; }
         //check new files
         public bool CheckNewFiles { set; get; }
         //ignore dir
         public bool IgnoreDir { set; get; }
+        //skip prefixes
+        public string SkipPrefixes { set; get; }
+        //skip suffixes
+        public string SkipSuffixes { set; get; }
         //overwrite same file
         public bool OverwriteFile { set; get; }
         //default chunk size
@@ -58,9 +64,12 @@ namespace SunSync.Models
                                 setting = new SyncSetting();
                                 setting.SyncLocalDir = Convert.ToString(dr["sync_local_dir"]);
                                 setting.SyncTargetBucket = Convert.ToString(dr["sync_target_bucket"]);
+                                setting.CheckRemoteDuplicate = Convert.ToBoolean(dr["check_remote_duplicate"]);
                                 setting.SyncPrefix = Convert.ToString(dr["sync_prefix"]);
                                 setting.CheckNewFiles = Convert.ToBoolean(dr["check_new_files"]);
                                 setting.IgnoreDir = Convert.ToBoolean(dr["ignore_dir"]);
+                                setting.SkipPrefixes = Convert.ToString(dr["skip_prefixes"]);
+                                setting.SkipSuffixes = Convert.ToString(dr["skip_suffixes"]);
                                 setting.OverwriteFile = Convert.ToBoolean(dr["overwrite_file"]);
                                 setting.DefaultChunkSize = Convert.ToInt32(dr["default_chunk_size"]);
                                 setting.ChunkUploadThreshold = Convert.ToInt32(dr["chunk_upload_threshold"]);

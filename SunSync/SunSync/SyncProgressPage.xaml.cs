@@ -32,24 +32,28 @@ namespace SunSync
         //value is datetime in milliseconds +":"+uploadedBytes
         private Dictionary<string, string> uploadedBytes;
 
+        private object fileSkippedLock;
         private object fileExistsLock;
         private object fileOverwriteLock;
         private object fileNotOverwriteLock;
         private object fileUploadErrorLock;
         private object fileUploadSuccessLock;
 
+        private int fileSkippedCount;
         private int fileExistsCount;
         private int fileOverwriteCount;
         private int fileNotOverwriteCount;
         private int fileUploadErrorCount;
         private int fileUploadSuccessCount;
 
+        private StreamWriter fileSkippedWriter;
         private StreamWriter fileExistsWriter;
         private StreamWriter fileOverwriteWriter;
         private StreamWriter fileNotOverwriteWriter;
         private StreamWriter fileUploadErrorWriter;
         private StreamWriter fileUploadSuccessWriter;
 
+        private string fileSkippedLogPath;
         private string fileExistsLogPath;
         private string fileOverwriteLogPath;
         private string fileNotOverwriteLogPath;
@@ -73,6 +77,10 @@ namespace SunSync
         private string cacheFilePathDone;
         private string cacheFilePathTemp;
 
+        private string syncLogDir;
+        private string syncLogDBPath;
+        private SQLiteConnection syncLogDB;
+
         public SyncProgressPage(MainWindow mainWindow)
         {
             InitializeComponent();
@@ -80,6 +88,11 @@ namespace SunSync
             this.batchOpFiles = new List<string>();
             this.uploadedBytes = new Dictionary<string, string>();
             this.resetSyncStatus();
+        }
+
+        public SQLiteConnection SyncLogDB()
+        {
+            return this.syncLogDB;
         }
 
         public SQLiteConnection LocalHashDB()
@@ -99,11 +112,13 @@ namespace SunSync
             this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunsync", "jobs.db");
             this.jobLogDir = System.IO.Path.Combine(myDocPath, "qsunsync", "logs", jobId);
             this.localHashDBPath = System.IO.Path.Combine(myDocPath, "qsunsync", "hash.db");
-            this.cacheDir = System.IO.Path.Combine(myDocPath, "qsunsync", "cache");
+            this.cacheDir = System.IO.Path.Combine(myDocPath, "qsunsync", "dircache");
+            this.syncLogDir = System.IO.Path.Combine(myDocPath, "qsunsync", "synclog");
+            this.syncLogDBPath = System.IO.Path.Combine(this.syncLogDir, jobId + ".log.db");
 
             string cacheId = jobId;
-            this.cacheFilePathDone = System.IO.Path.Combine(cacheDir, cacheId+".done");
-            this.cacheFilePathTemp = System.IO.Path.Combine(cacheDir,cacheId+".temp");
+            this.cacheFilePathDone = System.IO.Path.Combine(cacheDir, cacheId + ".done");
+            this.cacheFilePathTemp = System.IO.Path.Combine(cacheDir, cacheId + ".temp");
         }
 
         private void SyncProgressPageLoaded_EventHandler(object sender, RoutedEventArgs e)
@@ -122,6 +137,8 @@ namespace SunSync
             this.totalCount = 0;
             this.progressLock = new object();
             this.uploadLogLock = new object();
+            this.fileSkippedCount = 0;
+            this.fileSkippedLock = new object();
             this.fileExistsCount = 0;
             this.fileExistsLock = new object();
             this.fileOverwriteCount = 0;
@@ -189,7 +206,7 @@ namespace SunSync
             }
         }
 
-        internal void processDir(string rootDir, string targetDir,StreamWriter sw)
+        internal void processDir(string rootDir, string targetDir, StreamWriter sw)
         {
             this.updateUploadLog(string.Format("正在遍历目录 {0} ...", targetDir));
             try
@@ -230,7 +247,7 @@ namespace SunSync
                     {
                         return;
                     }
-                    processDir(rootDir, subDir,sw);
+                    processDir(rootDir, subDir, sw);
                 }
             }
             catch (Exception ex)
@@ -244,7 +261,7 @@ namespace SunSync
             try
             {
                 string filePath = null;
-                
+
                 //count
                 using (StreamReader sr = new StreamReader(this.cacheFilePathDone, Encoding.UTF8))
                 {
@@ -263,7 +280,7 @@ namespace SunSync
                         {
                             return;
                         }
-         
+
                         if (this.batchOpFiles.Count < this.syncSetting.SyncThreadCount)
                         {
                             this.batchOpFiles.Add(filePath);
@@ -339,21 +356,37 @@ namespace SunSync
                 }
             }
 
+            if (!Directory.Exists(this.syncLogDir))
+            {
+                try
+                {
+                    Directory.CreateDirectory(this.syncLogDir);
+                }
+                catch (Exception ex)
+                {
+                    checkOk = false;
+                    Log.Error(string.Format("create sync log dir {0} failed due to {1},", this.syncLogDir, ex.Message));
+                }
+            }
+
             //create the upload log files
             try
             {
+                this.fileSkippedLogPath = System.IO.Path.Combine(this.jobLogDir, "skipped.log");
                 this.fileExistsLogPath = System.IO.Path.Combine(this.jobLogDir, "exists.log");
                 this.fileOverwriteLogPath = System.IO.Path.Combine(this.jobLogDir, "overwrite.log");
                 this.fileNotOverwriteLogPath = System.IO.Path.Combine(this.jobLogDir, "not_overwrite.log");
                 this.fileUploadSuccessLogPath = System.IO.Path.Combine(this.jobLogDir, "success.log");
                 this.fileUploadErrorLogPath = System.IO.Path.Combine(this.jobLogDir, "error.log");
 
+                this.fileSkippedWriter = new StreamWriter(fileSkippedLogPath, false, Encoding.UTF8);
                 this.fileExistsWriter = new StreamWriter(fileExistsLogPath, false, Encoding.UTF8);
                 this.fileOverwriteWriter = new StreamWriter(fileOverwriteLogPath, false, Encoding.UTF8);
                 this.fileNotOverwriteWriter = new StreamWriter(fileNotOverwriteLogPath, false, Encoding.UTF8);
                 this.fileUploadSuccessWriter = new StreamWriter(fileUploadSuccessLogPath, false, Encoding.UTF8);
                 this.fileUploadErrorWriter = new StreamWriter(fileUploadErrorLogPath, false, Encoding.UTF8);
 
+                this.fileSkippedWriter.AutoFlush = true;
                 this.fileExistsWriter.AutoFlush = true;
                 this.fileOverwriteWriter.AutoFlush = true;
                 this.fileNotOverwriteWriter.AutoFlush = true;
@@ -363,9 +396,9 @@ namespace SunSync
             catch (Exception ex)
             {
                 checkOk = false;
-                Log.Error("init the log writer failed, " + ex.Message);
+                Log.Error(string.Format("init the log writer for job {0} failed due to {1} ", this.jobId, ex.Message));
             }
-            
+
             return checkOk;
         }
 
@@ -380,7 +413,7 @@ namespace SunSync
                 }
                 catch (Exception ex)
                 {
-                    Log.Error("create sync record db failed, " + ex.Message);
+                    Log.Error(string.Format("create sync record db for job {0} failed due to {1}", this.jobId, ex.Message));
                 }
             }
             else
@@ -392,7 +425,7 @@ namespace SunSync
                 }
                 catch (Exception ex)
                 {
-                    Log.Error("record sync job failed, " + ex.Message);
+                    Log.Error(string.Format("record sync job failed for job {0} due to {1}", this.jobId, ex.Message));
                 }
             }
 
@@ -405,6 +438,18 @@ namespace SunSync
                 catch (Exception ex)
                 {
                     Log.Error("create cached hash db failed, " + ex.Message);
+                }
+            }
+
+            if (!File.Exists(this.syncLogDBPath))
+            {
+                try
+                {
+                    SyncLog.CreateSyncLogDB(this.syncLogDBPath);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("create sync log db for job {0} failed due to {1}", this.jobId, ex.Message));
                 }
             }
         }
@@ -429,29 +474,54 @@ namespace SunSync
             this.createOptionalDB();
             try
             {
-                //open database
+                //open database local hash db
                 string conStr = new SQLiteConnectionStringBuilder { DataSource = this.localHashDBPath }.ToString();
                 this.localHashDB = new SQLiteConnection(conStr);
                 this.localHashDB.Open();
             }
             catch (Exception ex)
             {
-                Log.Error(string.Format("open local hash db failed due to {0}",ex.Message));
+                Log.Error(string.Format("open local hash db failed due to {0}", ex.Message));
                 if (this.localHashDB != null)
                 {
-                    try {
+                    try
+                    {
                         this.localHashDB.Close();
                     }
                     catch (Exception ex2)
                     {
-                        Log.Error(string.Format("close local hash db failed due to {0}",ex2.Message));
+                        Log.Error(string.Format("close local hash db failed due to {0}", ex2.Message));
                     }
                 }
                 this.localHashDB = null;
             }
+
+            try
+            {
+                string conStr = new SQLiteConnectionStringBuilder { DataSource = this.syncLogDBPath }.ToString();
+                this.syncLogDB = new SQLiteConnection(conStr);
+                this.syncLogDB.Open();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(string.Format("open sync log db failed due to {0}", ex.Message));
+                if (this.syncLogDB != null)
+                {
+                    try
+                    {
+                        this.syncLogDB.Close();
+                    }
+                    catch (Exception ex2)
+                    {
+                        Log.Error(string.Format("close sync log db failed due to {0}", ex2.Message));
+                    }
+                }
+                this.syncLogDB = null;
+            }
+
             //start job
             this.jobStart = System.DateTime.Now;
-            Log.Info(string.Format("start to sync dir {0}",this.syncSetting.SyncLocalDir));
+            Log.Info(string.Format("start to sync dir {0}", this.syncSetting.SyncLocalDir));
             //set before run status
             this.finishSignal = false;
             this.cancelSignal = false;
@@ -493,13 +563,28 @@ namespace SunSync
                     Log.Error(string.Format("job finish close local hash db failed {0}", ex.Message));
                 }
             }
+            if (this.syncLogDB != null)
+            {
+                try
+                {
+                    this.syncLogDB.Close();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("job finish close sync log db failed {0}", ex.Message));
+                }
+            }
             if (!this.cancelSignal)
             {
                 //job auto finish, jump to result page
                 DateTime jobEnd = System.DateTime.Now;
-                this.mainWindow.GotoSyncResultPage(this.jobId, jobEnd - this.jobStart, this.syncSetting.OverwriteFile, this.fileExistsCount, this.fileExistsLogPath, this.fileOverwriteCount,
-                this.fileOverwriteLogPath, this.fileNotOverwriteCount, this.fileNotOverwriteLogPath, this.fileUploadErrorCount, this.fileUploadErrorLogPath,
-                this.fileUploadSuccessCount, this.fileUploadSuccessLogPath);
+                this.mainWindow.GotoSyncResultPage(this.jobId, jobEnd - this.jobStart, this.syncSetting.OverwriteFile,
+                    this.fileSkippedCount, this.fileSkippedLogPath,
+                    this.fileExistsCount, this.fileExistsLogPath,
+                    this.fileOverwriteCount, this.fileOverwriteLogPath,
+                    this.fileNotOverwriteCount, this.fileNotOverwriteLogPath,
+                    this.fileUploadErrorCount, this.fileUploadErrorLogPath,
+                    this.fileUploadSuccessCount, this.fileUploadSuccessLogPath);
             }
         }
 
@@ -540,8 +625,12 @@ namespace SunSync
         private void ManualFinishButton_EventHandler(object sender, RoutedEventArgs e)
         {
             DateTime jobEnd = System.DateTime.Now;
-            this.mainWindow.GotoSyncResultPage(this.jobId, jobEnd - this.jobStart, this.syncSetting.OverwriteFile, this.fileExistsCount, this.fileExistsLogPath, this.fileOverwriteCount,
-               this.fileOverwriteLogPath, this.fileNotOverwriteCount, this.fileNotOverwriteLogPath, this.fileUploadErrorCount, this.fileUploadErrorLogPath,
+            this.mainWindow.GotoSyncResultPage(this.jobId, jobEnd - this.jobStart, this.syncSetting.OverwriteFile,
+               this.fileSkippedCount, this.fileSkippedLogPath,
+               this.fileExistsCount, this.fileExistsLogPath,
+               this.fileOverwriteCount, this.fileOverwriteLogPath,
+               this.fileNotOverwriteCount, this.fileNotOverwriteLogPath,
+               this.fileUploadErrorCount, this.fileUploadErrorLogPath,
                this.fileUploadSuccessCount, this.fileUploadSuccessLogPath);
         }
 
@@ -559,6 +648,22 @@ namespace SunSync
         }
 
         //write sync progress logs
+        internal void addFileSkippedLog(string log)
+        {
+            lock (this.fileSkippedLock)
+            {
+                this.fileSkippedCount += 1;
+            }
+            try
+            {
+                this.fileSkippedWriter.WriteLine(log);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(string.Format("write file skipped log for {0} failed due to {1}", this.jobId, ex.Message));
+            }
+        }
+
         internal void addFileExistsLog(string log)
         {
             lock (this.fileExistsLock)
@@ -743,6 +848,10 @@ namespace SunSync
         {
             try
             {
+                if (this.fileSkippedWriter != null)
+                {
+                    this.fileSkippedWriter.Close();
+                }
                 if (this.fileExistsWriter != null)
                 {
                     this.fileExistsWriter.Close();

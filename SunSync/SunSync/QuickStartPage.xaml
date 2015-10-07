@@ -4,7 +4,7 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       mc:Ignorable="d" 
-      d:DesignHeight="560" d:DesignWidth="680"
+      d:DesignHeight="670" d:DesignWidth="700"
 	Title="QuickStartPage" Loaded="QuickStartPageLoaded_EventHandler">
     
     <Grid>
@@ -24,7 +24,7 @@
             <StackPanel Grid.Column="0" Orientation="Vertical">
                 <StackPanel Margin="20 0">
                         <Label Content="最近同步任务" FontSize="24" Margin="0 10"></Label>
-                        <ListBox Name="SyncHistoryListBox" Height="380" >
+                        <ListBox Name="SyncHistoryListBox" Height="450" >
                        
                         </ListBox>
                     </StackPanel>

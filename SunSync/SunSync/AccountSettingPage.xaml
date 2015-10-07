@@ -23,35 +23,37 @@
                 </StackPanel>
             </Border>
         </StackPanel>
-        <StackPanel Grid.Row="1" Margin="20">
-            <StackPanel Width="450" Margin="40">
-                <StackPanel>
-                    <Label Content="Access Key (AK)" FontSize="16" Margin="0 10"></Label>
+        <StackPanel Grid.Row="1" Margin="10">
+            <Border BorderBrush="LightGray" BorderThickness="1">
+                <StackPanel Margin="40">
+                    <StackPanel>
+                        <Label Content="Access Key (AK)" FontSize="16" Margin="0 10"></Label>
                         <TextBox FontSize="16" Height="48" VerticalContentAlignment="Center" Foreground="Green" Name="AccessKeyTextBox"
                             ></TextBox>
                     </StackPanel>
-            
-                <StackPanel>
-                    <Label Content="Secret Key (SK)" FontSize="16" Margin="0 10"></Label>
-                    <TextBox FontSize="16" Height="48" VerticalContentAlignment="Center" Foreground="Green" Name="SecretKeyTextBox"
+
+                    <StackPanel>
+                        <Label Content="Secret Key (SK)" FontSize="16" Margin="0 10"></Label>
+                        <TextBox FontSize="16" Height="48" VerticalContentAlignment="Center" Foreground="Green" Name="SecretKeyTextBox"
                              ></TextBox>
-                </StackPanel>
-               
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Name="SettingsErrorTextBlock" Text="" Margin="0 5" Foreground="Red" FontSize="14"></TextBlock>
-                </StackPanel> 
-                <StackPanel Orientation="Horizontal" Margin="0 5">
-                    <TextBlock Text="查看我的 AK &amp; SK" TextDecorations="Underline"
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Name="SettingsErrorTextBlock" Text="" Margin="0 5" Foreground="Red" FontSize="14"></TextBlock>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0 5">
+                        <TextBlock Text="查看我的 AK &amp; SK" TextDecorations="Underline"
                                HorizontalAlignment="Left" VerticalAlignment="Center"
                                Foreground="Blue"
                                Cursor="Hand"
                                FontSize="14"
                                MouseLeftButtonUp="ViewMyAKSK_MouseLeftButtonUp"
                                ></TextBlock>
-                    <Button Content="保存" Width="120" Height="32" HorizontalAlignment="Right" FontSize="14"
-                            Click="SaveAccountSettings_EventHandler" Margin="214 0 0 0"></Button>
+                        <Button Content="保存" Width="120" Height="32" HorizontalAlignment="Right" FontSize="14"
+                            Click="SaveAccountSettings_EventHandler" Margin="345 0 0 0"></Button>
+                    </StackPanel>
                 </StackPanel>
-            </StackPanel>
+            </Border>
         </StackPanel>
     </Grid>
 </Page>

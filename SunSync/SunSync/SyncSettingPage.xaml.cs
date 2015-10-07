@@ -17,17 +17,22 @@ namespace SunSync
     /// </summary>
     public partial class SyncSettingPage : Page
     {
-
         //local dir to sync
         private string syncLocalDir;
         //target bucket
         private string syncTargetBucket;
+        //check remote duplicate
+        private bool checkRemoteDuplicate;
         //prefix
         private string syncPrefix;
         //check new files
         private bool checkNewFiles;
         //ignore dir
         private bool ignoreDir;
+        //skip prefixes
+        private string skipPrefixes;
+        //skip suffixes
+        private string skipSuffixes;
         //overwrite same file
         private bool overwriteFile;
         //default chunk size
@@ -128,11 +133,14 @@ namespace SunSync
                 //basic settings
                 this.SyncLocalFolderTextBox.Text = "";
                 this.SyncTargetBucketsComboBox.SelectedIndex = -1;
+                this.CheckRemoteDuplicateCheckBox.IsChecked = true;
                 //advanced settings
                 this.PrefixTextBox.Text = "";
                 this.CheckNewFilesCheckBox.IsChecked = false;
                 this.OverwriteFileCheckBox.IsChecked = false;
-                this.IgnoreRelativePathCheckBox.IsChecked = false;
+                this.IgnoreDirCheckBox.IsChecked = false;
+                this.SkipPrefixesTextBox.Text = "";
+                this.SkipSuffixesTextBox.Text = "";
                 this.ChunkDefaultSizeComboBox.SelectedIndex = 2; //512KB
                 this.ChunkUploadThresholdSlider.Value = 10;//10MB
                 this.ThreadCountSlider.Value = 10;
@@ -141,19 +149,17 @@ namespace SunSync
             }
             else
             {
-                //back compatable
-                if (this.syncSetting.SyncThreadCount > 60)
-                {
-                    this.syncSetting.SyncThreadCount = 60;
-                }
                 //basic settings
                 this.SyncLocalFolderTextBox.Text = syncSetting.SyncLocalDir;
                 this.SyncTargetBucketsComboBox.SelectedIndex = -1;
+                this.CheckRemoteDuplicateCheckBox.IsChecked = syncSetting.CheckRemoteDuplicate;
                 //advanced settings
                 this.PrefixTextBox.Text = syncSetting.SyncPrefix;
                 this.OverwriteFileCheckBox.IsChecked = syncSetting.OverwriteFile;
                 this.CheckNewFilesCheckBox.IsChecked = syncSetting.CheckNewFiles;
-                this.IgnoreRelativePathCheckBox.IsChecked = syncSetting.IgnoreDir;
+                this.IgnoreDirCheckBox.IsChecked = syncSetting.IgnoreDir;
+                this.SkipPrefixesTextBox.Text = syncSetting.SkipPrefixes;
+                this.SkipSuffixesTextBox.Text = syncSetting.SkipSuffixes;
                 this.ThreadCountSlider.Value = syncSetting.SyncThreadCount;
                 this.ThreadCountLabel.Content = syncSetting.SyncThreadCount.ToString();
                 this.ChunkUploadThresholdSlider.Value = syncSetting.ChunkUploadThreshold / 1024 / 1024;
@@ -326,7 +332,10 @@ namespace SunSync
             //optional settings
             this.syncPrefix = this.PrefixTextBox.Text.Trim();
             this.checkNewFiles = this.CheckNewFilesCheckBox.IsChecked.Value;
-            this.ignoreDir = this.IgnoreRelativePathCheckBox.IsChecked.Value;
+            this.ignoreDir = this.IgnoreDirCheckBox.IsChecked.Value;
+            this.checkRemoteDuplicate = this.CheckRemoteDuplicateCheckBox.IsChecked.Value;
+            this.skipPrefixes = this.SkipPrefixesTextBox.Text.Trim();
+            this.skipSuffixes = this.SkipSuffixesTextBox.Text.Trim();
             this.overwriteFile = this.OverwriteFileCheckBox.IsChecked.Value;
             switch (this.ChunkDefaultSizeComboBox.SelectedIndex)
             {
@@ -373,9 +382,12 @@ namespace SunSync
             SyncSetting syncSetting = new SyncSetting();
             syncSetting.SyncLocalDir = this.syncLocalDir;
             syncSetting.SyncTargetBucket = this.syncTargetBucket;
+            syncSetting.CheckRemoteDuplicate = this.checkRemoteDuplicate;
             syncSetting.SyncPrefix = this.syncPrefix;
             syncSetting.CheckNewFiles = this.checkNewFiles;
             syncSetting.IgnoreDir = this.ignoreDir;
+            syncSetting.SkipPrefixes = this.skipPrefixes;
+            syncSetting.SkipSuffixes = this.skipSuffixes;
             syncSetting.OverwriteFile = this.overwriteFile;
             syncSetting.SyncThreadCount = this.syncThreadCount;
             syncSetting.ChunkUploadThreshold = this.chunkUploadThreshold;
