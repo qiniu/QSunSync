@@ -4,7 +4,7 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       mc:Ignorable="d" 
-      d:DesignHeight="600" d:DesignWidth="700"
+      d:DesignHeight="620" d:DesignWidth="700"
 	Title="AccountSettingPage">
 
     <Grid>
@@ -25,7 +25,7 @@
         </StackPanel>
         <StackPanel Grid.Row="1" Margin="10">
             <Border BorderBrush="LightGray" BorderThickness="1">
-                <StackPanel Margin="20">
+                <StackPanel Margin="10">
                     <StackPanel>
                         <TextBlock 
                             FontSize="18" Foreground="OrangeRed" Height="50" TextWrapping="Wrap">
@@ -66,17 +66,18 @@
                                 4. 出于安全考虑，建议您周期性地更换密钥。
                         </TextBlock>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0 5">
+                    <DockPanel Margin="0 15">
                         <TextBlock Text="查看我的 AK &amp; SK" TextDecorations="Underline"
                                HorizontalAlignment="Left" VerticalAlignment="Center"
                                Foreground="Blue"
                                Cursor="Hand"
                                FontSize="14"
                                MouseLeftButtonUp="ViewMyAKSK_MouseLeftButtonUp"
-                               ></TextBlock>
-                        <Button Content="保存" Width="120" Height="32" HorizontalAlignment="Right" FontSize="14"
-                            Click="SaveAccountSettings_EventHandler" Margin="385 0 0 0"></Button>
-                    </StackPanel>
+                               DockPanel.Dock="Left"></TextBlock>
+                        <TextBlock Width="405"></TextBlock>
+                        <Button Content="保存" Width="120" Height="32"  FontSize="14"
+                            Click="SaveAccountSettings_EventHandler" DockPanel.Dock="Right"></Button>
+                    </DockPanel>
                 </StackPanel>
             </Border>
         </StackPanel>
