@@ -41,6 +41,7 @@ namespace SunSync.Models
                 {
                     if (dr.Read())
                     {
+                        syncLog.Key = dr["key"].ToString();
                         syncLog.LocalPath = dr["local_path"].ToString();
                         syncLog.LastModified = dr["last_modified"].ToString();
                     }
