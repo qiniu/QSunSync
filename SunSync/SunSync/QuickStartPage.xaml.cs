@@ -183,7 +183,7 @@ namespace SunSync
                 if (syncSetting != null)
                 {
                     MessageBoxResult mbr = MessageBox.Show(
-                        string.Format("确认删除同步任务 {0} => {1} 么？", syncSetting.SyncLocalDir, syncSetting.SyncTargetBucket), "删除任务",
+                        string.Format("确认删除同步任务 {0} -> {1} 么？", syncSetting.SyncLocalDir, syncSetting.SyncTargetBucket), "删除任务",
                         MessageBoxButton.YesNo, MessageBoxImage.Question);
                     if (mbr.Equals(MessageBoxResult.Yes))
                     {

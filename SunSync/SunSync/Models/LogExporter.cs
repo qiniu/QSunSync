@@ -16,6 +16,7 @@ namespace SunSync.Models
                     string fileNotOverwriteLogPath,
                     string fileOverwriteLogPath, string logSaveFilePath)
         {
+            int encodingSize = 3;
             try
             {
                 using (StreamWriter sw = new StreamWriter(logSaveFilePath, false, Encoding.UTF8))
@@ -23,7 +24,7 @@ namespace SunSync.Models
                     string line = null;
 
                     FileInfo fi = new FileInfo(fileUploadSuccessLogPath);
-                    if (fi.Length > 0)
+                    if (fi.Length > encodingSize)
                     {
                         try
                         {
@@ -44,7 +45,7 @@ namespace SunSync.Models
                     }
 
                     fi = new FileInfo(fileUploadErrorLogPath);
-                    if (fi.Length > 0)
+                    if (fi.Length > encodingSize)
                     {
                         try
                         {
@@ -65,7 +66,7 @@ namespace SunSync.Models
                     }
 
                     fi = new FileInfo(fileSkippedLogPath);
-                    if (fi.Length > 0)
+                    if (fi.Length > encodingSize)
                     {
                         try
                         {
@@ -86,7 +87,7 @@ namespace SunSync.Models
                     }
 
                     fi = new FileInfo(fileExistsLogPath);
-                    if (fi.Length > 0)
+                    if (fi.Length > encodingSize)
                     {
                         try
                         {
@@ -107,7 +108,7 @@ namespace SunSync.Models
                     }
 
                     fi = new FileInfo(fileNotOverwriteLogPath);
-                    if (fi.Length > 0)
+                    if (fi.Length > encodingSize)
                     {
                         try
                         {
@@ -128,7 +129,7 @@ namespace SunSync.Models
                     }
 
                     fi = new FileInfo(fileOverwriteLogPath);
-                    if (fi.Length > 0)
+                    if (fi.Length > encodingSize)
                     {
                         try
                         {
