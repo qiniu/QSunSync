@@ -64,6 +64,21 @@ namespace SunSync.Models
             }
         }
 
+        public static void DeleteSyncJobById(string syncId, string jobsDbPath)
+        {
+            string conStr = new SQLiteConnectionStringBuilder { DataSource = jobsDbPath }.ToString();
+            string deleteSql = string.Format("DELETE FROM [sync_jobs] WHERE [sync_id]='{0}'", syncId);
+            using (SQLiteConnection sqlCon = new SQLiteConnection(conStr))
+            {
+                sqlCon.Open();
+                using (SQLiteCommand sqlCmd = new SQLiteCommand(sqlCon))
+                {
+                    sqlCmd.CommandText = deleteSql;
+                    sqlCmd.ExecuteNonQuery();
+                }
+            }
+        }
+
         public static List<SyncRecord> LoadRecentSyncJobs(string jobsDbPath)
         {
             List<SyncRecord> syncRecords = new List<SyncRecord>();

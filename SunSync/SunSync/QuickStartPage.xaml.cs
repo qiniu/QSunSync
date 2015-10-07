@@ -20,6 +20,7 @@ namespace SunSync
         private string jobsDbPath;
         private List<string> topBGImages;
         private int clickCount;
+        private string myAppPath;
 
         public QuickStartPage(MainWindow mainWindow)
         {
@@ -27,7 +28,7 @@ namespace SunSync
             this.mainWindow = mainWindow;
             this.syncRecordDict = new Dictionary<int, string>();
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string myAppPath = System.IO.Path.Combine(myDocPath, "qsunsync");
+            this.myAppPath = System.IO.Path.Combine(myDocPath, "qsunsync");
             if (!Directory.Exists(myAppPath))
             {
                 try
@@ -42,7 +43,7 @@ namespace SunSync
             this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunsync", "jobs.db");
             this.topBGImages = new List<string>(); 
             this.topBGImages.Add("Pictures/qiniu_logo.jpg");
-            this.topBGImages.Add("Pictures/sun_logo.jpg");   
+            this.topBGImages.Add("Pictures/qiniu_logo.jpg");   
             this.clickCount = 0;
         }
 
@@ -110,6 +111,7 @@ namespace SunSync
                     listBoxItem.DataContext = record;
                     listBoxItem.Style = ctlStyle;
                     listBoxItem.MouseDoubleClick += listBoxItem_MouseDoubleClick;
+                    listBoxItem.MouseRightButtonUp += listBoxItem_MouseRightButtonUp;
                     this.syncRecordDict.Add(index, record.SyncId);
                     this.SyncHistoryListBox.Items.Add(listBoxItem);
                     index += 1;
@@ -121,21 +123,100 @@ namespace SunSync
             }
         }
 
+        private void listBoxItem_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            ContextMenu ctxMenu = new ContextMenu();
+            
+            MenuItem deleteJobMenuItem = new MenuItem();
+            deleteJobMenuItem.Header = "删除任务";
+            deleteJobMenuItem.Click += deleteJobMenuItem_Click;
 
-        internal void listBoxItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+            MenuItem exportJobLogMenuItem = new MenuItem();
+            exportJobLogMenuItem.Header = "导出日志";
+            exportJobLogMenuItem.Click += exportJobLogMenuItem_Click;
+
+            ctxMenu.Items.Add(deleteJobMenuItem);
+
+            ListBoxItem selectedItem = (ListBoxItem)sender;
+            selectedItem.ContextMenu = ctxMenu;
+        }
+
+        void exportJobLogMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+             
+        }
+
+        void deleteJobMenuItem_Click(object sender, RoutedEventArgs e)
         {
             int selectedIndex = this.SyncHistoryListBox.SelectedIndex;
             if (selectedIndex != -1)
             {
-                string syncId = this.syncRecordDict[selectedIndex];
-                SyncSetting syncSetting = SyncSetting.LoadSyncSettingByJobId(syncId);
+                string jobId = this.syncRecordDict[selectedIndex];
+                SyncSetting syncSetting = SyncSetting.LoadSyncSettingByJobId(jobId);
+                if (syncSetting != null)
+                {
+                    MessageBoxResult mbr = MessageBox.Show(
+                        string.Format("确认删除同步任务 {0} => {1} 么？", syncSetting.SyncLocalDir, syncSetting.SyncTargetBucket), "删除任务",
+                        MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    if (mbr.Equals(MessageBoxResult.Yes))
+                    {
+                        //delete job related files
+                        string[] filesToDelete ={
+                            Path.Combine(this.myAppPath,"logs",jobId,"error.log"),
+                            Path.Combine(this.myAppPath,"logs",jobId,"exists.log"),
+                            Path.Combine(this.myAppPath,"logs",jobId,"not_overwrite.log"),
+                            Path.Combine(this.myAppPath,"logs",jobId,"overwrite.log"),
+                            Path.Combine(this.myAppPath,"logs",jobId,"skipped.log"),
+                            Path.Combine(this.myAppPath,"logs",jobId,"success.log"),
+                            Path.Combine(this.myAppPath,"synclog",jobId+".log.db"),
+                            Path.Combine(this.myAppPath,"dircache",jobId+".done")
+                        };
+
+                        foreach (string path in filesToDelete)
+                        {
+                            try
+                            {
+                                File.Delete(path);
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Error(string.Format("delete file {0} failed due to {1}", path, ex.Message));
+                            }
+                        }
+
+                        try
+                        {
+                            SyncRecord.DeleteSyncJobById(jobId, this.jobsDbPath);
+                        }
+                        catch (Exception ex) {
+                            Log.Error("delete sync job by id error, "+ex.Message);
+                        }
+
+                        this.SyncHistoryListBox.Items.RemoveAt(selectedIndex);
+                    }
+                }
+                else
+                {
+                    Log.Error("load sync setting by id failed, " + jobId);
+                }
+            }
+        }
+
+
+        private void listBoxItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            int selectedIndex = this.SyncHistoryListBox.SelectedIndex;
+            if (selectedIndex != -1)
+            {
+                string jobId = this.syncRecordDict[selectedIndex];
+                SyncSetting syncSetting = SyncSetting.LoadSyncSettingByJobId(jobId);
                 if (syncSetting != null)
                 {
                     this.mainWindow.GotoSyncSettingPage(syncSetting);
                 }
                 else
                 {
-                    Log.Error("load sync setting by id failed, " + syncId);
+                    Log.Error("load sync setting by id failed, " + jobId);
                 }
             }
         }
@@ -171,9 +252,11 @@ namespace SunSync
         {
             try
             {
-                Process.Start("https://github.com/qiniu-lab/qsunsync");
+                Process.Start("https://github.com/qiniu/qsunsync");
             }
             catch (Exception) { }
         }
+
+         
     }
 }
