@@ -133,7 +133,7 @@ namespace SunSync
                 //basic settings
                 this.SyncLocalFolderTextBox.Text = "";
                 this.SyncTargetBucketsComboBox.SelectedIndex = -1;
-                this.CheckRemoteDuplicateCheckBox.IsChecked = true;
+                this.CheckRemoteDuplicateCheckBox.IsChecked = false;
                 //advanced settings
                 this.PrefixTextBox.Text = "";
                 this.CheckNewFilesCheckBox.IsChecked = false;

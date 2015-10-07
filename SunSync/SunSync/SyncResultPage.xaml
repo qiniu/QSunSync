@@ -54,8 +54,8 @@
             </Grid>
             </Border>
             <StackPanel  Orientation="Horizontal" Margin="0 10">
-                <Button Content="导出日志" Width="100" Height="32" Margin="10" FontSize="14" Click="ExportLog_EventHandler"/>
-                <Button Content="返回首页" Width="100" Height="32" Margin="430 10" FontSize="14" Click="BackToHome_EventHandler"></Button>
+                <Button Content="导出日志" Width="100" Height="32" Margin="0 10" FontSize="14" Click="ExportLog_EventHandler"/>
+                <Button Content="返回首页" Width="100" Height="32" Margin="462 10" FontSize="14" Click="BackToHome_EventHandler"></Button>
             </StackPanel>
         </StackPanel>
     </Grid>

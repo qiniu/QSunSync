@@ -62,7 +62,7 @@
                         <TextBlock Margin="10 5">
                                 3. 删除密钥前须停用。
                         </TextBlock>
-                        <TextBlock Margin="10 5">
+                        <TextBlock Margin="10 5 0 10">
                                 4. 出于安全考虑，建议您周期性地更换密钥。
                         </TextBlock>
                     </StackPanel>

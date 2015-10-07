@@ -22,7 +22,7 @@
                 </StackPanel>
             </Border>
         </StackPanel>
-        <StackPanel Grid.Row="1" Margin="5">
+        <StackPanel Grid.Row="1" Margin="10">
             <StackPanel Orientation="Vertical">
                 <TabControl Height="500" Name="SyncSettingTabControl">
                     <TabItem Header="基本设置" FontSize="16">
@@ -139,7 +139,7 @@
                 </TabControl>
                 
                 <StackPanel>
-                    <Button Content="开始同步" Width="100" Height="32" Margin="10" 
+                    <Button Content="开始同步" Width="100" Height="32" Margin="0 10" 
                             HorizontalAlignment="Right"
                             FontSize="14"
                             Click="StartSyncButton_EventHandler"
