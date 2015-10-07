@@ -4,7 +4,7 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       mc:Ignorable="d" 
-      d:DesignHeight="560" d:DesignWidth="680"
+      d:DesignHeight="600" d:DesignWidth="700"
 	Title="AccountSettingPage">
 
     <Grid>
@@ -25,7 +25,14 @@
         </StackPanel>
         <StackPanel Grid.Row="1" Margin="10">
             <Border BorderBrush="LightGray" BorderThickness="1">
-                <StackPanel Margin="40">
+                <StackPanel Margin="20">
+                    <StackPanel>
+                        <TextBlock 
+                            FontSize="18" Foreground="OrangeRed" Height="50" TextWrapping="Wrap">
+                            AK &amp; SK 是七牛用来进行API权限控制的一对密钥。
+                            安全规范使用 AK &amp; SK 是保障数据安全的重要环节。
+                        </TextBlock>
+                    </StackPanel>
                     <StackPanel>
                         <Label Content="Access Key (AK)" FontSize="16" Margin="0 10"></Label>
                         <TextBox FontSize="16" Height="48" VerticalContentAlignment="Center" Foreground="Green" Name="AccessKeyTextBox"
@@ -41,6 +48,24 @@
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Name="SettingsErrorTextBlock" Text="" Margin="0 5" Foreground="Red" FontSize="14"></TextBlock>
                     </StackPanel>
+
+                    <StackPanel Background="#F7EED6" Margin="0 10">
+                        <TextBlock  Margin="10">
+                                友情提示:
+                        </TextBlock>
+                        <TextBlock Margin="10 5">
+                                1. 一个账号最多拥有两对密钥(Access/Secret Key)。
+                        </TextBlock>
+                        <TextBlock Margin="10 5">
+                                2. 更换密钥时，请创建第二个密钥。
+                        </TextBlock>
+                        <TextBlock Margin="10 5">
+                                3. 删除密钥前须停用。
+                        </TextBlock>
+                        <TextBlock Margin="10 5">
+                                4. 出于安全考虑，建议您周期性地更换密钥。
+                        </TextBlock>
+                    </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0 5">
                         <TextBlock Text="查看我的 AK &amp; SK" TextDecorations="Underline"
                                HorizontalAlignment="Left" VerticalAlignment="Center"
@@ -50,7 +75,7 @@
                                MouseLeftButtonUp="ViewMyAKSK_MouseLeftButtonUp"
                                ></TextBlock>
                         <Button Content="保存" Width="120" Height="32" HorizontalAlignment="Right" FontSize="14"
-                            Click="SaveAccountSettings_EventHandler" Margin="345 0 0 0"></Button>
+                            Click="SaveAccountSettings_EventHandler" Margin="385 0 0 0"></Button>
                     </StackPanel>
                 </StackPanel>
             </Border>
