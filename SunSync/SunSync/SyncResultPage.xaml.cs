@@ -133,113 +133,12 @@ namespace SunSync
             if (dr.Equals(System.Windows.Forms.DialogResult.OK))
             {
                 string logFilePath = dlg.FileName;
-                try
-                {
-                    using (StreamWriter sw = new StreamWriter(logFilePath, false, Encoding.UTF8))
-                    {
-                        if (this.fileUploadSuccessCount > 0)
-                        {
-                            try
-                            {
-                                sw.WriteLine("同步成功文件列表");
-                                using (StreamReader isr = new StreamReader(this.fileUploadSuccessLogPath, Encoding.UTF8))
-                                {
-                                    sw.Write(isr.ReadToEnd());
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Error(string.Format("export success file list error {0}", ex.Message));
-                            }
-                        }
-
-                        if (this.fileUploadErrorCount > 0)
-                        {
-                            try
-                            {
-                                sw.WriteLine("同步失败文件列表");
-                                using (StreamReader isr = new StreamReader(this.fileUploadErrorLogPath, Encoding.UTF8))
-                                {
-                                    sw.Write(isr.ReadToEnd());
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Error(string.Format("export failed file list error {0}", ex.Message));
-                            }
-                        }
-
-                        if (this.fileSkippedCount > 0)
-                        {
-                            try
-                            {
-                                sw.WriteLine("按照前缀或后缀规则跳过的文件列表");
-                                using (StreamReader isr = new StreamReader(this.fileSkippedLogPath, Encoding.UTF8))
-                                {
-                                    sw.Write(isr.ReadToEnd());
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Error(string.Format("export skipped file list error {0}", ex.Message));
-                            }
-                        }
-
-                        if (this.fileExistsCount > 0)
-                        {
-                            try
-                            {
-                                sw.WriteLine("已存在，未变化文件列表");
-                                using (StreamReader isr = new StreamReader(this.fileExistsLogPath, Encoding.UTF8))
-                                {
-                                    sw.Write(isr.ReadToEnd());
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Error(string.Format("export exists file list error {0}", ex.Message));
-                            }
-                        }
-
-                        if (this.fileNotOverwriteCount > 0)
-                        {
-                            try
-                            {
-                                sw.WriteLine("未覆盖文件列表");
-                                using (StreamReader isr = new StreamReader(this.fileNotOverwriteLogPath, Encoding.UTF8))
-                                {
-                                    sw.Write(isr.ReadToEnd());
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Error(string.Format("export not overwrite file list error {0}", ex.Message));
-                            }
-                        }
-
-                        if (this.fileOverwriteCount > 0)
-                        {
-                            try
-                            {
-                                sw.WriteLine("覆盖同步文件列表");
-                                using (StreamReader isr = new StreamReader(this.fileOverwriteLogPath, Encoding.UTF8))
-                                {
-                                    sw.Write(isr.ReadToEnd());
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Error(string.Format("export overwrite file list error {0}", ex.Message));
-                            }
-                        }
-
-                        sw.Flush();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(string.Format("export log for job {0} failed due to {1}", this.jobId, ex.Message));
-                }
+                LogExporter.exportLog(this.fileUploadSuccessLogPath,
+                    this.fileUploadErrorLogPath,
+                    this.fileSkippedLogPath,
+                    this.fileExistsLogPath,
+                    this.fileNotOverwriteLogPath,
+                    this.fileOverwriteLogPath,logFilePath);
             }
         }
 

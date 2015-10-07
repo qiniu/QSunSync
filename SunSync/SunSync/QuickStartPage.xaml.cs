@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -136,6 +137,7 @@ namespace SunSync
             exportJobLogMenuItem.Click += exportJobLogMenuItem_Click;
 
             ctxMenu.Items.Add(deleteJobMenuItem);
+            ctxMenu.Items.Add(exportJobLogMenuItem);
 
             ListBoxItem selectedItem = (ListBoxItem)sender;
             selectedItem.ContextMenu = ctxMenu;
@@ -143,7 +145,32 @@ namespace SunSync
 
         void exportJobLogMenuItem_Click(object sender, RoutedEventArgs e)
         {
-             
+            int selectedIndex = this.SyncHistoryListBox.SelectedIndex;
+            if (selectedIndex != -1)
+            {
+                string jobId = this.syncRecordDict[selectedIndex];
+                SyncSetting syncSetting = SyncSetting.LoadSyncSettingByJobId(jobId);
+                if (syncSetting != null)
+                {
+                    System.Windows.Forms.SaveFileDialog dlg = new System.Windows.Forms.SaveFileDialog();
+                    dlg.Title = "选择保存文件";
+                    dlg.Filter = "Log (*.log)|*.log";
+
+                    System.Windows.Forms.DialogResult dr = dlg.ShowDialog();
+                    if (dr.Equals(System.Windows.Forms.DialogResult.OK))
+                    {
+                        string logSaveFilePath = dlg.FileName;
+                        LogExporter.exportLog(
+                            Path.Combine(this.myAppPath, "logs", jobId, "success.log"),
+                            Path.Combine(this.myAppPath, "logs", jobId, "error.log"),
+                            Path.Combine(this.myAppPath, "logs", jobId, "skipped.log"),
+                            Path.Combine(this.myAppPath, "logs", jobId, "exists.log"),
+                            Path.Combine(this.myAppPath, "logs", jobId, "not_overwrite.log"),
+                            Path.Combine(this.myAppPath, "logs", jobId, "overwrite.log"),
+                            logSaveFilePath);
+                    }
+                }
+            }
         }
 
         void deleteJobMenuItem_Click(object sender, RoutedEventArgs e)
@@ -193,6 +220,7 @@ namespace SunSync
                         }
 
                         this.SyncHistoryListBox.Items.RemoveAt(selectedIndex);
+                        this.syncRecordDict.Remove(selectedIndex);
                     }
                 }
                 else
