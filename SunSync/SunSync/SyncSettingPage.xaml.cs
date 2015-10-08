@@ -98,6 +98,8 @@ namespace SunSync
             this.initBucketManager();
             if (this.bucketManager != null)
             {
+                //clear old buckets
+                this.SyncTargetBucketsComboBox.ItemsSource = null;
                 new Thread(new ThreadStart(this.reloadBuckets)).Start();
             }
         }
@@ -181,11 +183,6 @@ namespace SunSync
         //reload buckets
         private void reloadBuckets()
         {
-            //clear old buckets
-            Dispatcher.Invoke(new Action(delegate
-            {
-                this.SyncTargetBucketsComboBox.Items.Clear();
-            }));
             //get new bucket list
             BucketsResult bucketsResult = this.bucketManager.buckets();
             if (bucketsResult.ResponseInfo.isOk())
@@ -234,6 +231,7 @@ namespace SunSync
         private void ReloadBucketButton_EventHandler(object sender, RoutedEventArgs e)
         {
             this.SettingsErrorTextBlock.Text = "";
+            this.SyncTargetBucketsComboBox.ItemsSource = null;
             new Thread(new ThreadStart(this.reloadBuckets)).Start();
         }
 
