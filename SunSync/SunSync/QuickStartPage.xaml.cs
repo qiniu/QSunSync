@@ -220,7 +220,6 @@ namespace SunSync
                         }
 
                         this.SyncHistoryListBox.Items.RemoveAt(selectedIndex);
-                        this.syncRecordDict.Remove(selectedIndex);
                     }
                 }
                 else
