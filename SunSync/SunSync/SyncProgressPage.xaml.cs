@@ -101,7 +101,7 @@ namespace SunSync
         }
 
         //this is called before page loaded
-        private void LoadSyncSetting(SyncSetting syncSetting)
+        internal void LoadSyncSetting(SyncSetting syncSetting)
         {
             this.syncSetting = syncSetting;
 
@@ -648,7 +648,7 @@ namespace SunSync
         }
 
         //write sync progress logs
-        private void addFileSkippedLog(string log)
+        internal void addFileSkippedLog(string log)
         {
             lock (this.fileSkippedLock)
             {
@@ -665,7 +665,7 @@ namespace SunSync
             }
         }
 
-        private void addFileExistsLog(string log)
+        internal void addFileExistsLog(string log)
         {
             lock (this.fileExistsLock)
             {
@@ -682,7 +682,7 @@ namespace SunSync
             }
         }
 
-        private void addFileOverwriteLog(string log)
+        internal void addFileOverwriteLog(string log)
         {
             lock (this.fileOverwriteLock)
             {
@@ -699,7 +699,7 @@ namespace SunSync
             }
         }
 
-        private void addFileNotOverwriteLog(string log)
+        internal void addFileNotOverwriteLog(string log)
         {
             lock (this.fileNotOverwriteLock)
             {
@@ -716,7 +716,7 @@ namespace SunSync
             }
         }
 
-        private void addFileUploadErrorLog(string log)
+        internal void addFileUploadErrorLog(string log)
         {
             lock (this.fileUploadErrorLock)
             {
@@ -734,7 +734,7 @@ namespace SunSync
         }
 
 
-        private void addFileUploadSuccessLog(string log)
+        internal void addFileUploadSuccessLog(string log)
         {
             lock (this.fileUploadSuccessLock)
             {
@@ -752,7 +752,7 @@ namespace SunSync
         }
 
         //update ui status
-        private void updateUploadLog(string log)
+        internal void updateUploadLog(string log)
         {
             lock (uploadLogLock)
             {
@@ -763,7 +763,7 @@ namespace SunSync
             }
         }
 
-        private void updateTotalUploadProgress()
+        internal void updateTotalUploadProgress()
         {
             lock (progressLock)
             {
@@ -776,7 +776,7 @@ namespace SunSync
             }));
         }
 
-        private void updateSingleFileProgress(int taskId, string fileFullPath, string fileKey, long fileLength, double percent)
+        internal void updateSingleFileProgress(int taskId, string fileFullPath, string fileKey, long fileLength, double percent)
         {
             lock (this.uploadInfoLock)
             {
@@ -848,7 +848,7 @@ namespace SunSync
             }));
         }
 
-        private bool checkCancelSignal()
+        internal bool checkCancelSignal()
         {
             return this.cancelSignal;
         }
