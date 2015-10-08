@@ -101,7 +101,7 @@ namespace SunSync
         }
 
         //this is called before page loaded
-        internal void LoadSyncSetting(SyncSetting syncSetting)
+        private void LoadSyncSetting(SyncSetting syncSetting)
         {
             this.syncSetting = syncSetting;
 
@@ -163,7 +163,7 @@ namespace SunSync
         }
 
 
-        internal void createDirCache(string localSyncDir)
+        private void createDirCache(string localSyncDir)
         {
             if (File.Exists(this.cacheFilePathDone))
             {
@@ -206,7 +206,7 @@ namespace SunSync
             }
         }
 
-        internal void processDir(string rootDir, string targetDir, StreamWriter sw)
+        private void processDir(string rootDir, string targetDir, StreamWriter sw)
         {
             this.updateUploadLog(string.Format("正在遍历目录 {0} ...", targetDir));
             try
@@ -256,7 +256,7 @@ namespace SunSync
             }
         }
 
-        internal void processUpload(string cacheFilePath)
+        private void processUpload(string cacheFilePath)
         {
             try
             {
@@ -301,7 +301,7 @@ namespace SunSync
         }
 
 
-        internal void uploadFiles(List<string> filesToUpload)
+        private void uploadFiles(List<string> filesToUpload)
         {
             this.uploadedBytes.Clear();
             ManualResetEvent[] doneEvents = null;
@@ -327,7 +327,7 @@ namespace SunSync
             }
         }
 
-        internal bool initRunJob()
+        private bool initRunJob()
         {
             bool checkOk = true;
             if (!Directory.Exists(this.jobLogDir))
@@ -402,7 +402,7 @@ namespace SunSync
             return checkOk;
         }
 
-        internal void createOptionalDB()
+        private void createOptionalDB()
         {
             //check jobs db
             if (!File.Exists(this.jobsDbPath))
@@ -455,7 +455,7 @@ namespace SunSync
         }
 
         //main job scheduler
-        internal void runSyncJob(object resumeObject)
+        private void runSyncJob(object resumeObject)
         {
             bool resume = (bool)resumeObject;
             this.jobStart = DateTime.Now;
@@ -635,7 +635,7 @@ namespace SunSync
         }
 
         //drop directory cache files
-        internal void dropcacheFilePath()
+        private void dropcacheFilePath()
         {
             try
             {
@@ -648,105 +648,111 @@ namespace SunSync
         }
 
         //write sync progress logs
-        internal void addFileSkippedLog(string log)
+        private void addFileSkippedLog(string log)
         {
             lock (this.fileSkippedLock)
             {
                 this.fileSkippedCount += 1;
-            }
-            try
-            {
-                this.fileSkippedWriter.WriteLine(log);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(string.Format("write file skipped log for {0} failed due to {1}", this.jobId, ex.Message));
+
+                try
+                {
+                    this.fileSkippedWriter.WriteLine(log);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("write file skipped log for {0} failed due to {1}", this.jobId, ex.Message));
+                }
             }
         }
 
-        internal void addFileExistsLog(string log)
+        private void addFileExistsLog(string log)
         {
             lock (this.fileExistsLock)
             {
                 this.fileExistsCount += 1;
-            }
-            try
-            {
-                this.fileExistsWriter.WriteLine(log);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(string.Format("write file exists log for {0} failed due to {1}", this.jobId, ex.Message));
+
+                try
+                {
+                    this.fileExistsWriter.WriteLine(log);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("write file exists log for {0} failed due to {1}", this.jobId, ex.Message));
+                }
             }
         }
 
-        internal void addFileOverwriteLog(string log)
+        private void addFileOverwriteLog(string log)
         {
             lock (this.fileOverwriteLock)
             {
                 this.fileOverwriteCount += 1;
-            }
-            try
-            {
-                this.fileOverwriteWriter.WriteLine(log);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(string.Format("write file overwrite log for {0} failed due to {1}", this.jobId, ex.Message));
+
+                try
+                {
+                    this.fileOverwriteWriter.WriteLine(log);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("write file overwrite log for {0} failed due to {1}", this.jobId, ex.Message));
+                }
             }
         }
 
-        internal void addFileNotOverwriteLog(string log)
+        private void addFileNotOverwriteLog(string log)
         {
             lock (this.fileNotOverwriteLock)
             {
                 this.fileNotOverwriteCount += 1;
-            }
-            try
-            {
-                this.fileNotOverwriteWriter.WriteLine(log);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(string.Format("write file not overwrite log for {0} failed due to {1}", this.jobId, ex.Message));
+
+                try
+                {
+                    this.fileNotOverwriteWriter.WriteLine(log);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("write file not overwrite log for {0} failed due to {1}", this.jobId, ex.Message));
+                }
             }
         }
 
-        internal void addFileUploadErrorLog(string log)
+        private void addFileUploadErrorLog(string log)
         {
             lock (this.fileUploadErrorLock)
             {
                 this.fileUploadErrorCount += 1;
-            }
-            try
-            {
-                this.fileUploadErrorWriter.WriteLine(log);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(string.Format("write file upload failed log for {0} failed due to {1}", this.jobId, ex.Message));
+
+                try
+                {
+                    this.fileUploadErrorWriter.WriteLine(log);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("write file upload failed log for {0} failed due to {1}", this.jobId, ex.Message));
+                }
             }
         }
 
 
-        internal void addFileUploadSuccessLog(string log)
+        private void addFileUploadSuccessLog(string log)
         {
             lock (this.fileUploadSuccessLock)
             {
                 this.fileUploadSuccessCount += 1;
-            }
-            try
-            {
-                this.fileUploadSuccessWriter.WriteLine(log);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(string.Format("write file upload success log for {0} failed due to {1}", this.jobId, ex.Message));
+
+                try
+                {
+                    this.fileUploadSuccessWriter.WriteLine(log);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("write file upload success log for {0} failed due to {1}", this.jobId, ex.Message));
+                }
             }
         }
 
         //update ui status
-        internal void updateUploadLog(string log)
+        private void updateUploadLog(string log)
         {
             lock (uploadLogLock)
             {
@@ -757,7 +763,7 @@ namespace SunSync
             }
         }
 
-        internal void updateTotalUploadProgress()
+        private void updateTotalUploadProgress()
         {
             lock (progressLock)
             {
@@ -770,7 +776,7 @@ namespace SunSync
             }));
         }
 
-        internal void updateSingleFileProgress(int taskId, string fileFullPath, string fileKey, long fileLength, double percent)
+        private void updateSingleFileProgress(int taskId, string fileFullPath, string fileKey, long fileLength, double percent)
         {
             lock (this.uploadInfoLock)
             {
@@ -842,13 +848,13 @@ namespace SunSync
             }));
         }
 
-        internal bool checkCancelSignal()
+        private bool checkCancelSignal()
         {
             return this.cancelSignal;
         }
 
         //close the log writers
-        internal void closeLogWriters()
+        private void closeLogWriters()
         {
             try
             {
