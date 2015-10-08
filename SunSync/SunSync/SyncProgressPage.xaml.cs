@@ -785,37 +785,41 @@ namespace SunSync
                 uploadInfo.LocalPath = fileFullPath;
                 uploadInfo.FileKey = fileKey;
                 uploadInfo.Progress = uploadProgress;
-                if (this.uploadedBytes.ContainsKey(fileKey))
+                if (this.uploadedBytes.ContainsKey(fileKey) && string.IsNullOrEmpty(uploadInfo.FinalSpeed))
                 {
-                    if (newUploaded < fileLength)
+                    string lastUploadInfo = this.uploadedBytes[fileKey];
+                    string[] lastUploadItems = lastUploadInfo.Split(':');
+
+                    long oldUploaded = Convert.ToInt64(lastUploadItems[0]);
+                    long oldMills = Convert.ToInt64(lastUploadItems[1]);
+
+                    long deltaBytes = newUploaded - oldUploaded;
+                    long deltaMillis = newMills - oldMills;
+
+                    if (deltaMillis > 0 && deltaBytes > 0)
                     {
-                        string lastUploadInfo = this.uploadedBytes[fileKey];
-                        string[] lastUploadItems = lastUploadInfo.Split(':');
-
-                        long oldUploaded = Convert.ToInt64(lastUploadItems[0]);
-                        long oldMills = Convert.ToInt64(lastUploadItems[1]);
-
-                        long deltaBytes = newUploaded - oldUploaded;
-                        long deltaMillis = newMills - oldMills;
-
-                        if (deltaMillis > 0 && deltaBytes > 0)
+                        //KB/s
+                        double speed = (deltaBytes / 1.024) / deltaMillis;
+                        string speedStr = "";
+                        if (speed > 1024)
                         {
-                            //KB/s
-                            double speed = (deltaBytes / 1.024) / deltaMillis;
-                            if (speed > 1024)
-                            {
-                                speed = speed / 1024;
-                                uploadInfo.Speed = string.Format("{0} MB/s", speed.ToString("F1"));
-                            }
-                            else
-                            {
-                                uploadInfo.Speed = string.Format("{0} KB/s", speed.ToString("F1"));
-                            }
+                            speed = speed / 1024;
+                            speedStr = string.Format("{0} MB/s", speed.ToString("F1"));
                         }
-                    }
-                    else
-                    {
-                        uploadInfo.Speed = "---";
+                        else
+                        {
+                            speedStr = string.Format("{0} KB/s", speed.ToString("F1"));
+                        }
+
+                        if (newUploaded < fileLength)
+                        {
+                            uploadInfo.Speed = speedStr;
+                        }
+                        else
+                        {
+                            uploadInfo.Speed = speedStr;
+                            uploadInfo.FinalSpeed = speedStr;
+                        }
                     }
                 }
                 else
