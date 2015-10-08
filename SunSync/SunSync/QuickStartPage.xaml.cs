@@ -17,7 +17,7 @@ namespace SunSync
     public partial class QuickStartPage : Page
     {
         private MainWindow mainWindow;
-        private Dictionary<int, string> syncRecordDict;
+        private Dictionary<ListBoxItem, string> syncRecordDict;
         private string jobsDbPath;
         private List<string> topBGImages;
         private int clickCount;
@@ -27,7 +27,7 @@ namespace SunSync
         {
             InitializeComponent();
             this.mainWindow = mainWindow;
-            this.syncRecordDict = new Dictionary<int, string>();
+            this.syncRecordDict = new Dictionary<ListBoxItem, string>();
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             this.myAppPath = System.IO.Path.Combine(myDocPath, "qsunsync");
             if (!Directory.Exists(myAppPath))
@@ -42,9 +42,9 @@ namespace SunSync
                 }
             }
             this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunsync", "jobs.db");
-            this.topBGImages = new List<string>(); 
+            this.topBGImages = new List<string>();
             this.topBGImages.Add("Pictures/qiniu_logo.jpg");
-            this.topBGImages.Add("Pictures/qiniu_logo.jpg");   
+            this.topBGImages.Add("Pictures/qiniu_logo.jpg");
             this.clickCount = 0;
         }
 
@@ -113,7 +113,8 @@ namespace SunSync
                     listBoxItem.Style = ctlStyle;
                     listBoxItem.MouseDoubleClick += listBoxItem_MouseDoubleClick;
                     listBoxItem.MouseRightButtonUp += listBoxItem_MouseRightButtonUp;
-                    this.syncRecordDict.Add(index, record.SyncId);
+
+                    this.syncRecordDict.Add(listBoxItem, record.SyncId);
                     this.SyncHistoryListBox.Items.Add(listBoxItem);
                     index += 1;
                 }
@@ -127,7 +128,7 @@ namespace SunSync
         private void listBoxItem_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
         {
             ContextMenu ctxMenu = new ContextMenu();
-            
+
             MenuItem deleteJobMenuItem = new MenuItem();
             deleteJobMenuItem.Header = "删除任务";
             deleteJobMenuItem.Click += deleteJobMenuItem_Click;
@@ -145,10 +146,10 @@ namespace SunSync
 
         void exportJobLogMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            int selectedIndex = this.SyncHistoryListBox.SelectedIndex;
-            if (selectedIndex != -1)
+            object selectedItem = this.SyncHistoryListBox.SelectedItem;
+            if (selectedItem != null)
             {
-                string jobId = this.syncRecordDict[selectedIndex];
+                string jobId = this.syncRecordDict[(ListBoxItem)selectedItem];
                 SyncSetting syncSetting = SyncSetting.LoadSyncSettingByJobId(jobId);
                 if (syncSetting != null)
                 {
@@ -175,10 +176,10 @@ namespace SunSync
 
         void deleteJobMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            int selectedIndex = this.SyncHistoryListBox.SelectedIndex;
-            if (selectedIndex != -1)
+            object selectedItem = this.SyncHistoryListBox.SelectedItem;
+            if (selectedItem != null)
             {
-                string jobId = this.syncRecordDict[selectedIndex];
+                string jobId = this.syncRecordDict[(ListBoxItem)selectedItem];
                 SyncSetting syncSetting = SyncSetting.LoadSyncSettingByJobId(jobId);
                 if (syncSetting != null)
                 {
@@ -215,11 +216,13 @@ namespace SunSync
                         {
                             SyncRecord.DeleteSyncJobById(jobId, this.jobsDbPath);
                         }
-                        catch (Exception ex) {
-                            Log.Error("delete sync job by id error, "+ex.Message);
+                        catch (Exception ex)
+                        {
+                            Log.Error("delete sync job by id error, " + ex.Message);
                         }
 
-                        this.SyncHistoryListBox.Items.RemoveAt(selectedIndex);
+                        this.SyncHistoryListBox.Items.Remove(selectedItem);
+                        this.syncRecordDict.Remove((ListBoxItem)selectedItem);
                     }
                 }
                 else
@@ -232,10 +235,10 @@ namespace SunSync
 
         private void listBoxItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            int selectedIndex = this.SyncHistoryListBox.SelectedIndex;
-            if (selectedIndex != -1)
+            object selectedItem = this.SyncHistoryListBox.SelectedItem;
+            if (selectedItem != null)
             {
-                string jobId = this.syncRecordDict[selectedIndex];
+                string jobId = this.syncRecordDict[(ListBoxItem)selectedItem];
                 SyncSetting syncSetting = SyncSetting.LoadSyncSettingByJobId(jobId);
                 if (syncSetting != null)
                 {
@@ -284,6 +287,5 @@ namespace SunSync
             catch (Exception) { }
         }
 
-         
     }
 }
