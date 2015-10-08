@@ -238,7 +238,7 @@ namespace SunSync.Models
                 try
                 {
                     SyncLog syncLog = SyncLog.GetSyncLogByKey(fileKey, this.syncLogDB);
-                    if (syncLog.Key != "")
+                    if (!string.IsNullOrEmpty(syncLog.Key))
                     {
                         //has sync log and check whether it changes
                         if (syncLog.LocalPath.Equals(fileFullPath) && syncLog.LastModified.Equals(fileLastModified))
