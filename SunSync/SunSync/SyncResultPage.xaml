@@ -4,7 +4,7 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       mc:Ignorable="d" 
-      d:DesignHeight="620" d:DesignWidth="700" Loaded="SyncResultLoaded_EventHandler"
+      d:DesignHeight="670" d:DesignWidth="700" Loaded="SyncResultLoaded_EventHandler"
 	Title="SyncResultPage">
 
     <Grid>
@@ -23,7 +23,7 @@
         </StackPanel>
         <StackPanel Grid.Row="1" Margin="10">
             <Border BorderBrush="LightGray" BorderThickness="1">
-            <Grid Height="425" Margin="20">
+            <Grid Height="435" Margin="20">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"></RowDefinition>
                     <RowDefinition Height="*"></RowDefinition>
