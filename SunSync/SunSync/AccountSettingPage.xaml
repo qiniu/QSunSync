@@ -66,18 +66,25 @@
                                 4. 出于安全考虑，建议您周期性地更换密钥。
                         </TextBlock>
                     </StackPanel>
-                    <DockPanel Margin="0 15">
-                        <TextBlock Text="查看我的 AK &amp; SK" TextDecorations="Underline"
-                               HorizontalAlignment="Left" VerticalAlignment="Center"
-                               Foreground="Blue"
-                               Cursor="Hand"
-                               FontSize="14"
-                               MouseLeftButtonUp="ViewMyAKSK_MouseLeftButtonUp"
-                               DockPanel.Dock="Left"></TextBlock>
-                        <TextBlock Width="405"></TextBlock>
-                        <Button Content="保存" Width="120" Height="32"  FontSize="14"
-                            Click="SaveAccountSettings_EventHandler" DockPanel.Dock="Right"></Button>
-                    </DockPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"></ColumnDefinition>
+                            <ColumnDefinition Width="*"></ColumnDefinition>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="查看我的 AK &amp; SK" TextDecorations="Underline"
+                                HorizontalAlignment="Left" VerticalAlignment="Center"
+                                Foreground="Blue"
+                                Cursor="Hand"
+                                FontSize="14"
+                                MouseLeftButtonUp="ViewMyAKSK_MouseLeftButtonUp"
+                                DockPanel.Dock="Left"></TextBlock>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Button Content="保存" Width="120" Height="32"  FontSize="14"
+                                Click="SaveAccountSettings_EventHandler" DockPanel.Dock="Right"></Button>
+                        </StackPanel>
+                    </Grid>
                 </StackPanel>
             </Border>
         </StackPanel>

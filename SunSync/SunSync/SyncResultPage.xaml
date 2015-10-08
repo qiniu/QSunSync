@@ -53,10 +53,18 @@
                 </StackPanel>
             </Grid>
             </Border>
-            <StackPanel  Orientation="Horizontal" Margin="0 10">
-                <Button Content="导出日志" Width="100" Height="32" Margin="0 10" FontSize="14" Click="ExportLog_EventHandler"/>
-                <Button Content="返回首页" Width="100" Height="32" Margin="464 10" FontSize="14" Click="BackToHome_EventHandler"></Button>
-            </StackPanel>
+            <Grid Margin="0 10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"></ColumnDefinition>
+                    <ColumnDefinition Width="*"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <Button Content="导出日志" Width="100" Height="32" Margin="0 10" FontSize="14" Click="ExportLog_EventHandler"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button Content="返回首页" Width="100" Height="32" Margin="0 10" FontSize="14" Click="BackToHome_EventHandler"></Button>
+                </StackPanel>
+            </Grid>
         </StackPanel>
     </Grid>
 </Page>

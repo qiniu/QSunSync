@@ -181,6 +181,12 @@ namespace SunSync
         //reload buckets
         private void reloadBuckets()
         {
+            //clear old buckets
+            Dispatcher.Invoke(new Action(delegate
+            {
+                this.SyncTargetBucketsComboBox.Items.Clear();
+            }));
+            //get new bucket list
             BucketsResult bucketsResult = this.bucketManager.buckets();
             if (bucketsResult.ResponseInfo.isOk())
             {
