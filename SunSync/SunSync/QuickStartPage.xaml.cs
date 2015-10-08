@@ -212,6 +212,22 @@ namespace SunSync
                             }
                         }
 
+                        string[] foldersToDelete ={
+                             Path.Combine(this.myAppPath,"logs",jobId)
+                        };
+
+                        foreach (string path in foldersToDelete)
+                        {
+                            try
+                            {
+                                Directory.Delete(path);
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Error(string.Format("delete folder {0} failed due to {1}", path, ex.Message));
+                            }
+                        }
+
                         try
                         {
                             SyncRecord.DeleteSyncJobById(jobId, this.jobsDbPath);
