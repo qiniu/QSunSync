@@ -307,7 +307,6 @@ namespace SunSync
             ManualResetEvent[] doneEvents = null;
             int taskMax = filesToUpload.Count;
             doneEvents = new ManualResetEvent[taskMax];
-            ThreadPool.SetMinThreads(taskMax, taskMax);
             this.uploadInfos = new UploadInfo[taskMax];
             for (int taskId = 0; taskId < taskMax; taskId++)
             {
