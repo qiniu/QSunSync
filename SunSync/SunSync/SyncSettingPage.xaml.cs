@@ -17,30 +17,8 @@ namespace SunSync
     /// </summary>
     public partial class SyncSettingPage : Page
     {
-        //local dir to sync
-        private string syncLocalDir;
-        //target bucket
-        private string syncTargetBucket;
-        //check remote duplicate
-        private bool checkRemoteDuplicate;
-        //prefix
-        private string syncPrefix;
-        //check new files
-        private bool checkNewFiles;
-        //ignore dir
-        private bool ignoreDir;
-        //skip prefixes
-        private string skipPrefixes;
-        //skip suffixes
-        private string skipSuffixes;
-        //overwrite same file
-        private bool overwriteFile;
         //default chunk size
         private int defaultChunkSize;
-        //upload threshold
-        private int chunkUploadThreshold;
-        //sync thread count
-        private int syncThreadCount;
         //upload entry domain
         private int uploadEntryDomain;
 
@@ -89,7 +67,6 @@ namespace SunSync
         /// <param name="e"></param>
         private void SyncSettingPageLoaded_EventHandler(object sender, RoutedEventArgs e)
         {
-            this.initUIDefaults();
             this.initBucketManager();
             if (this.bucketManager != null)
             {
@@ -97,6 +74,7 @@ namespace SunSync
                 this.SyncTargetBucketsComboBox.ItemsSource = null;
                 new Thread(new ThreadStart(this.reloadBuckets)).Start();
             }
+            this.initUIDefaults();   
         }
 
         /// <summary>
@@ -124,6 +102,14 @@ namespace SunSync
             //ui settings
             this.SyncSettingTabControl.SelectedIndex = 0;
             this.SettingsErrorTextBlock.Text = "";
+            if (this.account.IsAbroad)
+            {
+                Qiniu.Common.Config.UseZoneAWS();
+            }
+            else
+            {
+                Qiniu.Common.Config.UseZoneNB();
+            }
 
             if (this.syncSetting == null)
             {
@@ -142,7 +128,14 @@ namespace SunSync
                 this.ChunkUploadThresholdSlider.Value = 100;//100MB
                 this.ThreadCountSlider.Value = 10;
                 this.ThreadCountLabel.Content = "10";
-                this.UploadEntryDomainComboBox.SelectedIndex = 0;
+                if (this.account.IsAbroad)
+                {
+                    this.UploadEntryDomainComboBox.SelectedIndex = 3;//aws
+                }
+                else
+                {
+                    this.UploadEntryDomainComboBox.SelectedIndex = 0; //nb
+                }
             }
             else
             {
@@ -201,6 +194,10 @@ namespace SunSync
                 {
                     this.SettingsErrorTextBlock.Text = "AK 或 SK 不正确";
                 }));
+            }
+            else if (bucketsResult.ResponseInfo.StatusCode != 0)
+            {
+                //status code exists,ignore
             }
             else
             {
@@ -276,8 +273,8 @@ namespace SunSync
                 return;
             }
 
-            this.syncLocalDir = this.SyncLocalFolderTextBox.Text.Trim();
-            if (!Directory.Exists(this.syncLocalDir))
+            string syncLocalDir = this.SyncLocalFolderTextBox.Text.Trim();
+            if (!Directory.Exists(syncLocalDir))
             {
                 //directory not found
                 this.SyncSettingTabControl.SelectedIndex = 0;
@@ -285,8 +282,8 @@ namespace SunSync
                 return;
             }
 
-            this.syncTargetBucket = this.SyncTargetBucketsComboBox.SelectedItem.ToString();
-            StatResult statResult = this.bucketManager.stat(this.syncTargetBucket, "NONE_EXIST_KEY");
+            string syncTargetBucket = this.SyncTargetBucketsComboBox.SelectedItem.ToString();
+            StatResult statResult = this.bucketManager.stat(syncTargetBucket, "NONE_EXIST_KEY");
             if (statResult.ResponseInfo.isNetworkBroken())
             {
                 this.SettingsErrorTextBlock.Text = "网络故障";
@@ -311,6 +308,18 @@ namespace SunSync
                 //file exists or not
                 //ignore
             }
+            else if (statResult.ResponseInfo.StatusCode == 400)
+            {
+                if (statResult.ResponseInfo.Error.Equals("incorrect zone"))
+                {
+                    this.SettingsErrorTextBlock.Text = "请选择正确的上传入口机房";
+                }
+                else
+                {
+                    this.SettingsErrorTextBlock.Text = statResult.ResponseInfo.Error;
+                }
+                return;
+            }
             else
             {
                 this.SettingsErrorTextBlock.Text = "未知错误，请联系七牛";
@@ -324,13 +333,62 @@ namespace SunSync
             SystemConfig.SECRET_KEY = this.account.SecretKey;
 
             //optional settings
-            this.syncPrefix = this.PrefixTextBox.Text.Trim();
-            this.checkNewFiles = this.CheckNewFilesCheckBox.IsChecked.Value;
-            this.ignoreDir = this.IgnoreDirCheckBox.IsChecked.Value;
-            this.checkRemoteDuplicate = this.CheckRemoteDuplicateCheckBox.IsChecked.Value;
-            this.skipPrefixes = this.SkipPrefixesTextBox.Text.Trim();
-            this.skipSuffixes = this.SkipSuffixesTextBox.Text.Trim();
-            this.overwriteFile = this.OverwriteFileCheckBox.IsChecked.Value;
+            SyncSetting syncSetting = new SyncSetting();
+            syncSetting.SyncLocalDir = syncLocalDir;
+            syncSetting.SyncTargetBucket = syncTargetBucket;
+            syncSetting.CheckRemoteDuplicate = this.CheckRemoteDuplicateCheckBox.IsChecked.Value;
+            syncSetting.SyncPrefix = this.PrefixTextBox.Text.Trim();
+            syncSetting.CheckNewFiles = this.CheckNewFilesCheckBox.IsChecked.Value;
+            syncSetting.IgnoreDir = this.IgnoreDirCheckBox.IsChecked.Value;
+            syncSetting.SkipPrefixes = this.SkipPrefixesTextBox.Text.Trim();
+            syncSetting.SkipSuffixes = this.SkipSuffixesTextBox.Text.Trim();
+            syncSetting.OverwriteFile = this.OverwriteFileCheckBox.IsChecked.Value;
+            syncSetting.SyncThreadCount = (int)this.ThreadCountSlider.Value;
+            syncSetting.ChunkUploadThreshold = (int)this.ChunkUploadThresholdSlider.Value * 1024 * 1024;
+            syncSetting.DefaultChunkSize = this.defaultChunkSize;
+            syncSetting.UploadEntryDomain = this.uploadEntryDomain;
+
+            this.mainWindow.GotoSyncProgress(syncSetting);
+        }
+
+        private void ChunkUploadThresholdChange_EventHandler(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (this.ChunkUploadThresholdLabel != null)
+            {
+                this.ChunkUploadThresholdLabel.Content = this.ChunkUploadThresholdSlider.Value + "MB";
+            }
+        }
+
+        private void ThreadCountChange_EventHandler(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (this.ThreadCountLabel != null)
+            {
+                this.ThreadCountLabel.Content = this.ThreadCountSlider.Value + "";
+            }
+        }
+
+        private void UploadEntryDomainSelectChange_EventHandler(object sender, SelectionChangedEventArgs e)
+        {
+            this.uploadEntryDomain = this.UploadEntryDomainComboBox.SelectedIndex;
+            switch (this.uploadEntryDomain)
+            {
+                case 0:
+                    Qiniu.Common.Config.UseZoneNB();
+                    break;
+                case 1:
+                    Qiniu.Common.Config.UseZoneBC();
+                    break;
+                case 2:
+                    Qiniu.Common.Config.UseZoneAbroadNB();
+                    break;
+                case 3:
+                    Qiniu.Common.Config.UseZoneAWS();
+                    break;
+            }
+        }
+
+        private void ChunkDefaultSizeSelectChanged_EventHandler(object sender, SelectionChangedEventArgs e)
+        {
             switch (this.ChunkDefaultSizeComboBox.SelectedIndex)
             {
                 case 0:
@@ -354,58 +412,6 @@ namespace SunSync
                 default:
                     this.defaultChunkSize = 512 * 1024;//512KB
                     break;
-            }
-            this.chunkUploadThreshold = (int)this.ChunkUploadThresholdSlider.Value * 1024 * 1024;
-            this.syncThreadCount = (int)this.ThreadCountSlider.Value;
-            this.uploadEntryDomain = this.UploadEntryDomainComboBox.SelectedIndex;
-            switch (this.uploadEntryDomain)
-            {
-                case 0:
-                    Qiniu.Common.Config.UseZoneNB();
-                    break;
-                case 1:
-                    Qiniu.Common.Config.UseZoneBC();
-                    break;
-                case 2:
-                    Qiniu.Common.Config.UseZoneAbroadNB();
-                    break;
-                case 3:
-                    Qiniu.Common.Config.UseZoneAWS();
-                    break;
-            }
-
-            SyncSetting syncSetting = new SyncSetting();
-            syncSetting.SyncLocalDir = this.syncLocalDir;
-            syncSetting.SyncTargetBucket = this.syncTargetBucket;
-            syncSetting.CheckRemoteDuplicate = this.checkRemoteDuplicate;
-            syncSetting.SyncPrefix = this.syncPrefix;
-            syncSetting.CheckNewFiles = this.checkNewFiles;
-            syncSetting.IgnoreDir = this.ignoreDir;
-            syncSetting.SkipPrefixes = this.skipPrefixes;
-            syncSetting.SkipSuffixes = this.skipSuffixes;
-            syncSetting.OverwriteFile = this.overwriteFile;
-            syncSetting.SyncThreadCount = this.syncThreadCount;
-            syncSetting.ChunkUploadThreshold = this.chunkUploadThreshold;
-            syncSetting.DefaultChunkSize = this.defaultChunkSize;
-            syncSetting.ChunkUploadThreshold = this.chunkUploadThreshold;
-            syncSetting.UploadEntryDomain = this.uploadEntryDomain;
-
-            this.mainWindow.GotoSyncProgress(syncSetting);
-        }
-
-        private void ChunkUploadThresholdChange_EventHandler(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            if (this.ChunkUploadThresholdLabel != null)
-            {
-                this.ChunkUploadThresholdLabel.Content = this.ChunkUploadThresholdSlider.Value + "MB";
-            }
-        }
-
-        private void ThreadCountChange_EventHandler(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            if (this.ThreadCountLabel != null)
-            {
-                this.ThreadCountLabel.Content = this.ThreadCountSlider.Value + "";
             }
         }
     }

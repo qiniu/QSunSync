@@ -97,7 +97,7 @@
                                     <StackPanel Orientation="Vertical" Margin="5">
                                         <StackPanel Orientation="Horizontal" Margin="5">
                                             <Label Content="分片默认大小" VerticalAlignment="Center" Width="110"></Label>
-                                            <ComboBox Width="320" VerticalAlignment="Center" Margin="10 0" Name="ChunkDefaultSizeComboBox">
+                                            <ComboBox Width="320" VerticalAlignment="Center" Margin="10 0" Name="ChunkDefaultSizeComboBox" SelectionChanged="ChunkDefaultSizeSelectChanged_EventHandler">
                                                 <ComboBoxItem Content="128KB"/>
                                                 <ComboBoxItem Content="256KB"/>
                                                 <ComboBoxItem Content="512KB"/>
@@ -124,7 +124,7 @@
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="5">
                                             <Label Content="上传目的机房" VerticalAlignment="Center" Width="110"></Label>
-                                            <ComboBox Width="320" VerticalAlignment="Center" Margin="10 0" Name="UploadEntryDomainComboBox">
+                                            <ComboBox Width="320" VerticalAlignment="Center" Margin="10 0" Name="UploadEntryDomainComboBox" SelectionChanged="UploadEntryDomainSelectChange_EventHandler">
                                                 <ComboBoxItem Content="国内->宁波机房"></ComboBoxItem>
                                                 <ComboBoxItem Content="国内->北京机房"></ComboBoxItem>
                                                 <ComboBoxItem Content="国外->宁波机房"></ComboBoxItem>
