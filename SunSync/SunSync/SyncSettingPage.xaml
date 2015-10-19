@@ -108,7 +108,7 @@
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="5">
                                             <Label Content="分片上传阈值" VerticalAlignment="Center" Width="110"></Label>
-                                            <Slider  Width="320" VerticalAlignment="Center" Margin="10 0" Minimum="4" Maximum="100"
+                                            <Slider  Width="320" VerticalAlignment="Center" Margin="10 0" Minimum="4" Maximum="500"
                                                      Name="ChunkUploadThresholdSlider" 
                                                       IsSnapToTickEnabled="True" TickFrequency="1"
                                                      VerticalContentAlignment="Center" ValueChanged="ChunkUploadThresholdChange_EventHandler"/>

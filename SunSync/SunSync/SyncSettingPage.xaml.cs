@@ -138,8 +138,8 @@ namespace SunSync
                 this.IgnoreDirCheckBox.IsChecked = false;
                 this.SkipPrefixesTextBox.Text = "";
                 this.SkipSuffixesTextBox.Text = "";
-                this.ChunkDefaultSizeComboBox.SelectedIndex = 2; //512KB
-                this.ChunkUploadThresholdSlider.Value = 10;//10MB
+                this.ChunkDefaultSizeComboBox.SelectedIndex = 5; //512KB
+                this.ChunkUploadThresholdSlider.Value = 100;//100MB
                 this.ThreadCountSlider.Value = 10;
                 this.ThreadCountLabel.Content = "10";
                 this.UploadEntryDomainComboBox.SelectedIndex = 0;
