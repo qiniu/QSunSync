@@ -30,7 +30,7 @@ namespace SunSync.Models
         //sync thread count
         public int SyncThreadCount { set; get; }
         //upload entry domain
-        public string UploadEntryDomain { set; get; }
+        public int UploadEntryDomain { set; get; }
 
         /// <summary>
         /// load sync settings from the database by job id
@@ -74,7 +74,7 @@ namespace SunSync.Models
                                 setting.DefaultChunkSize = Convert.ToInt32(dr["default_chunk_size"]);
                                 setting.ChunkUploadThreshold = Convert.ToInt32(dr["chunk_upload_threshold"]);
                                 setting.SyncThreadCount = Convert.ToInt32(dr["sync_thread_count"]);
-                                setting.UploadEntryDomain = Convert.ToString(dr["upload_entry_domain"]);
+                                setting.UploadEntryDomain = Convert.ToInt32(dr["upload_entry_domain"]);
                             }
                         }
                     }

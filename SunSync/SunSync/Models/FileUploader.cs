@@ -110,8 +110,6 @@ namespace SunSync.Models
             fileKey = this.syncSetting.SyncPrefix + fileKey;
 
             //set upload params
-            Qiniu.Common.Config.UPLOAD_HOST = this.syncSetting.UploadEntryDomain;
-            Qiniu.Common.Config.UP_HOST = this.syncSetting.UploadEntryDomain;
             Qiniu.Common.Config.PUT_THRESHOLD = this.syncSetting.ChunkUploadThreshold;
             Qiniu.Common.Config.CHUNK_SIZE = this.syncSetting.DefaultChunkSize;
 

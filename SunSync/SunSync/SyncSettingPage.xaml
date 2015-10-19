@@ -123,11 +123,12 @@
                                             <Label Name="ThreadCountLabel" FontSize="10" VerticalContentAlignment="Center"></Label>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="5">
-                                            <Label Content="上传入口域名" VerticalAlignment="Center" Width="110"></Label>
+                                            <Label Content="上传目的机房" VerticalAlignment="Center" Width="110"></Label>
                                             <ComboBox Width="320" VerticalAlignment="Center" Margin="10 0" Name="UploadEntryDomainComboBox">
-                                                <ComboBoxItem Content="http://up.qiniu.com      直接上传"></ComboBoxItem>
-                                                <ComboBoxItem Content="http://upload.qiniu.com  加速上传"></ComboBoxItem>
-                                                <ComboBoxItem Content="http://up.qiniug.com     海外上传"></ComboBoxItem>
+                                                <ComboBoxItem Content="国内->宁波机房"></ComboBoxItem>
+                                                <ComboBoxItem Content="国内->北京机房"></ComboBoxItem>
+                                                <ComboBoxItem Content="国外->宁波机房"></ComboBoxItem>
+                                                <ComboBoxItem Content="国外->国外机房"></ComboBoxItem>
                                             </ComboBox>
                                         </StackPanel>
                                     </StackPanel>

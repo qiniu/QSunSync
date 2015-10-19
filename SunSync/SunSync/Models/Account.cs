@@ -12,6 +12,8 @@ namespace SunSync.Models
         public string AccessKey { set; get; }
         [JsonProperty("secret_key")]
         public string SecretKey { set; get; }
+        [JsonProperty("is_abroad")]
+        public bool IsAbroad { set; get; }
 
         /// <summary>
         /// load account settings from local file if exists

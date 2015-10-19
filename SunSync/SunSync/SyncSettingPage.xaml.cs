@@ -42,10 +42,9 @@ namespace SunSync
         //sync thread count
         private int syncThreadCount;
         //upload entry domain
-        private string uploadEntryDomain;
+        private int uploadEntryDomain;
 
         private Dictionary<int, int> defaultChunkDict;
-        private Dictionary<string, int> defaultUploadEntryDict;
         private MainWindow mainWindow;
 
         private Account account;
@@ -71,10 +70,6 @@ namespace SunSync
             this.defaultChunkDict.Add(1 * 1024 * 1024, 3);
             this.defaultChunkDict.Add(2 * 1024 * 1024, 4);
             this.defaultChunkDict.Add(4 * 1024 * 1024, 5);
-            this.defaultUploadEntryDict = new Dictionary<string, int>();
-            this.defaultUploadEntryDict.Add("http://up.qiniu.com", 0);
-            this.defaultUploadEntryDict.Add("http://upload.qiniu.com", 1);
-            this.defaultUploadEntryDict.Add("http://up.qiniug.com", 2);
         }
 
         /// <summary>
@@ -166,17 +161,12 @@ namespace SunSync
                 this.ThreadCountLabel.Content = syncSetting.SyncThreadCount.ToString();
                 this.ChunkUploadThresholdSlider.Value = syncSetting.ChunkUploadThreshold / 1024 / 1024;
                 int defaultChunkSizeIndex = 2;
-                int defaultUploadEntryIndex = 0;
                 if (this.defaultChunkDict.ContainsKey(syncSetting.DefaultChunkSize))
                 {
                     defaultChunkSizeIndex = this.defaultChunkDict[syncSetting.DefaultChunkSize];
                 }
                 this.ChunkDefaultSizeComboBox.SelectedIndex = defaultChunkSizeIndex;
-                if (this.defaultUploadEntryDict.ContainsKey(syncSetting.UploadEntryDomain))
-                {
-                    defaultUploadEntryIndex = this.defaultUploadEntryDict[syncSetting.UploadEntryDomain];
-                }
-                this.UploadEntryDomainComboBox.SelectedIndex = defaultUploadEntryIndex;
+                this.UploadEntryDomainComboBox.SelectedIndex = syncSetting.UploadEntryDomain;
             }
         }
 
@@ -367,19 +357,20 @@ namespace SunSync
             }
             this.chunkUploadThreshold = (int)this.ChunkUploadThresholdSlider.Value * 1024 * 1024;
             this.syncThreadCount = (int)this.ThreadCountSlider.Value;
-            switch (this.UploadEntryDomainComboBox.SelectedIndex)
+            this.uploadEntryDomain = this.UploadEntryDomainComboBox.SelectedIndex;
+            switch (this.uploadEntryDomain)
             {
                 case 0:
-                    this.uploadEntryDomain = "http://up.qiniu.com";
+                    Qiniu.Common.Config.UseZoneNB();
                     break;
                 case 1:
-                    this.uploadEntryDomain = "http://upload.qiniu.com";
+                    Qiniu.Common.Config.UseZoneBC();
                     break;
                 case 2:
-                    this.uploadEntryDomain = "http://up.qiniug.com";
+                    Qiniu.Common.Config.UseZoneAbroadNB();
                     break;
-                default:
-                    this.uploadEntryDomain = "http://upload.qiniu.com";
+                case 3:
+                    Qiniu.Common.Config.UseZoneAWS();
                     break;
             }
 

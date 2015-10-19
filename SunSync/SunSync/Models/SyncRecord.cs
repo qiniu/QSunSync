@@ -24,7 +24,7 @@ namespace SunSync.Models
         public int DefaultChunkSize { set; get; }
         public int ChunkUploadThreshold { set; get; }
         public int SyncThreadCount { set; get; }
-        public string UploadEntryDomain { set; get; }
+        public int UploadEntryDomain { set; get; }
         public DateTime SyncDateTime { set; get; }
         //for display
         public string SyncDateTimeStr { set; get; }
@@ -50,7 +50,7 @@ namespace SunSync.Models
                 .Append("[default_chunk_size] INTEGER NOT NULL,")
                 .Append("[chunk_upload_threshold] INTEGER NOT NULL,")
                 .Append("[sync_thread_count] INTEGER NOT NULL,")
-                .Append("[upload_entry_domain] VARCHAR(255) NOT NULL,")
+                .Append("[upload_entry_domain] INTEGER NOT NULL,")
                 .Append("[sync_date_time] DATE NOT NULL )").ToString();
             string conStr = new SQLiteConnectionStringBuilder { DataSource = jobsDbPath }.ToString();
             using (SQLiteConnection sqlCon = new SQLiteConnection(conStr))
@@ -108,7 +108,7 @@ namespace SunSync.Models
                             record.DefaultChunkSize = Convert.ToInt32(dr["default_chunk_size"]);
                             record.ChunkUploadThreshold = Convert.ToInt32(dr["chunk_upload_threshold"]);
                             record.SyncThreadCount = Convert.ToInt32(dr["sync_thread_count"]);
-                            record.UploadEntryDomain = Convert.ToString(dr["upload_entry_domain"]);
+                            record.UploadEntryDomain = Convert.ToInt32(dr["upload_entry_domain"]);
                             record.SyncDateTime = Convert.ToDateTime(dr["sync_date_time"]);
                             record.SyncDateTimeStr = record.SyncDateTime.ToString("yyyy-MM-dd HH:mm:ss");
                             syncRecords.Add(record);
