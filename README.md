@@ -6,7 +6,7 @@
 
 ##下载安装
 
-[QSunSync-v1.3.0](http://devtools.qiniu.com/QSunSync-v1.3.0.zip) 
+[QSunSync-v1.4.0](http://devtools.qiniu.com/QSunSync-v1.4.0.zip) 
 
 1. 该软件的使用需要`.NET Framework 4.0`支持，可以从 [微软官方下载中心](https://www.microsoft.com/zh-cn/download/details.aspx?id=17718) 下载安装。  
 2. 该软件使用了`SQLite`数据库来记录本地文件的hash值，所以需要在`.NET Framework4.0`安装完成之后，安装`SQLite`支持软件，这个可以从 [这里](
