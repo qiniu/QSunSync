@@ -384,6 +384,12 @@ namespace SunSync
                 case 3:
                     Qiniu.Common.Config.UseZoneAWS();
                     break;
+                case 4:
+                    Qiniu.Common.Config.UseZoneNBFromCDN();
+                    break;
+                case 5:
+                    Qiniu.Common.Config.UseZoneBCFromCDN();
+                    break;
             }
         }
 
