@@ -24,6 +24,8 @@ namespace SunSync
 
             try
             {
+                string version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
+                this.Title =string.Format("{0} v{1}", this.Title,version);
                 //init tray
                 this.nIcon = new NotifyIcon();
                 this.nIcon.Text = "QSunSync 七牛云文件同步";
