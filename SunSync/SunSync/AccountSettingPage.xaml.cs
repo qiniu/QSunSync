@@ -17,7 +17,7 @@ namespace SunSync
     public partial class AccountSettingPage : Page
     {
         private MainWindow mainWindow;
-        private string myAKSKLink = "https://portal.qiniu.com/setting/key";
+        private string myAKSKLink = "https://portal.qiniu.com/user/key";
         public AccountSettingPage(MainWindow mainWindow)
         {
             InitializeComponent();

@@ -125,12 +125,10 @@
                                         <StackPanel Orientation="Horizontal" Margin="5">
                                             <Label Content="上传目的机房" VerticalAlignment="Center" Width="110"></Label>
                                             <ComboBox Width="320" VerticalAlignment="Center" Margin="10 0" Name="UploadEntryDomainComboBox" SelectionChanged="UploadEntryDomainSelectChange_EventHandler">
-                                                <ComboBoxItem Content="国内->宁波机房[源站]"></ComboBoxItem>
-                                                <ComboBoxItem Content="国内->北京机房[源站]"></ComboBoxItem>
-                                                <ComboBoxItem Content="国外->宁波机房[源站]"></ComboBoxItem>
-                                                <ComboBoxItem Content="国外->国外机房[源站]"></ComboBoxItem>
-                                                <ComboBoxItem Content="国内->宁波机房[CDN加速]"></ComboBoxItem>
-                                                <ComboBoxItem Content="国内->北京机房[CDN加速]"></ComboBoxItem>
+                                                <ComboBoxItem Content="国内->华东机房[直传源站]"></ComboBoxItem>
+                                                <ComboBoxItem Content="国内->华东机房[CDN加速]"></ComboBoxItem>
+                                                <ComboBoxItem Content="国内->华北机房[直传源站]"></ComboBoxItem>
+                                                <ComboBoxItem Content="国内->华北机房[CDN加速]"></ComboBoxItem>
                                             </ComboBox>
                                         </StackPanel>
                                     </StackPanel>
