@@ -43,7 +43,7 @@
                                 <Label Content="目标空间" FontSize="16" Margin="0 10"></Label>
                                 <StackPanel Orientation="Horizontal">
                                     <ComboBox FontSize="16" Height="48" Width="400" Foreground="Green"
-                                             Name="SyncTargetBucketsComboBox"
+                                             Name="SyncTargetBucketsComboBox" SelectionChanged="SyncTargetBucketsComboBox_SelectionChanged"
                                              HorizontalAlignment="Left" VerticalContentAlignment="Center">               
                                     </ComboBox>
                                     <Button Width="52" Height="52" Margin="10 0" 
@@ -125,10 +125,12 @@
                                         <StackPanel Orientation="Horizontal" Margin="5">
                                             <Label Content="上传目的机房" VerticalAlignment="Center" Width="110"></Label>
                                             <ComboBox Width="320" VerticalAlignment="Center" Margin="10 0" Name="UploadEntryDomainComboBox" SelectionChanged="UploadEntryDomainSelectChange_EventHandler">
+                                                <!--
                                                 <ComboBoxItem Content="国内->华东机房[直传源站]"></ComboBoxItem>
                                                 <ComboBoxItem Content="国内->华东机房[CDN加速]"></ComboBoxItem>
                                                 <ComboBoxItem Content="国内->华北机房[直传源站]"></ComboBoxItem>
                                                 <ComboBoxItem Content="国内->华北机房[CDN加速]"></ComboBoxItem>
+                                                /!-->
                                             </ComboBox>
                                         </StackPanel>
                                     </StackPanel>
