@@ -40,8 +40,8 @@ namespace SunSync
         private string uploadUrl_ZONE_NB_CDN = "http://upload.qiniu.com";
         private string uploadUrl_ZONE_BC = "http://up-z1.qiniu.com";
         private string uploadUrl_ZONE_BC_CDN = "http://upload-z1.qiniu.com";
-        private string uploadUrl_ZONE_AWS = "http://up.gdipper.com";
-        private string uploadUrl_ZONE_ABROAD_NB = "http://up.qiniug.com";
+        //private string uploadUrl_ZONE_AWS = "http://up.gdipper.com";
+        //private string uploadUrl_ZONE_ABROAD_NB = "http://up.qiniug.com";
 
         private string[] ENTRY_DOMAIN = 
         {   
@@ -49,8 +49,8 @@ namespace SunSync
             "国内->华东机房[CDN加速]",
             "国内->华北机房[直传源站]",
             "国内->华北机房[CDN加速]",
-            "AWS",
-            "海外-NB",
+            //"AWS",
+            //"海外-NB",
             "不可用" 
         };
 
@@ -60,8 +60,8 @@ namespace SunSync
             ZONE_NB_CDN, 
             ZONE_BC, 
             ZONE_BC_CDN, 
-            ZONE_AWS, 
-            ZONE_ABROAD_NB, 
+            //ZONE_AWS, 
+            //ZONE_ABROAD_NB, 
             ZONE_UNKOWN 
         };
 
@@ -142,14 +142,14 @@ namespace SunSync
             //ui settings
             this.SyncSettingTabControl.SelectedIndex = 0;
             this.SettingsErrorTextBlock.Text = "";
-            if (this.account.IsAbroad)
-            {
-                Qiniu.Common.Config.UseZoneAWS();
-            }
-            else
-            {
-                Qiniu.Common.Config.UseZoneNB();
-            }
+            //if (this.account.IsAbroad)
+            //{
+            //    Qiniu.Common.Config.UseZoneAWS();
+            //}
+            //else
+            //{
+            //    Qiniu.Common.Config.UseZoneNB();
+            //}
 
             if (this.syncSetting == null)
             {
@@ -438,12 +438,12 @@ namespace SunSync
                 case ZONE_ID.ZONE_BC_CDN:
                     Qiniu.Common.Config.UseZoneBCFromCDN();
                     break;
-                case ZONE_ID.ZONE_AWS:
-                    Qiniu.Common.Config.UseZoneAWS();
-                    break;
-                case ZONE_ID.ZONE_ABROAD_NB:
-                    Qiniu.Common.Config.UseZoneAbroadNB();
-                    break;
+                //case ZONE_ID.ZONE_AWS:
+                //    Qiniu.Common.Config.UseZoneAWS();
+                //    break;
+                //case ZONE_ID.ZONE_ABROAD_NB:
+                //    Qiniu.Common.Config.UseZoneAbroadNB();
+                //    break;
                 default:
                     //ERROR
                     break;
@@ -496,37 +496,12 @@ namespace SunSync
                 return;
             }
 
-            #region Comment-EntryDomainRequest
-            ///
-            /// /Request:GET   https://uc.qbox.me/v1/query?ak=(AK)&bucket=(Bucket)
-            /// 
-            /// /Response
-            /// {
-            ///     "ttl" : 86400,
-            ///     "http" : {
-            ///         "up" : [
-            ///                     "http://up.qiniu.com",
-            ///                     "http://upload.qiniu.com"
-            ///                     "-H up.qiniu.com http://183.136.139.16"
-            ///                 ],
-            ///         "io" : [
-            ///                      "http://iovip.qbox.me"
-            ///                 ]
-            ///             },
-            ///     "https" : {
-            ///          "io" : [
-            ///                     "https://iovip.qbox.me"
-            ///                  ],
-            ///         "up" : [
-            ///                     "https://up.qbox.me"
-            ///                  ]
-            ///                  }
-            /// }
-            /// 
-            #endregion Comment-EntryDomainRequest
-
-            string query = string.Format("https://uc.qbox.me/v1/query?ak={0}&bucket={1}",
-                this.account.AccessKey, this.SyncTargetBucketsComboBox.SelectedItem);
+            ////////////////////////////////////////////////////////////////////////////////////////
+            // HTTP/GET   https://uc.qbox.me/v1/query?ak=(AK)&bucket=(Bucket)
+            // 该请求的返回数据参见 class QueryResponse 结构
+            // 2016-08-12， 10:18 [@fengyh](http://fengyh.cn/)
+            ////////////////////////////////////////////////////////////////////////////////////////
+            string query = string.Format("https://uc.qbox.me/v1/query?ak={0}&bucket={1}", this.account.AccessKey, this.SyncTargetBucketsComboBox.SelectedItem);
 
             try
             {
@@ -538,12 +513,13 @@ namespace SunSync
                     #region Find-it
 
                     string respData = sr.ReadToEnd();
-                    int pos1 = respData.IndexOf("http");
-                    int pos2 = respData.IndexOf("up", pos1);
-                    int pos3 = respData.IndexOf('[', pos2) + 2;
-                    int pos4 = respData.IndexOf('\"', pos3);
-                    string uploadUrl = respData.Substring(pos3, pos4 - pos3);
-                    
+                    QueryResponse qr = Newtonsoft.Json.JsonConvert.DeserializeObject<QueryResponse>(respData);
+                    string uploadUrl = qr.HTTP.UP[0];
+
+                    ///////////////////////////////////////////////////////////////////////////////////////
+                    // 目前暂只支持NB(CDN)/BC(CDN)
+                    // 2016-08-12,10:21 [@fengyh](http://fengyh.cn/)
+                    /////////////////////////////////////////////////////////////////////////////////////
                     if(uploadUrl==uploadUrl_ZONE_NB)
                     {
                         // ZONE_NB
@@ -576,18 +552,18 @@ namespace SunSync
                         zoneList.Add((int)ZONE_ID.ZONE_BC_CDN);
                         zoneList.Add((int)ZONE_ID.ZONE_BC);
                     }
-                    else if(uploadUrl == uploadUrl_ZONE_AWS)
-                    {
-                        // ZONE_AWS
-                        this.UploadEntryDomainComboBox.Items.Add(ENTRY_DOMAIN[(int)ZONE_ID.ZONE_AWS]);
-                        zoneList.Add((int)ZONE_ID.ZONE_AWS);
-                    }
-                    else if(uploadUrl == uploadUrl_ZONE_ABROAD_NB)
-                    {
-                        // ZONE_ABROAD_NB
-                        this.UploadEntryDomainComboBox.Items.Add(ENTRY_DOMAIN[(int)ZONE_ID.ZONE_ABROAD_NB]);
-                        zoneList.Add((int)ZONE_ID.ZONE_ABROAD_NB);
-                    }
+                    //else if(uploadUrl == uploadUrl_ZONE_AWS)
+                    //{
+                    //    // ZONE_AWS
+                    //    this.UploadEntryDomainComboBox.Items.Add(ENTRY_DOMAIN[(int)ZONE_ID.ZONE_AWS]);
+                    //    zoneList.Add((int)ZONE_ID.ZONE_AWS);
+                    //}
+                    //else if(uploadUrl == uploadUrl_ZONE_ABROAD_NB)
+                    //{
+                    //    // ZONE_ABROAD_NB
+                    //    this.UploadEntryDomainComboBox.Items.Add(ENTRY_DOMAIN[(int)ZONE_ID.ZONE_ABROAD_NB]);
+                    //    zoneList.Add((int)ZONE_ID.ZONE_ABROAD_NB);
+                    //}
                     else
                     {
                         // ZONE_UNKOWN
@@ -603,10 +579,55 @@ namespace SunSync
             }
             catch (Exception ex)
             {
-                //
+                this.SettingsErrorTextBlock.Text = ex.Message;
             }
         }
 
     }
 
+    /////////////////////////////////////////////////////////////////////////////////////////
+    // 以下QueryResponse结构定义用于JSON解析
+    // 2016-08-12, 10:27 [@fengyh](http://fengyh.cn/)
+    /////////////////////////////////////////////////////////////////////////////////////////
+
+    /// <summary>
+    /// /Response/
+    /// {
+    ///     "ttl" : 86400,
+    ///     "http" : {
+    ///         "up" : [
+    ///                     "http://up.qiniu.com",
+    ///                     "http://upload.qiniu.com",
+    ///                     "-H up.qiniu.com http://183.136.139.16"
+    ///                 ],
+    ///         "io" : [
+    ///                      "http://iovip.qbox.me"
+    ///                 ]
+    ///             },
+    ///     "https" : {
+    ///          "io" : [
+    ///                     "https://iovip.qbox.me"
+    ///                  ],
+    ///         "up" : [
+    ///                     "https://up.qbox.me"
+    ///                  ]
+    ///                  }
+    /// }
+    /// </summary>
+    public class QueryResponse
+    {
+        public string TTL { get; set; }
+        public HttpBulk HTTP { get; set; }
+
+        public HttpBulk HTTPS { get; set; }
+    }
+
+    /// <summary>
+    /// HttpBulk作为QueryResponse的成员
+    /// </summary>
+    public class HttpBulk
+    {
+        public string[] UP { get; set; }
+        public string[] IO { get; set; }
+    }
 }
