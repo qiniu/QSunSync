@@ -100,7 +100,7 @@ namespace SunSync.Models
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show(ex.ToString());
+                throw new Exception("Error @ ZoneInfo.Qury\n" + ex.Message);
             }
 
             return availbaleZoneIndexes;
