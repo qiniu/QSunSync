@@ -29,45 +29,11 @@ namespace SunSync
         private SyncSetting syncSetting;
         private BucketManager bucketManager;
 
-        /// <summary>
-        /// UPLOAD_URL_ZONE
-        /// 2016-08-11 11:30 [@fengyh](http://fengyh.cn/)
-        /// </summary>
-        /// 
-        #region UPLOAD_URL_ZONE
-
-        private string uploadUrl_ZONE_NB = "http://up.qiniu.com";
-        private string uploadUrl_ZONE_NB_CDN = "http://upload.qiniu.com";
-        private string uploadUrl_ZONE_BC = "http://up-z1.qiniu.com";
-        private string uploadUrl_ZONE_BC_CDN = "http://upload-z1.qiniu.com";
-        //private string uploadUrl_ZONE_AWS = "http://up.gdipper.com";
-        //private string uploadUrl_ZONE_ABROAD_NB = "http://up.qiniug.com";
-
-        private string[] ENTRY_DOMAIN = 
-        {   
-            "国内->华东机房[直传源站]",
-            "国内->华东机房[CDN加速]",
-            "国内->华北机房[直传源站]",
-            "国内->华北机房[CDN加速]",
-            //"AWS",
-            //"海外-NB",
-            "不可用" 
-        };
-
-        private enum ZONE_ID
-        { 
-            ZONE_NB=0, 
-            ZONE_NB_CDN, 
-            ZONE_BC, 
-            ZONE_BC_CDN, 
-            //ZONE_AWS, 
-            //ZONE_ABROAD_NB, 
-            ZONE_UNKOWN 
-        };
-
-        private List<int> zoneList = new List<int>();
-
-        #endregion UPLOAD_URL_ZONE
+        // [2016-09-01 11:40] 更新 by fengyh
+        // 上传入口选择/查询模块(ZoneInfo),请参阅Models/ZoneInfo
+        private ZoneInfo zoneInfo = new ZoneInfo(); // 入口查询/选择 
+        private List<int> availableZoneIndexes;     // 可用上传入口
+        private bool isLoadFromRecord = false;      // 是否从历史记录载入
 
         public SyncSettingPage(MainWindow mainWindow)
         {
@@ -98,6 +64,11 @@ namespace SunSync
         {
             this.syncSetting = syncSetting;
             this.bucketManager = null;
+
+            // [2016-09-01 11:40] 更新 @fengyh
+            // 如果syncSetting已被设置，就说明是从历史记录载入
+            // 如果syncSetting没有设置，就说明是新建任务
+            this.isLoadFromRecord = (this.syncSetting != null);
         }
 
         /// <summary>
@@ -418,36 +389,17 @@ namespace SunSync
         /// <param name="e"></param>
         private void UploadEntryDomainSelectChange_EventHandler(object sender, SelectionChangedEventArgs e)
         {
-            this.uploadEntryDomain = this.UploadEntryDomainComboBox.SelectedIndex;
-            if (this.uploadEntryDomain <0 || zoneList.Count <= this.uploadEntryDomain)
+            if (this.UploadEntryDomainComboBox.SelectedIndex < 0 || 
+                availableZoneIndexes == null || availableZoneIndexes.Count==0 )
             {
                 return;
             }
-            ZONE_ID id = (ZONE_ID)zoneList[this.uploadEntryDomain];
-            switch (id)
-            {
-                case ZONE_ID.ZONE_NB:
-                    Qiniu.Common.Config.UseZoneNB();
-                    break;
-                case ZONE_ID.ZONE_NB_CDN:
-                    Qiniu.Common.Config.UseZoneNBFromCDN();
-                    break;
-                case ZONE_ID.ZONE_BC:
-                    Qiniu.Common.Config.UseZoneBC();
-                    break;
-                case ZONE_ID.ZONE_BC_CDN:
-                    Qiniu.Common.Config.UseZoneBCFromCDN();
-                    break;
-                //case ZONE_ID.ZONE_AWS:
-                //    Qiniu.Common.Config.UseZoneAWS();
-                //    break;
-                //case ZONE_ID.ZONE_ABROAD_NB:
-                //    Qiniu.Common.Config.UseZoneAbroadNB();
-                //    break;
-                default:
-                    //ERROR
-                    break;
-            }
+
+            // uploadEntryDomain = 在availableZoneIndexes中被选择的那一个zoneIndex
+            this.uploadEntryDomain = availableZoneIndexes[this.UploadEntryDomainComboBox.SelectedIndex];
+
+            // 根据选择进行Zone配置
+            zoneInfo.ConfigZone(this.uploadEntryDomain);
         }
 
         private void ChunkDefaultSizeSelectChanged_EventHandler(object sender, SelectionChangedEventArgs e)
@@ -479,155 +431,59 @@ namespace SunSync
         }
 
         /// <summary>
-        /// 根据用户AK&Bucket试图查找合适的上传入口
-        /// 其中AK(account.access_key)已经事先设置好
-        /// 每当用户设置/更改了Bucket(目标空间)时会调用此函数进行处理
-        /// 2016-08-11 11:55 [@fengyh](http://fengyh.cn/)
+        /// [2016-09-01] 更新内容：
+        /// 上传入口查询模块独立出来，放在Models/ZoneInfo
+        /// 如果是从历史纪录载入并且未更改Bucket，则EntryDomain等设置保持不变
+        /// 否则(新建任务，或者载入记录但又更改了Bucket)，则会根据用户AK&Bucket试图查找合适的上传入口
+        /// 2016-09-01 11:41 [@fengyh](http://fengyh.cn/)
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void SyncTargetBucketsComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            this.UploadEntryDomainComboBox.Items.Clear();
-            zoneList.Clear();
-
-            if(this.SyncTargetBucketsComboBox.Items.Count == 0)
+            if(this.SyncTargetBucketsComboBox.Items.Count == 0 || this.SyncTargetBucketsComboBox.SelectedIndex<0 )
             {
                 return;
             }
 
-            ////////////////////////////////////////////////////////////////////////////////////////
-            // HTTP/GET   https://uc.qbox.me/v1/query?ak=(AK)&bucket=(Bucket)
-            // 该请求的返回数据参见 class QueryResponse 结构
-            // 2016-08-12， 10:18 [@fengyh](http://fengyh.cn/)
-            ////////////////////////////////////////////////////////////////////////////////////////
-            string query = string.Format("https://uc.qbox.me/v1/query?ak={0}&bucket={1}", this.account.AccessKey, this.SyncTargetBucketsComboBox.SelectedItem);
-
             try
             {
-                System.Net.HttpWebRequest wReq = System.Net.WebRequest.Create(query) as System.Net.HttpWebRequest;
-                wReq.Method = "GET";
-                System.Net.HttpWebResponse wResp = wReq.GetResponse() as System.Net.HttpWebResponse;
-                using (StreamReader sr = new StreamReader(wResp.GetResponseStream()))
+                string targetBucket = this.SyncTargetBucketsComboBox.SelectedItem.ToString();
+
+                if ( isLoadFromRecord && string.Equals(targetBucket,this.syncSetting.SyncTargetBucket) )
                 {
-                    #region Find-it
-
-                    string respData = sr.ReadToEnd();
-                    QueryResponse qr = Newtonsoft.Json.JsonConvert.DeserializeObject<QueryResponse>(respData);
-                    string uploadUrl = qr.HTTP.UP[0];
-
-                    ///////////////////////////////////////////////////////////////////////////////////////
-                    // 目前暂只支持NB(CDN)/BC(CDN)
-                    // 2016-08-12,10:21 [@fengyh](http://fengyh.cn/)
-                    /////////////////////////////////////////////////////////////////////////////////////
-                    if(uploadUrl==uploadUrl_ZONE_NB)
-                    {
-                        // ZONE_NB
-                        this.UploadEntryDomainComboBox.Items.Add(ENTRY_DOMAIN[(int)ZONE_ID.ZONE_NB]);
-                        this.UploadEntryDomainComboBox.Items.Add(ENTRY_DOMAIN[(int)ZONE_ID.ZONE_NB_CDN]);
-                        zoneList.Add((int)ZONE_ID.ZONE_NB);
-                        zoneList.Add((int)ZONE_ID.ZONE_NB_CDN);
-                    }
-                    else if (uploadUrl == uploadUrl_ZONE_NB_CDN)
-                    {
-                        // ZONE_NB_CDN
-                        this.UploadEntryDomainComboBox.Items.Add(ENTRY_DOMAIN[(int)ZONE_ID.ZONE_NB_CDN]);
-                        this.UploadEntryDomainComboBox.Items.Add(ENTRY_DOMAIN[(int)ZONE_ID.ZONE_NB]);
-                        zoneList.Add((int)ZONE_ID.ZONE_NB_CDN);
-                        zoneList.Add((int)ZONE_ID.ZONE_NB);
-                    }
-                    else if(uploadUrl == uploadUrl_ZONE_BC)
-                    {
-                        // ZONE_BC
-                        this.UploadEntryDomainComboBox.Items.Add(ENTRY_DOMAIN[(int)ZONE_ID.ZONE_BC]);
-                        this.UploadEntryDomainComboBox.Items.Add(ENTRY_DOMAIN[(int)ZONE_ID.ZONE_BC_CDN]);
-                        zoneList.Add((int)ZONE_ID.ZONE_BC);
-                        zoneList.Add((int)ZONE_ID.ZONE_BC_CDN);
-                    }
-                    else if (uploadUrl == uploadUrl_ZONE_BC_CDN)
-                    {
-                        // ZONE_BC_CDN
-                        this.UploadEntryDomainComboBox.Items.Add(ENTRY_DOMAIN[(int)ZONE_ID.ZONE_BC_CDN]);
-                        this.UploadEntryDomainComboBox.Items.Add(ENTRY_DOMAIN[(int)ZONE_ID.ZONE_BC]);
-                        zoneList.Add((int)ZONE_ID.ZONE_BC_CDN);
-                        zoneList.Add((int)ZONE_ID.ZONE_BC);
-                    }
-                    //else if(uploadUrl == uploadUrl_ZONE_AWS)
-                    //{
-                    //    // ZONE_AWS
-                    //    this.UploadEntryDomainComboBox.Items.Add(ENTRY_DOMAIN[(int)ZONE_ID.ZONE_AWS]);
-                    //    zoneList.Add((int)ZONE_ID.ZONE_AWS);
-                    //}
-                    //else if(uploadUrl == uploadUrl_ZONE_ABROAD_NB)
-                    //{
-                    //    // ZONE_ABROAD_NB
-                    //    this.UploadEntryDomainComboBox.Items.Add(ENTRY_DOMAIN[(int)ZONE_ID.ZONE_ABROAD_NB]);
-                    //    zoneList.Add((int)ZONE_ID.ZONE_ABROAD_NB);
-                    //}
-                    else
-                    {
-                        // ZONE_UNKOWN
-                        this.UploadEntryDomainComboBox.Items.Add(ENTRY_DOMAIN[(int)ZONE_ID.ZONE_UNKOWN]);
-                        zoneList.Add((int)ZONE_ID.ZONE_UNKOWN);
-                    }
-
-                    this.UploadEntryDomainComboBox.SelectedIndex = 0;
-
-                    #endregion Find-it
+                    // 如果是从历史记录载入并且未更改Bucket，则无需查询，直接从列表抽取
+                    availableZoneIndexes = zoneInfo.GetAvailableZoneIndexes(this.syncSetting.UploadEntryDomain);
                 }
-                wResp.Close();
+                else 
+                {
+                    // 否则(如果是新建任务或者更改了Bucket)，则需要向QBox发送请求查询
+                    availableZoneIndexes = zoneInfo.Query(this.account.AccessKey, targetBucket);
+                }
+
+                if (availableZoneIndexes == null || availableZoneIndexes.Count == 0)
+                {
+                    this.SettingsErrorTextBlock.Text = "未找到合适的EntryDomian";
+                    return;
+                }
+
+                // 从全部EntryDomians中提取出可用的部分
+                this.UploadEntryDomainComboBox.Items.Clear();
+                List<string> allEntryDesc = zoneInfo.GetAllEntryDomains();
+                foreach (int index in availableZoneIndexes)
+                {
+                    this.UploadEntryDomainComboBox.Items.Add(allEntryDesc[index]);
+                }
+
+                // 如果是从历史纪录导入，那么index=0表示和历史纪录选择一致
+                // 如果是新建任务，那么index=0就表示选择默认
+                this.UploadEntryDomainComboBox.SelectedIndex = 0;
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
                 this.SettingsErrorTextBlock.Text = ex.Message;
             }
         }
 
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////////////
-    // 以下QueryResponse结构定义用于JSON解析
-    // 2016-08-12, 10:27 [@fengyh](http://fengyh.cn/)
-    /////////////////////////////////////////////////////////////////////////////////////////
-
-    /// <summary>
-    /// /Response/
-    /// {
-    ///     "ttl" : 86400,
-    ///     "http" : {
-    ///         "up" : [
-    ///                     "http://up.qiniu.com",
-    ///                     "http://upload.qiniu.com",
-    ///                     "-H up.qiniu.com http://183.136.139.16"
-    ///                 ],
-    ///         "io" : [
-    ///                      "http://iovip.qbox.me"
-    ///                 ]
-    ///             },
-    ///     "https" : {
-    ///          "io" : [
-    ///                     "https://iovip.qbox.me"
-    ///                  ],
-    ///         "up" : [
-    ///                     "https://up.qbox.me"
-    ///                  ]
-    ///                  }
-    /// }
-    /// </summary>
-    public class QueryResponse
-    {
-        public string TTL { get; set; }
-        public HttpBulk HTTP { get; set; }
-
-        public HttpBulk HTTPS { get; set; }
-    }
-
-    /// <summary>
-    /// HttpBulk作为QueryResponse的成员
-    /// </summary>
-    public class HttpBulk
-    {
-        public string[] UP { get; set; }
-        public string[] IO { get; set; }
     }
 }
