@@ -14,6 +14,8 @@ namespace SunSync.Models
         ///////////////////////////////////////////////////////////////////////////////////////
         // 目前暂只支持NB(CDN)/BC(CDN)
         // 2016-08-31,16:50 [@fengyh](http://fengyh.cn/)
+        // 已更新 2016-09-05 18:11 [@fengyh](http://fengyh.cn/)
+        // ADD NA Entry 
         /////////////////////////////////////////////////////////////////////////////////////
 
         #region ZONE-DICT
@@ -24,8 +26,10 @@ namespace SunSync.Models
             ZONE_NB_CDN = 1,
             ZONE_BC = 2,
             ZONE_BC_CDN = 3,
-            //ZONE_AWS=4, 
-            //ZONE_ABROAD_NB=5, 
+            ZONE_NA = 4, // North America
+            ZONE_NA_CDN = 5,
+            //ZONE_AWS, 
+            //ZONE_ABROAD_NB, 
             ZONE_UNKOWN = 65535
         };
 
@@ -35,6 +39,8 @@ namespace SunSync.Models
             "http://upload.qiniu.com",     // ZONE_NB_CDN
             "http://up-z1.qiniu.com",      // ZONE_BC
             "http://upload-z1.qiniu.com",  // ZONE_BC_CDN
+            "http://up-na0.qiniu.com",    // ZONE_NA
+            "http://upload-na0.qiniu.com",    // ZONE_NA_CDN
             //"http://up.gdipper.com",     // ZONE_AWS
             //"http://up.qiniug.com",      // ZONE_ABROAD_NB
             ""  // ZONE_UNKNOWN                           
@@ -46,6 +52,8 @@ namespace SunSync.Models
             "国内->华东机房[CDN加速]",     // ZONE_NB_CDN
             "国内->华北机房[直传源站]",    // ZONE_BC
             "国内->华北机房[CDN加速]",     // ZONE_BC_CDN
+            "北美机房[直传源站]",    // ZONE_NA
+            "北美机房[CDN加速]",     // ZONE_NA_CDN
             //"AWS",                     // ZONE_AWS
             //"海外-NB",                 // ZONE_ABROAD_NB
             "不可用"                     // ZONE_UNKNOWN
@@ -65,6 +73,10 @@ namespace SunSync.Models
                     return new List<int>() { (int)ZONE_ID.ZONE_BC, (int)ZONE_ID.ZONE_BC_CDN };
                 case (int)ZONE_ID.ZONE_BC_CDN:
                     return new List<int>() { (int)ZONE_ID.ZONE_BC_CDN, (int)ZONE_ID.ZONE_BC };
+                case (int)ZONE_ID.ZONE_NA:
+                    return new List<int>() { (int)ZONE_ID.ZONE_NA, (int)ZONE_ID.ZONE_NA_CDN };
+                case (int)ZONE_ID.ZONE_NA_CDN:
+                    return new List<int>() { (int)ZONE_ID.ZONE_NA_CDN, (int)ZONE_ID.ZONE_NA };
                 default:
                     return null;
             }
@@ -130,6 +142,12 @@ namespace SunSync.Models
                     Qiniu.Common.Config.UseZoneBC();
                     break;
                 case (int)ZONE_ID.ZONE_BC_CDN:
+                    Qiniu.Common.Config.UseZoneBCFromCDN();
+                    break;
+                case (int)ZONE_ID.ZONE_NA:
+                    Qiniu.Common.Config.UseZoneNA();
+                    break;
+                case (int)ZONE_ID.ZONE_NA_CDN:
                     Qiniu.Common.Config.UseZoneBCFromCDN();
                     break;
                 //case (int)ZONE_ID.ZONE_AWS:
