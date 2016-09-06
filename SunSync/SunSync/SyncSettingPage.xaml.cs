@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Forms;
 using SunSync.Models;
+using Qiniu.Common;
 using Qiniu.Storage;
 using Qiniu.Util;
 using Qiniu.Storage.Model;
@@ -29,11 +30,12 @@ namespace SunSync
         private SyncSetting syncSetting;
         private BucketManager bucketManager;
 
-        // [2016-09-01 11:40] 更新 by fengyh
-        // 上传入口选择/查询模块(ZoneInfo),请参阅Models/ZoneInfo
+        // [2016-09-06 12:40] 更新 by fengyh
+        // 上传入口选择/查询模块(ZoneInfo)转移至qiniu-csharp-sdk
         private ZoneInfo zoneInfo = new ZoneInfo(); // 入口查询/选择 
-        private List<int> availableZoneIndexes;     // 可用上传入口
+        private List<int> availableZoneIndexes = null; // 可用上传入口
         private bool isLoadFromRecord = false;      // 是否从历史记录载入
+
 
         public SyncSettingPage(MainWindow mainWindow)
         {
