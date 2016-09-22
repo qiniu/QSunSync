@@ -1,6 +1,7 @@
 ﻿using Qiniu.Util;
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Data.SQLite;
 using System.IO;
 using System.Linq;
@@ -8,6 +9,16 @@ using System.Text;
 
 namespace SunSync.Models
 {
+    /// <summary>
+    /// 单个记录包含以下信息
+    /// </summary>
+    public class DBItem
+    {
+        public string LocalFile { get; set; }
+        public string FileHash { get; set; }
+        public string LastUpdate { get; set; }
+    }
+
     class CachedHash
     {
         public string LocalPath { set; get; }
@@ -95,5 +106,78 @@ namespace SunSync.Models
                 InsertCachedHash(localPath, etag, lastModified, localHashDB);
             }
         }
+
+        /// <summary>
+        /// 批量插入记录，比逐个插入方式速度更快，待插入的记录越多对比越明显
+        /// </summary>
+        /// <param name="dbItems"></param>
+        /// <param name="sqlConn"></param>
+        public static void BatchInsert(List<DBItem> dbItems, SQLiteConnection sqlConn)
+        {
+            using (DbTransaction dbTrans = sqlConn.BeginTransaction())
+            {
+                using (DbCommand cmd = sqlConn.CreateCommand())
+                {
+                    try
+                    {
+                        cmd.CommandText = "INSERT INTO [cached_hash] ([local_path], [etag], [last_modified]) VALUES (@local_path, @etag, @last_modified)";
+                        SQLiteParameter param0 = new SQLiteParameter("@local_path",System.Data.DbType.String);
+                        SQLiteParameter param1 = new SQLiteParameter("@etag",System.Data.DbType.String);
+                        SQLiteParameter param2 = new SQLiteParameter("@last_modified",System.Data.DbType.String);
+                        for (int i = 0; i < dbItems.Count;++i )
+                        {
+                            cmd.Parameters.Add(param0);
+                            cmd.Parameters.Add(param1);
+                            cmd.Parameters.Add(param2);
+                            cmd.Parameters["@local_path"].Value = dbItems[i].LocalFile;
+                            cmd.Parameters["@etag"].Value = dbItems[i].FileHash;
+                            cmd.Parameters["@last_modified"].Value = dbItems[i].LastUpdate;
+                            cmd.ExecuteNonQuery();
+                        }
+                        dbTrans.Commit(); // 一次commit后完成以上全部记录插入操作
+                    }
+                    catch(Exception ex)
+                    {
+                        dbTrans.Rollback();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 简化查询为SELECT * FROM而不是逐一查询 SELECt * FROm WHERE *
+        /// 查询后利用Dictionary<fileName,V>加快查询速度
+        /// </summary>
+        /// <param name="sqlConn"></param>
+        /// <returns></returns>
+        public static Dictionary<string, DBItem> SelectAll(SQLiteConnection sqlConn)
+        {
+            Dictionary<string, DBItem> dict = new Dictionary<string, DBItem>();
+            using (SQLiteCommand sqlCmd = new SQLiteCommand(sqlConn))
+            {
+                sqlCmd.CommandText = "SELECT [local_path], [etag], [last_modified] FROM [cached_hash]";
+                using (SQLiteDataReader dr = sqlCmd.ExecuteReader())
+                {
+                    while (dr.Read())
+                    {
+                        string file = dr["local_path"].ToString();
+                        string etag = dr["etag"].ToString();
+                        string mtm = dr["last_modified"].ToString();
+
+                        if (dict.ContainsKey(file))
+                        {
+                            dict[file] = new DBItem() { LocalFile = file, FileHash = etag, LastUpdate = mtm };
+                        }
+                        else
+                        {
+                            dict.Add(file, new DBItem() { LocalFile = file, FileHash = etag, LastUpdate = mtm });
+                        }
+                    }
+                }
+            }
+
+            return dict;
+        }
+
     }
 }

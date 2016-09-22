@@ -1,5 +1,6 @@
 ﻿using SunSync.Models;
 using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Forms;
 
@@ -100,6 +101,11 @@ namespace SunSync
         {
             this.MainHostFrame.Content = this.syncProgressPage;
             this.syncProgressPage.LoadSyncSetting(syncSetting);
+        }
+
+        public void SetUploadIteams(List<UploadItem> uploadItems, List<DBItem> dbItems)
+        {
+            this.syncProgressPage.EndSetUploadIteams(uploadItems, dbItems);
         }
 
         //go to sync result page

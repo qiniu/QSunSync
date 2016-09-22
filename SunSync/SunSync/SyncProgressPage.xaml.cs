@@ -81,6 +81,11 @@ namespace SunSync
         private string syncLogDBPath;
         private SQLiteConnection syncLogDB;
 
+        private List<UploadItem> uploadItems = new List<UploadItem>();
+        private List<DBItem> dbItems = new List<DBItem>();
+
+        private int currentIndex = 0;
+
         public SyncProgressPage(MainWindow mainWindow)
         {
             InitializeComponent();
@@ -90,6 +95,11 @@ namespace SunSync
             this.resetSyncStatus();
         }
 
+        public void EndSetUploadIteams(List<UploadItem> uploadItems, List<DBItem> dbItems)
+        {
+            this.uploadItems = uploadItems;
+            this.dbItems = dbItems;
+        }
         public SQLiteConnection SyncLogDB()
         {
             return this.syncLogDB;
@@ -256,41 +266,31 @@ namespace SunSync
             }
         }
 
-        private void processUpload(string cacheFilePath)
+        /// <summary>
+        /// 更新 2016-09-22 16:40 fengyh
+        /// </summary>
+        private void processUpload()
         {
             try
             {
-                string filePath = null;
-
-                //count
-                using (StreamReader sr = new StreamReader(this.cacheFilePathDone, Encoding.UTF8))
+                while (currentIndex<uploadItems.Count )
                 {
-                    while ((filePath = sr.ReadLine()) != null)
+                    if (this.cancelSignal)
                     {
-                        this.totalCount += 1;
+                        return;
                     }
-                }
 
-                //upload
-                using (StreamReader sr = new StreamReader(this.cacheFilePathDone, Encoding.UTF8))
-                {
-                    while ((filePath = sr.ReadLine()) != null)
+                    int itemsLeft = uploadItems.Count-currentIndex;
+
+                    if (itemsLeft<this.syncSetting.SyncThreadCount)
                     {
-                        if (this.cancelSignal)
-                        {
-                            return;
-                        }
-
-                        if (this.batchOpFiles.Count < this.syncSetting.SyncThreadCount)
-                        {
-                            this.batchOpFiles.Add(filePath);
-                        }
-                        else
-                        {
-                            this.uploadFiles(this.batchOpFiles);
-                            this.batchOpFiles.Clear();
-                            this.batchOpFiles.Add(filePath);
-                        }
+                        this.uploadFiles(currentIndex, itemsLeft);
+                        currentIndex += itemsLeft;
+                    }
+                    else
+                    {
+                        this.uploadFiles(currentIndex, this.syncSetting.SyncThreadCount);
+                        currentIndex += this.syncSetting.SyncThreadCount;
                     }
                 }
             }
@@ -300,12 +300,14 @@ namespace SunSync
             }
         }
 
-
-        private void uploadFiles(List<string> filesToUpload)
+        /// <summary>
+        /// 更新 2016-09-22 16:40 fengyh
+        /// </summary>
+        private void uploadFiles(int startIndex,int count)
         {
             this.uploadedBytes.Clear();
             ManualResetEvent[] doneEvents = null;
-            int taskMax = filesToUpload.Count;
+            int taskMax = count;
             doneEvents = new ManualResetEvent[taskMax];
             this.uploadInfos = new UploadInfo[taskMax];
             for (int taskId = 0; taskId < taskMax; taskId++)
@@ -313,12 +315,40 @@ namespace SunSync
                 this.uploadInfos[taskId] = new UploadInfo();
                 doneEvents[taskId] = new ManualResetEvent(false);
                 FileUploader uploader = new FileUploader(this.syncSetting, doneEvents[taskId], this, taskId);
-                ThreadPool.QueueUserWorkItem(new WaitCallback(uploader.uploadFile), filesToUpload[taskId]);
+                ThreadPool.QueueUserWorkItem(new WaitCallback(uploader.uploadFile), uploadItems[taskId + startIndex]);
             }
 
             try
             {
                 WaitHandle.WaitAll(doneEvents);
+
+                // 虽然没有执行上传操作，但是云端已经存在了这些文件(可能是之前上传过的)
+
+                #region UPDATE_HASH_DB
+
+                if (dbItems.Count > 0)
+                {
+                    SQLiteConnection sqlConn  =null;
+                    try
+                    {
+                        sqlConn = LocalHashDB();
+                        sqlConn.Open();
+                        CachedHash.BatchInsert(dbItems, sqlConn);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex.Message);
+                    }
+                    finally
+                    {
+                        if (sqlConn != null)
+                        {
+                            sqlConn.Close();
+                        }
+                    }
+                }
+
+                #endregion UPDATE_HASH_DB
             }
             catch (Exception ex)
             {
@@ -326,6 +356,9 @@ namespace SunSync
             }
         }
 
+        /// <summary>
+        /// 更新 2016-09-22 16:40 fengyh
+        /// </summary>
         private bool initRunJob()
         {
             bool checkOk = true;
@@ -538,14 +571,7 @@ namespace SunSync
             {
                 //upload
                 this.updateUploadLog(string.Format("开始同步{0}下所有文件...", localSyncDir));
-                this.processUpload(this.cacheFilePathDone);
-            }
-
-            if (!this.cancelSignal && this.batchOpFiles.Count > 0)
-            {
-                //finish the remained
-                this.uploadFiles(this.batchOpFiles);
-                this.batchOpFiles.Clear();
+                this.processUpload();
             }
 
             //set finish signal
@@ -732,7 +758,6 @@ namespace SunSync
             }
         }
 
-
         internal void addFileUploadSuccessLog(string log)
         {
             lock (this.fileUploadSuccessLock)
@@ -770,8 +795,8 @@ namespace SunSync
             }
             Dispatcher.Invoke(new Action(delegate
             {
-                double percent = this.doneCount * 100.0 / this.totalCount;
-                this.UploadProgressTextBlock.Text = string.Format("总上传进度: {0}/{1}, {2}%", this.doneCount, this.totalCount, percent.ToString("F1"));
+                double percent = this.doneCount * 100.0 / uploadItems.Count;
+                this.UploadProgressTextBlock.Text = string.Format("总上传进度: {0}/{1}, {2}%", this.doneCount, uploadItems.Count, percent.ToString("F1"));
             }));
         }
 
