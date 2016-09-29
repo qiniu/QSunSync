@@ -4,7 +4,7 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       mc:Ignorable="d" 
-      d:DesignHeight="670" d:DesignWidth="700"
+      d:DesignHeight="680" d:DesignWidth="700"
 	Title="SyncProgressPage" Loaded="SyncProgressPageLoaded_EventHandler">
     <Page.Resources>
     <SolidColorBrush x:Key="GrayGridLine" Color="Gray" />

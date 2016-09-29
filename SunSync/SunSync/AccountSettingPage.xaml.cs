@@ -179,16 +179,16 @@ namespace SunSync
 
         private void IsAbroadEventHandle(bool checkBoxVal)
         {
-            if (checkBoxVal)
-            {
-                this.myAKSKLink = "https://portal.gdipper.com/setting/key";
-                Qiniu.Common.Config.RS_HOST = "http://rs.gdipper.com";
-            }
-            else
-            {
-                this.myAKSKLink = "https://portal.qiniu.com/setting/key";
-                Qiniu.Common.Config.RS_HOST = "http://rs.qiniu.com";
-            }
+            //if (checkBoxVal)
+            //{
+            //    this.myAKSKLink = "https://portal.gdipper.com/setting/key";
+            //    Qiniu.Common.Config.RS_HOST = "http://rs.gdipper.com";
+            //}
+            //else
+            //{
+            //    this.myAKSKLink = "https://portal.qiniu.com/setting/key";
+            //    Qiniu.Common.Config.RS_HOST = "http://rs.qiniu.com";
+            //}
         }
     }
 }

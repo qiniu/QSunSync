@@ -23,53 +23,88 @@ namespace SunSync.Models
         /// <param name="bucket"></param>
         /// <param name="keys"></param>
         /// <returns></returns>
-        public static void BatchStat(Mac mac, string bucket, List<string> keys,List<bool> skipped, ref List<string> hashTable, ref List<long> lastModified)
+        public static void BatchStat(Mac mac, string bucket, List<string> keys, List<bool> skipped, ref List<string> hashTable, ref List<long> lastModified)
         {
             BucketManager bktMgr = new BucketManager(mac);
 
             StringBuilder opsb = new StringBuilder();
 
-            int k = 0;
-            int n = keys.Count;
-            int MAX = 1000;
-            int group = (n + MAX - 1) / MAX;
+            int N = keys.Count;
+            int X = 1000;
+            int G = N / X;
+            int M = N % X;
+            int i,k = 0;
+            bool first = false;
 
             string s1 = "op=/stat/";
             string s2 = "&op=/stat/";
-            for (int g = 0; g < group; ++g)
-            {
-                int m = MAX;
-                if(g==group-1)
-                {
-                    m = n % MAX;
-                }
-                bool first = true;
-                for (int i=0; i < m; ++i)
-                {
-                    if (skipped[k]) continue;
+            string s = "";
 
-                    string s = s2;
+            HttpResult result = null;
+            StatResponse[] statResults = null;
+
+            #region LOOP
+            for (int g = 0; g < G; ++g)
+            {
+                opsb.Clear();
+                first = true;
+                for (i = 0; i < X; ++i,++k)
+                {
+                    if (skipped[k])
+                    {
+                        continue;
+                    }
+
+                    s = s2;
                     if (first)
                     {
                         s = s1;
                         first = false;
                     }
                     opsb.Append(s + StringUtils.encodedEntry(bucket, keys[k]));
-                    ++k;
                 }
 
-                HttpResult result = bktMgr.batch(opsb.ToString());
+                result = bktMgr.batch(opsb.ToString());
 
-                StatResponse[] statResults = JsonConvert.DeserializeObject<StatResponse[]>(result.Response);
+                statResults = JsonConvert.DeserializeObject<StatResponse[]>(result.Response);
 
-                for (int i = 0; i < m; ++i)
+                for (i = 0; i < statResults.Length; ++i)
                 {
                     hashTable.Add(statResults[i].DATA.hash);
                     lastModified.Add(statResults[i].DATA.putTime);
                 }
             }
-        }
-      
+            #endregion LOOP
+            
+            #region RESIDUE
+
+            opsb.Clear();
+            first = true;
+            for (i = 0; i < M; ++i)
+            {
+                s = s2;
+                if (first)
+                {
+                    s = s1;
+                    first = false;
+                }
+                opsb.Append(s + StringUtils.encodedEntry(bucket, keys[k]));
+                ++k;
+            }
+
+            result = bktMgr.batch(opsb.ToString());
+
+            statResults = JsonConvert.DeserializeObject<StatResponse[]>(result.Response);
+
+            for (i = 0; i < statResults.Length; ++i)
+            {
+                hashTable.Add(statResults[i].DATA.hash);
+                lastModified.Add(statResults[i].DATA.putTime);
+            }
+
+            #endregion RESIDUE
+        }                 
+
     }
 
     /// <summary>
@@ -129,5 +164,8 @@ namespace SunSync.Models
         public string LocalFile { set; get; }
         public string SaveKey { set; get; }
         public string FileSize { get; set; }
+
+        public string FileHash { get; set; }
+        public string LastUpdate { get; set; }
     }
 }

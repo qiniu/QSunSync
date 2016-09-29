@@ -64,21 +64,21 @@ namespace SunSync.Models
             long fileLength = fileInfo.Length;
             string fileLastModified = fileInfo.LastWriteTimeUtc.ToFileTime().ToString();
             //support resume upload
-            string recorderKey = string.Format("{0}:{1}:{2}:{3}:{4}", this.syncSetting.SyncLocalDir,
-                this.syncSetting.SyncTargetBucket, item.SaveKey, fileFullPath, fileLastModified);
+            string recorderKey = string.Format("{0}:{1}:{2}:{3}:{4}", this.syncSetting.LocalDirectory,
+                this.syncSetting.TargetBucket, item.SaveKey, fileFullPath, fileLastModified);
             recorderKey = Tools.md5Hash(recorderKey);
 
             this.syncProgressPage.updateUploadLog("准备上传文件 " + fileFullPath);
             UploadManager uploadManger = new UploadManager(new Qiniu.Storage.Persistent.ResumeRecorder(recordPath),
                 new Qiniu.Storage.Persistent.KeyGenerator(delegate() { return recorderKey; }));
             PutPolicy putPolicy = new PutPolicy();
-            if (this.syncSetting.OverwriteFile)
+            if (this.syncSetting.OverwriteDuplicate)
             {
-                putPolicy.Scope = this.syncSetting.SyncTargetBucket + ":" + item.SaveKey;
+                putPolicy.Scope = this.syncSetting.TargetBucket + ":" + item.SaveKey;
             }
             else
             {
-                putPolicy.Scope = this.syncSetting.SyncTargetBucket;
+                putPolicy.Scope = this.syncSetting.TargetBucket;
             }
             putPolicy.SetExpires(24 * 30 * 3600);
             string uptoken = Auth.createUploadToken(putPolicy, mac);
@@ -97,14 +97,14 @@ namespace SunSync.Models
                     if (respInfo.StatusCode != 200)
                     {
                         this.syncProgressPage.updateUploadLog("上传失败 " + fileFullPath + "，" + respInfo.Error);
-                        this.syncProgressPage.addFileUploadErrorLog(string.Format("{0}\t{1}\t{2}\t{3}", this.syncSetting.SyncTargetBucket,
+                        this.syncProgressPage.addFileUploadErrorLog(string.Format("{0}\t{1}\t{2}\t{3}", this.syncSetting.TargetBucket,
                                 fileFullPath, item.SaveKey, respInfo.Error + "" + response));
 
                         //file exists error
                         if (respInfo.StatusCode == 614)
                         {
                             this.syncProgressPage.updateUploadLog("空间已存在，未覆盖 " + fileFullPath);
-                            this.syncProgressPage.addFileNotOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.SyncTargetBucket,
+                            this.syncProgressPage.addFileNotOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket,
                                 fileFullPath, item.SaveKey));
                         }
                     }
@@ -121,13 +121,13 @@ namespace SunSync.Models
                         }                                            
 
                         //update 
-                        if (this.syncSetting.OverwriteFile)
+                        if (this.syncSetting.OverwriteDuplicate)
                         {
-                            this.syncProgressPage.addFileOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.SyncTargetBucket,
+                            this.syncProgressPage.addFileOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket,
                                  fileFullPath, item.SaveKey));
                         }
                         this.syncProgressPage.updateUploadLog("上传成功 " + fileFullPath);
-                        this.syncProgressPage.addFileUploadSuccessLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.SyncTargetBucket,
+                        this.syncProgressPage.addFileUploadSuccessLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket,
                                 fileFullPath, item.SaveKey));
                         this.syncProgressPage.updateTotalUploadProgress();
                     }

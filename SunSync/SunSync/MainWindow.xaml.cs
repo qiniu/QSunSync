@@ -103,9 +103,9 @@ namespace SunSync
             this.syncProgressPage.LoadSyncSetting(syncSetting);
         }
 
-        public void SetUploadIteams(List<UploadItem> uploadItems, List<DBItem> dbItems)
+        public void SetUploadIteams(List<UploadItem> uploadItems)
         {
-            this.syncProgressPage.EndSetUploadIteams(uploadItems, dbItems);
+            this.syncProgressPage.EndSetUploadIteams(uploadItems);
         }
 
         //go to sync result page

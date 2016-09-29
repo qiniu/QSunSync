@@ -12,7 +12,7 @@ namespace SunSync.Models
     /// <summary>
     /// 单个记录包含以下信息
     /// </summary>
-    public class DBItem
+    public class HashDBItem
     {
         public string LocalFile { get; set; }
         public string FileHash { get; set; }
@@ -37,6 +37,7 @@ namespace SunSync.Models
                 {
                     sqlCmd.ExecuteNonQuery();
                 }
+                sqlCon.Close();
             }
         }
 
@@ -108,15 +109,36 @@ namespace SunSync.Models
         }
 
         /// <summary>
-        /// 批量插入记录，比逐个插入方式速度更快，待插入的记录越多对比越明显
+        /// 批量插入/更新记录，比逐个插入/更新方式速度更快，待操作的记录越多对比越明显
         /// </summary>
         /// <param name="dbItems"></param>
         /// <param name="sqlConn"></param>
-        public static void BatchInsert(List<DBItem> dbItems, SQLiteConnection sqlConn)
+        public static void BatchInsertOrUpdate(List<HashDBItem> dbItems, SQLiteConnection hashDBConn)
         {
-            using (DbTransaction dbTrans = sqlConn.BeginTransaction())
+            List<string> keys = GetAllKeys(hashDBConn);
+            
+            int numItems = dbItems.Count;
+
+            int nAppend = 0, nUpdate = 0;
+
+            bool[] needUpdate = new bool[numItems];
+
+            for(int j=0;j<numItems;++j)
             {
-                using (DbCommand cmd = sqlConn.CreateCommand())
+                string file = dbItems[j].LocalFile; 
+                if(keys.Contains(file))
+                {
+                    needUpdate[j] = true;
+                }
+                else
+                {
+                    needUpdate[j] = false;
+                }
+            }
+
+            using (DbTransaction dbTrans = hashDBConn.BeginTransaction())
+            {
+                using (DbCommand cmd = hashDBConn.CreateCommand())
                 {
                     try
                     {
@@ -126,6 +148,8 @@ namespace SunSync.Models
                         SQLiteParameter param2 = new SQLiteParameter("@last_modified",System.Data.DbType.String);
                         for (int i = 0; i < dbItems.Count;++i )
                         {
+                            if (needUpdate[i]) continue;
+
                             cmd.Parameters.Add(param0);
                             cmd.Parameters.Add(param1);
                             cmd.Parameters.Add(param2);
@@ -133,8 +157,27 @@ namespace SunSync.Models
                             cmd.Parameters["@etag"].Value = dbItems[i].FileHash;
                             cmd.Parameters["@last_modified"].Value = dbItems[i].LastUpdate;
                             cmd.ExecuteNonQuery();
+                            ++nAppend;
                         }
-                        dbTrans.Commit(); // 一次commit后完成以上全部记录插入操作
+
+                        cmd.CommandText = "UPDATE [cached_hash] SET [etag]=@etag, [last_modified]=@last_modified WHERE [local_path]=@local_path";
+                        for (int i = 0; i < dbItems.Count; ++i)
+                        {
+                            if (!needUpdate[i]) continue;
+
+                            cmd.Parameters.Add(param0);
+                            cmd.Parameters.Add(param1);
+                            cmd.Parameters.Add(param2);
+                            cmd.Parameters["@local_path"].Value = dbItems[i].LocalFile;
+                            cmd.Parameters["@etag"].Value = dbItems[i].FileHash;
+                            cmd.Parameters["@last_modified"].Value = dbItems[i].LastUpdate;
+                            cmd.ExecuteNonQuery();
+                            ++nUpdate;
+                        }
+
+                        dbTrans.Commit(); // 一次commit后完成以上全部记录插入/更新操作
+
+                        Log.Info(string.Format("HashDB: INSERTED {0}, UPDATED {1}", nAppend, nUpdate));
                     }
                     catch(Exception ex)
                     {
@@ -150,10 +193,10 @@ namespace SunSync.Models
         /// </summary>
         /// <param name="sqlConn"></param>
         /// <returns></returns>
-        public static Dictionary<string, DBItem> SelectAll(SQLiteConnection sqlConn)
+        public static Dictionary<string, HashDBItem> GetAllItems(SQLiteConnection hashDBConn)
         {
-            Dictionary<string, DBItem> dict = new Dictionary<string, DBItem>();
-            using (SQLiteCommand sqlCmd = new SQLiteCommand(sqlConn))
+            Dictionary<string, HashDBItem> dict = new Dictionary<string, HashDBItem>();
+            using (SQLiteCommand sqlCmd = new SQLiteCommand(hashDBConn))
             {
                 sqlCmd.CommandText = "SELECT [local_path], [etag], [last_modified] FROM [cached_hash]";
                 using (SQLiteDataReader dr = sqlCmd.ExecuteReader())
@@ -166,17 +209,34 @@ namespace SunSync.Models
 
                         if (dict.ContainsKey(file))
                         {
-                            dict[file] = new DBItem() { LocalFile = file, FileHash = etag, LastUpdate = mtm };
+                            dict[file] = new HashDBItem() { LocalFile = file, FileHash = etag, LastUpdate = mtm };
                         }
                         else
                         {
-                            dict.Add(file, new DBItem() { LocalFile = file, FileHash = etag, LastUpdate = mtm });
+                            dict.Add(file, new HashDBItem() { LocalFile = file, FileHash = etag, LastUpdate = mtm });
                         }
                     }
                 }
             }
-
             return dict;
+        }
+
+        private static List<string> GetAllKeys(SQLiteConnection hashDBConn)
+        {
+            List<string> keys = new List<string>();
+            using (SQLiteCommand sqlCmd = new SQLiteCommand(hashDBConn))
+            {
+                sqlCmd.CommandText = "SELECT [local_path] FROM [cached_hash]";
+                using (SQLiteDataReader dr = sqlCmd.ExecuteReader())
+                {
+                    while (dr.Read())
+                    {
+                        string file = dr["local_path"].ToString();
+                        keys.Add(file);                        
+                    }
+                }
+            }
+            return keys;
         }
 
     }
