@@ -1,6 +1,7 @@
 ﻿using Qiniu.Util;
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Data.SQLite;
 using System.IO;
 using System.Linq;
@@ -8,6 +9,16 @@ using System.Text;
 
 namespace SunSync.Models
 {
+    /// <summary>
+    /// 单个记录包含以下信息
+    /// </summary>
+    public class HashDBItem
+    {
+        public string LocalFile { get; set; }
+        public string FileHash { get; set; }
+        public string LastUpdate { get; set; }
+    }
+
     class CachedHash
     {
         public string LocalPath { set; get; }
@@ -26,6 +37,7 @@ namespace SunSync.Models
                 {
                     sqlCmd.ExecuteNonQuery();
                 }
+                sqlCon.Close();
             }
         }
 
@@ -95,5 +107,137 @@ namespace SunSync.Models
                 InsertCachedHash(localPath, etag, lastModified, localHashDB);
             }
         }
+
+        /// <summary>
+        /// 批量插入/更新记录，比逐个插入/更新方式速度更快，待操作的记录越多对比越明显
+        /// </summary>
+        /// <param name="dbItems"></param>
+        /// <param name="sqlConn"></param>
+        public static void BatchInsertOrUpdate(List<HashDBItem> dbItems, SQLiteConnection hashDBConn)
+        {
+            List<string> keys = GetAllKeys(hashDBConn);
+            
+            int numItems = dbItems.Count;
+
+            int nAppend = 0, nUpdate = 0;
+
+            bool[] needUpdate = new bool[numItems];
+
+            for(int j=0;j<numItems;++j)
+            {
+                string file = dbItems[j].LocalFile; 
+                if(keys.Contains(file))
+                {
+                    needUpdate[j] = true;
+                }
+                else
+                {
+                    needUpdate[j] = false;
+                }
+            }
+
+            using (DbTransaction dbTrans = hashDBConn.BeginTransaction())
+            {
+                using (DbCommand cmd = hashDBConn.CreateCommand())
+                {
+                    try
+                    {
+                        cmd.CommandText = "INSERT INTO [cached_hash] ([local_path], [etag], [last_modified]) VALUES (@local_path, @etag, @last_modified)";
+                        SQLiteParameter param0 = new SQLiteParameter("@local_path",System.Data.DbType.String);
+                        SQLiteParameter param1 = new SQLiteParameter("@etag",System.Data.DbType.String);
+                        SQLiteParameter param2 = new SQLiteParameter("@last_modified",System.Data.DbType.String);
+                        for (int i = 0; i < dbItems.Count;++i )
+                        {
+                            if (needUpdate[i]) continue;
+
+                            cmd.Parameters.Add(param0);
+                            cmd.Parameters.Add(param1);
+                            cmd.Parameters.Add(param2);
+                            cmd.Parameters["@local_path"].Value = dbItems[i].LocalFile;
+                            cmd.Parameters["@etag"].Value = dbItems[i].FileHash;
+                            cmd.Parameters["@last_modified"].Value = dbItems[i].LastUpdate;
+                            cmd.ExecuteNonQuery();
+                            ++nAppend;
+                        }
+
+                        cmd.CommandText = "UPDATE [cached_hash] SET [etag]=@etag, [last_modified]=@last_modified WHERE [local_path]=@local_path";
+                        for (int i = 0; i < dbItems.Count; ++i)
+                        {
+                            if (!needUpdate[i]) continue;
+
+                            cmd.Parameters.Add(param0);
+                            cmd.Parameters.Add(param1);
+                            cmd.Parameters.Add(param2);
+                            cmd.Parameters["@local_path"].Value = dbItems[i].LocalFile;
+                            cmd.Parameters["@etag"].Value = dbItems[i].FileHash;
+                            cmd.Parameters["@last_modified"].Value = dbItems[i].LastUpdate;
+                            cmd.ExecuteNonQuery();
+                            ++nUpdate;
+                        }
+
+                        dbTrans.Commit(); // 一次commit后完成以上全部记录插入/更新操作
+
+                        Log.Info(string.Format("HashDB: INSERTED {0}, UPDATED {1}", nAppend, nUpdate));
+                    }
+                    catch(Exception ex)
+                    {
+                        dbTrans.Rollback();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 简化查询为SELECT * FROM而不是逐一查询 SELECt * FROm WHERE *
+        /// 查询后利用Dictionary<fileName,V>加快查询速度
+        /// </summary>
+        /// <param name="sqlConn"></param>
+        /// <returns></returns>
+        public static Dictionary<string, HashDBItem> GetAllItems(SQLiteConnection hashDBConn)
+        {
+            Dictionary<string, HashDBItem> dict = new Dictionary<string, HashDBItem>();
+            using (SQLiteCommand sqlCmd = new SQLiteCommand(hashDBConn))
+            {
+                sqlCmd.CommandText = "SELECT [local_path], [etag], [last_modified] FROM [cached_hash]";
+                using (SQLiteDataReader dr = sqlCmd.ExecuteReader())
+                {
+                    while (dr.Read())
+                    {
+                        string file = dr["local_path"].ToString();
+                        string etag = dr["etag"].ToString();
+                        string mtm = dr["last_modified"].ToString();
+
+                        if (dict.ContainsKey(file))
+                        {
+                            dict[file] = new HashDBItem() { LocalFile = file, FileHash = etag, LastUpdate = mtm };
+                        }
+                        else
+                        {
+                            dict.Add(file, new HashDBItem() { LocalFile = file, FileHash = etag, LastUpdate = mtm });
+                        }
+                    }
+                }
+            }
+            return dict;
+        }
+
+        private static List<string> GetAllKeys(SQLiteConnection hashDBConn)
+        {
+            List<string> keys = new List<string>();
+            using (SQLiteCommand sqlCmd = new SQLiteCommand(hashDBConn))
+            {
+                sqlCmd.CommandText = "SELECT [local_path] FROM [cached_hash]";
+                using (SQLiteDataReader dr = sqlCmd.ExecuteReader())
+                {
+                    while (dr.Read())
+                    {
+                        string file = dr["local_path"].ToString();
+                        keys.Add(file);                        
+                    }
+                }
+            }
+            return keys;
+        }
+
     }
 }

@@ -41,7 +41,7 @@ namespace SunSync
                     Log.Fatal(string.Format("unable to create my app path {0} due to {1}", myAppPath, ex.Message));
                 }
             }
-            this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunsync", "jobs.db");
+            this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunsync", "sync_jobs.db");
             this.topBGImages = new List<string>();
             this.topBGImages.Add("Pictures/qiniu_logo.jpg");
             this.topBGImages.Add("Pictures/qiniu_logo.jpg");
@@ -114,7 +114,7 @@ namespace SunSync
                     listBoxItem.MouseDoubleClick += listBoxItem_MouseDoubleClick;
                     listBoxItem.MouseRightButtonUp += listBoxItem_MouseRightButtonUp;
 
-                    this.syncRecordDict.Add(listBoxItem, record.SyncId);
+                    this.syncRecordDict.Add(listBoxItem, record.SyncJobId);
                     this.SyncHistoryListBox.Items.Add(listBoxItem);
                     index += 1;
                 }
@@ -150,7 +150,7 @@ namespace SunSync
             if (selectedItem != null)
             {
                 string jobId = this.syncRecordDict[(ListBoxItem)selectedItem];
-                SyncSetting syncSetting = SyncSetting.LoadSyncSettingByJobId(jobId);
+                SyncSetting syncSetting = SyncRecord.LoadSyncSettingByJobId(jobId);
                 if (syncSetting != null)
                 {
                     System.Windows.Forms.SaveFileDialog dlg = new System.Windows.Forms.SaveFileDialog();
@@ -180,11 +180,11 @@ namespace SunSync
             if (selectedItem != null)
             {
                 string jobId = this.syncRecordDict[(ListBoxItem)selectedItem];
-                SyncSetting syncSetting = SyncSetting.LoadSyncSettingByJobId(jobId);
+                SyncSetting syncSetting = SyncRecord.LoadSyncSettingByJobId(jobId);
                 if (syncSetting != null)
                 {
                     MessageBoxResult mbr = MessageBox.Show(
-                        string.Format("确认删除同步任务 {0} -> {1} 么？", syncSetting.SyncLocalDir, syncSetting.SyncTargetBucket), "删除任务",
+                        string.Format("确认删除同步任务 {0} -> {1} 么？", syncSetting.LocalDirectory, syncSetting.TargetBucket), "删除任务",
                         MessageBoxButton.YesNo, MessageBoxImage.Question);
                     if (mbr.Equals(MessageBoxResult.Yes))
                     {
@@ -255,7 +255,7 @@ namespace SunSync
             if (selectedItem != null)
             {
                 string jobId = this.syncRecordDict[(ListBoxItem)selectedItem];
-                SyncSetting syncSetting = SyncSetting.LoadSyncSettingByJobId(jobId);
+                SyncSetting syncSetting = SyncRecord.LoadSyncSettingByJobId(jobId);
                 if (syncSetting != null)
                 {
                     this.mainWindow.GotoSyncSettingPage(syncSetting);

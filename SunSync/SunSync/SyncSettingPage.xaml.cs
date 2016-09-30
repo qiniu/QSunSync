@@ -11,6 +11,9 @@ using Qiniu.Util;
 using Qiniu.Storage.Model;
 using System.Threading;
 using System;
+using System.Collections.ObjectModel;
+using System.Data.SQLite;
+
 namespace SunSync
 {
     /// <summary>
@@ -20,8 +23,6 @@ namespace SunSync
     {
         //default chunk size
         private int defaultChunkSize;
-        //upload entry domain
-        private int uploadEntryDomain;
 
         private Dictionary<int, int> defaultChunkDict;
         private MainWindow mainWindow;
@@ -30,18 +31,37 @@ namespace SunSync
         private SyncSetting syncSetting;
         private BucketManager bucketManager;
 
-        // [2016-09-06 12:40] 更新 by fengyh
-        // 上传入口选择/查询模块(ZoneInfo)转移至qiniu-csharp-sdk
-        private ZoneInfo zoneInfo = new ZoneInfo(); // 入口查询/选择 
-        private List<int> availableZoneIndexes = null; // 可用上传入口
-        private bool isLoadFromRecord = false;      // 是否从历史记录载入
+        // [2016-09-21 18:20] 更新 by fengyh
+        // ------------------ Old Version ------------------
+        // 之前版本，如果开启云端检查(检查待上传的文件是否已经存在于云端)
+        // 那么每次上传一个文件时都需要进行一次stat操作，这种操作对于同步效率有一定影响
+        // ------------------ New Version ------------------
+        // 改进之后的版本，每次上传之前先进行一次batch stat操作，避免了多次stat的时间浪费
+        // 对于HASH DB的操作，改用事务模型，批量处理，加快速度
 
+        // 是否从历史记录载入
+        private bool isLoadFromRecord = false;      
+
+        // 支持的Zone列表
+        private Dictionary<ZoneID, string> zoneNames =
+            new Dictionary<ZoneID, string>()
+            {
+                {ZoneID.CN_East, "华东"},
+                {ZoneID.CN_North,"华北"},
+                {ZoneID.CN_South,"华南"},
+                {ZoneID.US_North,"北美"}
+            };
+
+        // 待上传文件信息
+        private List<UploadItem> uploadItems = new List<UploadItem>(); 
 
         public SyncSettingPage(MainWindow mainWindow)
         {
             InitializeComponent();
             this.mainWindow = mainWindow;
             this.initUIGroupValues();
+
+            this.ButtonStartSync.IsEnabled = false;
         }
 
         /// <summary>
@@ -87,7 +107,7 @@ namespace SunSync
                 this.SyncTargetBucketsComboBox.ItemsSource = null;
                 new Thread(new ThreadStart(this.reloadBuckets)).Start();
             }
-            this.initUIDefaults();   
+            this.initUIDefaults();
         }
 
         /// <summary>
@@ -113,61 +133,66 @@ namespace SunSync
         private void initUIDefaults()
         {
             //ui settings
-            this.SyncSettingTabControl.SelectedIndex = 0;
+            this.SyncSettingTabControl.SelectedItem = this.TabItemSyncSettingsBasics;
             this.SettingsErrorTextBlock.Text = "";
-            //if (this.account.IsAbroad)
-            //{
-            //    Qiniu.Common.Config.UseZoneAWS();
-            //}
-            //else
-            //{
-            //    Qiniu.Common.Config.UseZoneNB();
-            //}
 
             if (this.syncSetting == null)
             {
                 //basic settings
                 this.SyncLocalFolderTextBox.Text = "";
                 this.SyncTargetBucketsComboBox.SelectedIndex = -1;
-                this.CheckRemoteDuplicateCheckBox.IsChecked = false;
+
                 //advanced settings
                 this.PrefixTextBox.Text = "";
-                this.CheckNewFilesCheckBox.IsChecked = false;
-                this.OverwriteFileCheckBox.IsChecked = false;
-                this.IgnoreDirCheckBox.IsChecked = false;
                 this.SkipPrefixesTextBox.Text = "";
                 this.SkipSuffixesTextBox.Text = "";
+                this.CheckNewFilesCheckBox.IsChecked = true;
+                this.CheckBoxUseShortFilename.IsChecked = true;
+                this.RadioButtonSkipDuplicate.IsChecked = true;
                 this.ChunkDefaultSizeComboBox.SelectedIndex = 5; //512KB
                 this.ChunkUploadThresholdSlider.Value = 100;//100MB
                 this.ThreadCountSlider.Value = 10;
                 this.ThreadCountLabel.Content = "10";
-
-                // UploadEntryDomain: 
-                // will be set in 'SyncTargetBucketsComboBox_SelectionChanged' function
+                this.RadioButtonDirect.IsChecked = true;
             }
             else
             {
                 //basic settings
-                this.SyncLocalFolderTextBox.Text = syncSetting.SyncLocalDir;
+                this.SyncLocalFolderTextBox.Text = this.syncSetting.LocalDirectory;
                 this.SyncTargetBucketsComboBox.SelectedIndex = -1;
-                this.CheckRemoteDuplicateCheckBox.IsChecked = syncSetting.CheckRemoteDuplicate;
+
                 //advanced settings
-                this.PrefixTextBox.Text = syncSetting.SyncPrefix;
-                this.OverwriteFileCheckBox.IsChecked = syncSetting.OverwriteFile;
-                this.CheckNewFilesCheckBox.IsChecked = syncSetting.CheckNewFiles;
-                this.IgnoreDirCheckBox.IsChecked = syncSetting.IgnoreDir;
-                this.SkipPrefixesTextBox.Text = syncSetting.SkipPrefixes;
-                this.SkipSuffixesTextBox.Text = syncSetting.SkipSuffixes;
-                this.ThreadCountSlider.Value = syncSetting.SyncThreadCount;
-                this.ThreadCountLabel.Content = syncSetting.SyncThreadCount.ToString();
-                this.ChunkUploadThresholdSlider.Value = syncSetting.ChunkUploadThreshold / 1024 / 1024;
+                this.PrefixTextBox.Text = this.syncSetting.SyncPrefix;
+                this.SkipPrefixesTextBox.Text = this.syncSetting.SkipPrefixes;
+                this.SkipSuffixesTextBox.Text = this.syncSetting.SkipSuffixes;
+                this.CheckNewFilesCheckBox.IsChecked = this.syncSetting.CheckNewFiles;
+                this.CheckBoxUseShortFilename.IsChecked = this.syncSetting.UseShortFilename;
+                if (this.syncSetting.OverwriteDuplicate)
+                {
+                    this.RadioButtonOverwriteDuplicate.IsChecked = true;
+                }
+                else
+                {
+                    this.RadioButtonSkipDuplicate.IsChecked = true;
+                }
+                this.ThreadCountSlider.Value = this.syncSetting.SyncThreadCount;
+                this.ThreadCountLabel.Content = this.syncSetting.SyncThreadCount.ToString();
+                this.ChunkUploadThresholdSlider.Value = this.syncSetting.ChunkUploadThreshold / 1024 / 1024;
                 int defaultChunkSizeIndex = 2;
-                if (this.defaultChunkDict.ContainsKey(syncSetting.DefaultChunkSize))
+                if (this.defaultChunkDict.ContainsKey(this.syncSetting.DefaultChunkSize))
                 {
                     defaultChunkSizeIndex = this.defaultChunkDict[syncSetting.DefaultChunkSize];
                 }
                 this.ChunkDefaultSizeComboBox.SelectedIndex = defaultChunkSizeIndex;
-                this.UploadEntryDomainComboBox.SelectedIndex = syncSetting.UploadEntryDomain;
+
+                if (this.syncSetting.UploadFromCDN)
+                {
+                    this.RadioButtonFromCDN.IsChecked = true;
+                }
+                else
+                {
+                    this.RadioButtonDirect.IsChecked = true;
+                }
             }
         }
 
@@ -184,7 +209,7 @@ namespace SunSync
                     this.SyncTargetBucketsComboBox.ItemsSource = buckets;
                     if (this.syncSetting != null)
                     {
-                        this.SyncTargetBucketsComboBox.SelectedItem = this.syncSetting.SyncTargetBucket;
+                        this.SyncTargetBucketsComboBox.SelectedItem = this.syncSetting.TargetBucket;
                     }
                 }));
             }
@@ -256,116 +281,6 @@ namespace SunSync
             }
         }
 
-
-        private void StartSyncButton_EventHandler(object sender, RoutedEventArgs e)
-        {
-            this.SyncSettingTabControl.SelectedIndex = 0;
-            //check ak & sk
-            if (string.IsNullOrEmpty(this.account.AccessKey)
-                || string.IsNullOrEmpty(this.account.SecretKey))
-            {
-                this.SettingsErrorTextBlock.Text = "请返回设置 AK & SK";
-                return;
-            }
-
-            //save config to job record
-            if (this.SyncLocalFolderTextBox.Text.Trim().Length == 0)
-            {
-                this.SettingsErrorTextBlock.Text = "请选择本地待同步目录";
-                return;
-            }
-
-            if (this.SyncTargetBucketsComboBox.SelectedIndex == -1)
-            {
-                this.SettingsErrorTextBlock.Text = "请选择同步的目标空间";
-                return;
-            }
-
-            string syncLocalDir = this.SyncLocalFolderTextBox.Text.Trim();
-            if (!Directory.Exists(syncLocalDir))
-            {
-                //directory not found
-                this.SyncSettingTabControl.SelectedIndex = 0;
-                this.SettingsErrorTextBlock.Text = "本地待同步目录不存在";
-                return;
-            }
-
-            string syncTargetBucket = this.SyncTargetBucketsComboBox.SelectedItem.ToString();
-            StatResult statResult = this.bucketManager.stat(syncTargetBucket, "NONE_EXIST_KEY");
-            if (statResult.ResponseInfo.isNetworkBroken())
-            {
-                this.SettingsErrorTextBlock.Text = "网络故障";
-                return;
-            }
-
-            if (statResult.ResponseInfo.StatusCode == 401)
-            {
-                //ak & sk not right
-                this.SettingsErrorTextBlock.Text = "AK 或 SK 不正确";
-                return;
-            }
-            else if (statResult.ResponseInfo.StatusCode == 631)
-            {
-                //bucket not exist
-                this.SettingsErrorTextBlock.Text = "指定空间不存在";
-                return;
-            }
-            else if (statResult.ResponseInfo.StatusCode == 612
-                || statResult.ResponseInfo.StatusCode == 200)
-            {
-                //file exists or not
-                //ignore
-            }
-            else if (statResult.ResponseInfo.StatusCode == 400)
-            {
-                if (string.IsNullOrEmpty(statResult.ResponseInfo.Error))
-                {
-                    this.SettingsErrorTextBlock.Text = "未知错误(状态代码400)，可能是上传入口机房选择错误";
-                }
-                else
-                {
-                    if (statResult.ResponseInfo.Error.Equals("incorrect zone"))
-                    {
-                        this.SettingsErrorTextBlock.Text = "请选择正确的上传入口机房";
-                    }
-                    else
-                    {
-                        this.SettingsErrorTextBlock.Text = statResult.ResponseInfo.Error;
-                    }
-                }
-                return;
-            }
-            else
-            {
-                this.SettingsErrorTextBlock.Text = "未知错误，请联系七牛";
-                Log.Error(string.Format("get buckets unknown error, {0}:{1}:{2}:{3}", statResult.ResponseInfo.StatusCode,
-                       statResult.ResponseInfo.Error, statResult.ResponseInfo.ReqId, statResult.Response));
-                return;
-            }
-
-            //set progress ak & sk
-            SystemConfig.ACCESS_KEY = this.account.AccessKey;
-            SystemConfig.SECRET_KEY = this.account.SecretKey;
-
-            //optional settings
-            SyncSetting syncSetting = new SyncSetting();
-            syncSetting.SyncLocalDir = syncLocalDir;
-            syncSetting.SyncTargetBucket = syncTargetBucket;
-            syncSetting.CheckRemoteDuplicate = this.CheckRemoteDuplicateCheckBox.IsChecked.Value;
-            syncSetting.SyncPrefix = this.PrefixTextBox.Text.Trim();
-            syncSetting.CheckNewFiles = this.CheckNewFilesCheckBox.IsChecked.Value;
-            syncSetting.IgnoreDir = this.IgnoreDirCheckBox.IsChecked.Value;
-            syncSetting.SkipPrefixes = this.SkipPrefixesTextBox.Text.Trim();
-            syncSetting.SkipSuffixes = this.SkipSuffixesTextBox.Text.Trim();
-            syncSetting.OverwriteFile = this.OverwriteFileCheckBox.IsChecked.Value;
-            syncSetting.SyncThreadCount = (int)this.ThreadCountSlider.Value;
-            syncSetting.ChunkUploadThreshold = (int)this.ChunkUploadThresholdSlider.Value * 1024 * 1024;
-            syncSetting.DefaultChunkSize = this.defaultChunkSize;
-            syncSetting.UploadEntryDomain = this.uploadEntryDomain;
-
-            this.mainWindow.GotoSyncProgress(syncSetting);
-        }
-
         private void ChunkUploadThresholdChange_EventHandler(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (this.ChunkUploadThresholdLabel != null)
@@ -380,28 +295,6 @@ namespace SunSync
             {
                 this.ThreadCountLabel.Content = this.ThreadCountSlider.Value + "";
             }
-        }
-
-        /// <summary>
-        /// 列表是动态获取(由SyncTargetBucketsComboBox_SelectionChanged处理)的上传入口
-        /// 根据用户选择的实际上传入口进行Qiniu.Common.Config.UseZoneXXX()配置
-        /// 2016-08-11 12:20 [@fengyh](http://fengyh.cn/)
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void UploadEntryDomainSelectChange_EventHandler(object sender, SelectionChangedEventArgs e)
-        {
-            if (this.UploadEntryDomainComboBox.SelectedIndex < 0 || 
-                availableZoneIndexes == null || availableZoneIndexes.Count==0 )
-            {
-                return;
-            }
-
-            // uploadEntryDomain = 在availableZoneIndexes中被选择的那一个zoneIndex
-            this.uploadEntryDomain = availableZoneIndexes[this.UploadEntryDomainComboBox.SelectedIndex];
-
-            // 根据选择进行Zone配置
-            zoneInfo.ConfigZone(this.uploadEntryDomain);
         }
 
         private void ChunkDefaultSizeSelectChanged_EventHandler(object sender, SelectionChangedEventArgs e)
@@ -433,18 +326,16 @@ namespace SunSync
         }
 
         /// <summary>
-        /// [2016-09-01] 更新内容：
-        /// 上传入口查询模块独立出来，放在Models/ZoneInfo
         /// 如果是从历史纪录载入并且未更改Bucket，则EntryDomain等设置保持不变
         /// 否则(新建任务，或者载入记录但又更改了Bucket)，则会根据用户AK&Bucket试图查找合适的上传入口
-        /// 2016-09-01 11:41 [@fengyh](http://fengyh.cn/)
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void SyncTargetBucketsComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if(this.SyncTargetBucketsComboBox.Items.Count == 0 || this.SyncTargetBucketsComboBox.SelectedIndex<0 )
+            if (this.SyncTargetBucketsComboBox.SelectedIndex < 0)
             {
+                this.TextBlockTargetZone.Text = "";
                 return;
             }
 
@@ -452,40 +343,408 @@ namespace SunSync
             {
                 string targetBucket = this.SyncTargetBucketsComboBox.SelectedItem.ToString();
 
-                if ( isLoadFromRecord && string.Equals(targetBucket,this.syncSetting.SyncTargetBucket) )
+                ZoneID zid = ZoneID.Default;
+
+                if (isLoadFromRecord && string.Equals(targetBucket, this.syncSetting.TargetBucket))
                 {
-                    // 如果是从历史记录载入并且未更改Bucket，则无需查询，直接从列表抽取
-                    availableZoneIndexes = zoneInfo.GetAvailableZoneIndexes(this.syncSetting.UploadEntryDomain);
+                    // 如果是从历史记录载入并且未更改Bucket，则无需查询，直接抽取
+                    zid = (ZoneID)(this.syncSetting.TargetZoneID);
                 }
-                else 
+                else
                 {
-                    // 否则(如果是新建任务或者更改了Bucket)，则需要向QBox发送请求查询
-                    availableZoneIndexes = zoneInfo.Query(this.account.AccessKey, targetBucket);
+                    // 否则(如果是新建任务或者更改了Bucket)，则需要向UC发送请求查询
+                    zid = AutoZone.Query(this.account.AccessKey, targetBucket);
                 }
 
-                if (availableZoneIndexes == null || availableZoneIndexes.Count == 0)
-                {
-                    this.SettingsErrorTextBlock.Text = "未找到合适的EntryDomian";
-                    return;
-                }
+                // 根据ZoneID完成相应配置
+                Qiniu.Common.Config.ConfigZone(zid);
 
-                // 从全部EntryDomians中提取出可用的部分
-                this.UploadEntryDomainComboBox.Items.Clear();
-                List<string> allEntryDesc = zoneInfo.GetAllEntryDomains();
-                foreach (int index in availableZoneIndexes)
-                {
-                    this.UploadEntryDomainComboBox.Items.Add(allEntryDesc[index]);
-                }
-
-                // 如果是从历史纪录导入，那么index=0表示和历史纪录选择一致
-                // 如果是新建任务，那么index=0就表示选择默认
-                this.UploadEntryDomainComboBox.SelectedIndex = 0;
+                this.TextBlockTargetZone.Text = zoneNames[zid];
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 this.SettingsErrorTextBlock.Text = ex.Message;
             }
         }
+
+        /// <summary>
+        /// 1.根据设定参数进行必要的配置
+        /// 2.检查过滤之后，生成待上传的文件列表并展示
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void ButtonCheckFilesToUpload_Click(object sender, RoutedEventArgs e)
+        {
+            #region CHECK_SYNC_SETTINS
+
+            // 检查并设置AK&SK
+            if (string.IsNullOrEmpty(this.account.AccessKey) || string.IsNullOrEmpty(this.account.SecretKey))
+            {
+                this.SettingsErrorTextBlock.Text = "请设置AK&SK";
+                return;
+            }
+
+            SystemConfig.ACCESS_KEY = this.account.AccessKey;
+            SystemConfig.SECRET_KEY = this.account.SecretKey;
+
+            // 检查本地同步目录与远程同步空间
+            string syncDirectory = this.SyncLocalFolderTextBox.Text.Trim();
+            if (string.IsNullOrEmpty(syncDirectory) || !Directory.Exists(syncDirectory))
+            {
+                this.SettingsErrorTextBlock.Text = "请设置本地待同步的目录";
+                return;
+            }
+            if (this.SyncTargetBucketsComboBox.SelectedIndex < 0)
+            {
+                this.SettingsErrorTextBlock.Text = "请设置目标空间";
+                return;
+            }
+
+            string targetBucket = this.SyncTargetBucketsComboBox.SelectedItem.ToString();
+
+            if (this.syncSetting == null)
+            {
+                this.syncSetting = new SyncSetting();
+            }
+
+            this.syncSetting.LocalDirectory = syncDirectory;
+            this.syncSetting.TargetBucket = targetBucket;
+            this.syncSetting.SyncPrefix = this.PrefixTextBox.Text.Trim();
+            this.syncSetting.SkipPrefixes = this.SkipPrefixesTextBox.Text.Trim();
+            this.syncSetting.SkipSuffixes = this.SkipSuffixesTextBox.Text.Trim();
+            this.syncSetting.CheckNewFiles = this.CheckNewFilesCheckBox.IsChecked.Value;
+            this.syncSetting.UseShortFilename = this.CheckBoxUseShortFilename.IsChecked.Value;
+            this.syncSetting.OverwriteDuplicate = this.RadioButtonOverwriteDuplicate.IsChecked.Value;
+            this.syncSetting.SyncThreadCount = (int)this.ThreadCountSlider.Value;
+            this.syncSetting.ChunkUploadThreshold = (int)this.ChunkUploadThresholdSlider.Value * 1024 * 1024;
+            this.syncSetting.DefaultChunkSize = this.defaultChunkSize;
+            this.syncSetting.UploadFromCDN = this.RadioButtonFromCDN.IsChecked.Value;
+
+            #endregion CHECK_SYNC_SETTINS
+
+            #region SIMULATION
+
+            StatResult statResult = this.bucketManager.stat(this.syncSetting.TargetBucket, "NONE_EXIST_KEY");
+
+            if (statResult.ResponseInfo.isNetworkBroken())
+            {
+                this.SettingsErrorTextBlock.Text = "网络故障";
+                return;
+            }
+
+            if (statResult.ResponseInfo.StatusCode == 401)
+            {
+                //ak & sk not right
+                this.SettingsErrorTextBlock.Text = "AK 或 SK 不正确";
+                return;
+            }
+            else if (statResult.ResponseInfo.StatusCode == 631)
+            {
+                //bucket not exist
+                this.SettingsErrorTextBlock.Text = "指定空间不存在";
+                return;
+            }
+            else if (statResult.ResponseInfo.StatusCode == 612
+                || statResult.ResponseInfo.StatusCode == 200)
+            {
+                //file exists or not
+                //ignore
+            }
+            else if (statResult.ResponseInfo.StatusCode == 400)
+            {
+                if (string.IsNullOrEmpty(statResult.ResponseInfo.Error))
+                {
+                    this.SettingsErrorTextBlock.Text = "未知错误(状态代码400)";
+                }
+                else
+                {
+                    if (statResult.ResponseInfo.Error.Equals("incorrect zone"))
+                    {
+                        this.SettingsErrorTextBlock.Text = "上传入口机房设置错误";
+                    }
+                    else
+                    {
+                        this.SettingsErrorTextBlock.Text = statResult.ResponseInfo.Error;
+                    }
+                }
+                return;
+            }
+            else
+            {
+                this.SettingsErrorTextBlock.Text = "未知错误，请联系七牛";
+                Log.Error(string.Format("get buckets unknown error, {0}:{1}:{2}:{3}", statResult.ResponseInfo.StatusCode,
+                       statResult.ResponseInfo.Error, statResult.ResponseInfo.ReqId, statResult.Response));
+                return;
+            }
+
+            #endregion SIMULATION
+
+            int numFiles = 0; // 总文件数
+            int numUpload = 0;  // 待上传文件数
+            uploadItems.Clear();
+            this.FilesToUploadDataGrid.DataContext = null;
+
+            List<string> localFiles = new List<string>(); // 本地待上传的文件
+            List<string> saveKeys = new List<string>();   // 保存到空间文件名
+            List<string> fileEtags = new List<string>();   // 待上传文件的ETAG
+            List<long> lastModified = new List<long>();  // 文件最后修改时间
+            List<bool> fileSkip = new List<bool>();      // 是否跳过该文件(不上传)
+
+            long T0 = (TimeZone.CurrentTimeZone.ToLocalTime(new DateTime(1970, 1, 1, 0, 0, 0, 0))).Ticks;
+
+            #region TRAVERSE_LOCAL_DIRECTORY
+
+            DirectoryInfo di = new DirectoryInfo(syncDirectory);
+            FileInfo[] ffi = di.GetFiles("*.*", SearchOption.AllDirectories);
+            numFiles = ffi.Length;
+
+            string savePrefix = this.PrefixTextBox.Text.Trim();
+
+            if (this.syncSetting.UseShortFilename)
+            {
+                foreach (var fi in ffi)
+                {
+                    localFiles.Add(fi.FullName);
+                    saveKeys.Add(savePrefix + fi.Name);
+                    fileEtags.Add("_");
+                    lastModified.Add((fi.LastWriteTime.Ticks - T0) / 10000);
+                    fileSkip.Add(false);
+                }
+            }
+            else
+            {
+                foreach (var fi in ffi)
+                {
+                    localFiles.Add(fi.FullName);
+                    saveKeys.Add(savePrefix + fi.FullName);
+                    fileEtags.Add("_");
+                    lastModified.Add((fi.LastWriteTime.Ticks - T0) / 10000);
+                    fileSkip.Add(false);
+                }
+            }
+
+            #endregion TRAVERSE_LOCAL_DIRECTORY
+
+            #region CHECK_PREFIX_SUFFX
+
+            string skipPrefixes = this.SkipPrefixesTextBox.Text.Trim();
+            string skipSuffixes = this.SkipSuffixesTextBox.Text.Trim();
+
+            for (int i = 0; i < numFiles; ++i)
+            {
+                string saveKey = saveKeys[i];
+
+                string[] ssPrfx = skipPrefixes.Split(',');
+                foreach (string prefix in ssPrfx)
+                {
+                    if (!string.IsNullOrWhiteSpace(prefix))
+                    {
+                        if (saveKey.StartsWith(prefix.Trim()))
+                        {
+                            fileSkip[i] = true;
+                            break;
+                        }
+                    }
+                }
+
+                string[] ssSufx = skipSuffixes.Split(',');
+                foreach (string suffix in ssSufx)
+                {
+                    if (!string.IsNullOrWhiteSpace(suffix))
+                    {
+                        if (saveKey.EndsWith(suffix.Trim()))
+                        {
+                            fileSkip[i] = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            #endregion CHECK_PREFIX_SUFFX
+
+            string hashDBFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "qsunsync", "local_hash.db");
+            if (!File.Exists(hashDBFile))
+            {
+                CachedHash.CreateCachedHashDB(hashDBFile);
+            }
+            SQLiteConnection localHashDBConn = new SQLiteConnection(string.Format("data source = {0}", hashDBFile));
+            localHashDBConn.Open();
+            Dictionary<string, HashDBItem> localHashDict = CachedHash.GetAllItems(localHashDBConn);
+            localHashDBConn.Close();
+
+            #region CHECK_LOCAL_DUPLICATE
+
+            if (this.syncSetting.CheckNewFiles)
+            {
+                for (int i = 0; i < numFiles; ++i)
+                {
+                    if (fileSkip[i]) continue;
+
+                    string fileName = localFiles[i];
+
+                    if (localHashDict.ContainsKey(fileName))
+                    {
+                        string oldEtag = localHashDict[fileName].FileHash;
+                        string newEtag = QETag.hash(fileName);
+
+                        if (string.Equals(oldEtag, newEtag))
+                        {
+                            fileSkip[i] = true;
+                        }
+                        else
+                        {
+                            fileEtags[i] = newEtag;
+                        }
+                    }
+                    else
+                    {
+                        fileEtags[i] = QETag.hash(fileName);
+                    }
+                }
+            }
+            else
+            {
+                for (int i = 0; i < numFiles; ++i)
+                {
+                    if (fileSkip[i]) continue;
+                    fileEtags[i] = QETag.hash(localFiles[i]);
+                }
+            }
+
+            #endregion CHECK_LOCAL_DUPLICATE
+
+            #region CHECK_REMOTE_DUPLICATES
+
+            // 如果选择了“强制覆盖”，那么无需进行远程检查
+            if (!this.syncSetting.OverwriteDuplicate)
+            {
+                List<string> remoteHash = new List<string>();
+                List<long> remoteUpdate = new List<long>();
+
+                try
+                {
+                    Mac mac = new Mac(this.account.AccessKey, this.account.SecretKey);
+                    BucketFileHash.BatchStat(mac, targetBucket, saveKeys, fileSkip, ref remoteHash, ref remoteUpdate);
+
+                    for (int i = 0, k = 0; i < numFiles; ++i)
+                    {
+                        if (fileSkip[i]) continue;
+
+                        if (string.Equals(fileEtags[i], remoteHash[k]))
+                        {
+                            // 云端已存在相同文件，跳过
+                            fileSkip[i] = true;
+                        }
+
+                        ++k;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    this.SettingsErrorTextBlock.Text = ex.Message;
+                    Log.Error(ex.Message);
+                }
+            }
+
+            #endregion CHECK_REMOTE_DUPLICATES
+
+            #region SHOW_UPLOAD_DETAILS
+
+            this.SyncSettingTabControl.SelectedItem = this.TabItemFilesToUploadDetail;
+
+            numUpload = numFiles;
+
+            foreach (var b in fileSkip)
+            {
+                if (b) --numUpload;
+            }
+
+            if (numUpload < 1)
+            {
+                TextBlockFilesToUploadSummery.Text = "没有待上传的文件";
+                return;
+            }
+
+
+            double N = 0;
+
+            for (int i = 0; i < numFiles; ++i)
+            {
+                if (fileSkip[i]) continue;
+
+                string fsize = "0";
+
+                long n = ffi[i].Length;
+                double K = 1.0 * n / 1024.0;
+                double M = 0.0;
+                if (K > 1024.0)
+                {
+                    M = K / 1024.0;
+                    fsize = string.Format("{0:0.00}MB", M);
+                }
+                else if (K > 1.0)
+                {
+                    fsize = string.Format("{0:0.00}KB", K);
+                }
+                else
+                {
+                    fsize = string.Format("{0}B", n);
+                }
+
+                N += n;
+
+                uploadItems.Add(new UploadItem() 
+                { 
+                    LocalFile = localFiles[i], 
+                    SaveKey = saveKeys[i], 
+                    FileSize = fsize, 
+                    FileHash = fileEtags[i], 
+                    LastUpdate = lastModified[i].ToString() 
+                });
+            }
+
+            string vol = "";
+            double mega = 1024.0 * 1024;
+            double kilo = 1024.0;
+            if (N > mega)
+            {
+                vol = string.Format("{0:0.00}MB", N / mega);
+            }
+            else if (N > kilo)
+            {
+                vol = string.Format("{0:0.00}KB", N / kilo);
+            }
+            else
+            {
+                vol = string.Format("{0}B", N);
+            }
+
+            TextBlockFilesToUploadSummery.Text = string.Format("待上传的文件总数:{0}, 总大小:{1}", numUpload, vol);
+
+            Dispatcher.Invoke(new Action(delegate
+            {
+                ObservableCollection<UploadItem> dataSource = new ObservableCollection<UploadItem>();
+                foreach (var d in uploadItems)
+                {
+                    dataSource.Add(d);
+                }
+                this.FilesToUploadDataGrid.DataContext = dataSource;
+            }));
+
+            ButtonStartSync.IsEnabled = true;
+
+            #endregion SHOW_UPLOAD_DETAILS
+
+        }
+
+        
+        private void StartSyncButton_EventHandler(object sender, RoutedEventArgs e)
+        {         
+            this.ButtonStartSync.IsEnabled = false;
+            this.mainWindow.SetUploadIteams(uploadItems);
+            this.mainWindow.GotoSyncProgress(syncSetting);
+        }
+
 
     }
 }
