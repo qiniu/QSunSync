@@ -103,11 +103,6 @@ namespace SunSync
             this.syncProgressPage.LoadSyncSetting(syncSetting);
         }
 
-        public void SetUploadIteams(List<UploadItem> uploadItems)
-        {
-            this.syncProgressPage.EndSetUploadIteams(uploadItems);
-        }
-
         //go to sync result page
         internal void GotoSyncResultPage(string jobId, TimeSpan spentTime, bool fileOverwrite,
             int fileSkippedCount, string fileSkippedLogPath,

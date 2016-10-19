@@ -29,9 +29,9 @@ namespace SunSync.Models
             this.syncLogDB = syncProgressPage.SyncLogDB();
         }
     
-        public void uploadFile(object uploadItem)
+        public void uploadFile(object obj)
         {
-            UploadItem item = uploadItem as UploadItem;
+            FileItem item = obj as FileItem;
 
             if (syncProgressPage.checkCancelSignal())
             {
@@ -110,6 +110,9 @@ namespace SunSync.Models
                     }
                     else
                     {
+                        // 写入记录
+                        CachedHash.InsertCachedHash(item.LocalFile, item.FileHash, "", localHashDB);
+
                         //insert or update sync log for file
                         try
                         {
@@ -134,7 +137,6 @@ namespace SunSync.Models
 
                     this.doneEvent.Set();
                 }));
-
         }
     }
 }

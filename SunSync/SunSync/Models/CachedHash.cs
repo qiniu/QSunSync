@@ -113,11 +113,11 @@ namespace SunSync.Models
         /// </summary>
         /// <param name="dbItems"></param>
         /// <param name="sqlConn"></param>
-        public static void BatchInsertOrUpdate(List<HashDBItem> dbItems, SQLiteConnection hashDBConn)
+        public static void BatchInsertOrUpdate(List<FileItem> fileItems, SQLiteConnection hashDBConn)
         {
             List<string> keys = GetAllKeys(hashDBConn);
             
-            int numItems = dbItems.Count;
+            int numItems = fileItems.Count;
 
             int nAppend = 0, nUpdate = 0;
 
@@ -125,7 +125,7 @@ namespace SunSync.Models
 
             for(int j=0;j<numItems;++j)
             {
-                string file = dbItems[j].LocalFile; 
+                string file = fileItems[j].LocalFile; 
                 if(keys.Contains(file))
                 {
                     needUpdate[j] = true;
@@ -146,31 +146,31 @@ namespace SunSync.Models
                         SQLiteParameter param0 = new SQLiteParameter("@local_path",System.Data.DbType.String);
                         SQLiteParameter param1 = new SQLiteParameter("@etag",System.Data.DbType.String);
                         SQLiteParameter param2 = new SQLiteParameter("@last_modified",System.Data.DbType.String);
-                        for (int i = 0; i < dbItems.Count;++i )
+                        for (int i = 0; i < fileItems.Count;++i )
                         {
                             if (needUpdate[i]) continue;
 
                             cmd.Parameters.Add(param0);
                             cmd.Parameters.Add(param1);
                             cmd.Parameters.Add(param2);
-                            cmd.Parameters["@local_path"].Value = dbItems[i].LocalFile;
-                            cmd.Parameters["@etag"].Value = dbItems[i].FileHash;
-                            cmd.Parameters["@last_modified"].Value = dbItems[i].LastUpdate;
+                            cmd.Parameters["@local_path"].Value = fileItems[i].LocalFile;
+                            cmd.Parameters["@etag"].Value = fileItems[i].FileHash;
+                            cmd.Parameters["@last_modified"].Value = fileItems[i].LastUpdate;
                             cmd.ExecuteNonQuery();
                             ++nAppend;
                         }
 
                         cmd.CommandText = "UPDATE [cached_hash] SET [etag]=@etag, [last_modified]=@last_modified WHERE [local_path]=@local_path";
-                        for (int i = 0; i < dbItems.Count; ++i)
+                        for (int i = 0; i < fileItems.Count; ++i)
                         {
                             if (!needUpdate[i]) continue;
 
                             cmd.Parameters.Add(param0);
                             cmd.Parameters.Add(param1);
                             cmd.Parameters.Add(param2);
-                            cmd.Parameters["@local_path"].Value = dbItems[i].LocalFile;
-                            cmd.Parameters["@etag"].Value = dbItems[i].FileHash;
-                            cmd.Parameters["@last_modified"].Value = dbItems[i].LastUpdate;
+                            cmd.Parameters["@local_path"].Value = fileItems[i].LocalFile;
+                            cmd.Parameters["@etag"].Value = fileItems[i].FileHash;
+                            cmd.Parameters["@last_modified"].Value = fileItems[i].LastUpdate;
                             cmd.ExecuteNonQuery();
                             ++nUpdate;
                         }
@@ -179,7 +179,7 @@ namespace SunSync.Models
 
                         Log.Info(string.Format("HashDB: INSERTED {0}, UPDATED {1}", nAppend, nUpdate));
                     }
-                    catch(Exception ex)
+                    catch(Exception)
                     {
                         dbTrans.Rollback();
                     }
@@ -193,32 +193,24 @@ namespace SunSync.Models
         /// </summary>
         /// <param name="sqlConn"></param>
         /// <returns></returns>
-        public static Dictionary<string, HashDBItem> GetAllItems(SQLiteConnection hashDBConn)
+        public static void BatchCheck(SQLiteConnection hashDBConn,List<string> keys,ref bool[] skip)
         {
-            Dictionary<string, HashDBItem> dict = new Dictionary<string, HashDBItem>();
             using (SQLiteCommand sqlCmd = new SQLiteCommand(hashDBConn))
             {
-                sqlCmd.CommandText = "SELECT [local_path], [etag], [last_modified] FROM [cached_hash]";
+                sqlCmd.CommandText = "SELECT [local_path] FROM [cached_hash]";
                 using (SQLiteDataReader dr = sqlCmd.ExecuteReader())
                 {
                     while (dr.Read())
                     {
                         string file = dr["local_path"].ToString();
-                        string etag = dr["etag"].ToString();
-                        string mtm = dr["last_modified"].ToString();
-
-                        if (dict.ContainsKey(file))
+                        int p = keys.IndexOf(file);
+                        if(p>=0)
                         {
-                            dict[file] = new HashDBItem() { LocalFile = file, FileHash = etag, LastUpdate = mtm };
-                        }
-                        else
-                        {
-                            dict.Add(file, new HashDBItem() { LocalFile = file, FileHash = etag, LastUpdate = mtm });
+                            skip[p] = true;
                         }
                     }
                 }
             }
-            return dict;
         }
 
         private static List<string> GetAllKeys(SQLiteConnection hashDBConn)

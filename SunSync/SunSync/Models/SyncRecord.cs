@@ -31,7 +31,7 @@ namespace SunSync.Models
         {
             SyncSetting setting = null;
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string jobsDb = System.IO.Path.Combine(myDocPath, "qsunsync", "sync_jobs.db");
+            string jobsDb = System.IO.Path.Combine(myDocPath, "qsunsync", "jobs.db");
 
             if (File.Exists(jobsDb))
             {
