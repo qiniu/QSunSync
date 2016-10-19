@@ -23,17 +23,17 @@ namespace SunSync.Models
         /// <param name="bucket"></param>
         /// <param name="keys"></param>
         /// <returns></returns>
-        public static void BatchStat(Mac mac, string bucket, List<string> keys, List<bool> skipped, ref List<string> hashTable, ref List<long> lastModified)
+        public static void BatchStat(Mac mac, string bucket, string[] keys, ref bool[] skip)
         {
             BucketManager bktMgr = new BucketManager(mac);
 
             StringBuilder opsb = new StringBuilder();
 
-            int N = keys.Count;
+            int N = keys.Length;
             int X = 1000;
             int G = N / X;
             int M = N % X;
-            int i,k = 0;
+            int i;
             bool first = false;
 
             string s1 = "op=/stat/";
@@ -48,30 +48,28 @@ namespace SunSync.Models
             {
                 opsb.Clear();
                 first = true;
-                for (i = 0; i < X; ++i,++k)
+                for (i = 0; i < X; ++i)
                 {
-                    if (skipped[k])
-                    {
-                        continue;
-                    }
-
                     s = s2;
                     if (first)
                     {
                         s = s1;
                         first = false;
                     }
-                    opsb.Append(s + StringUtils.encodedEntry(bucket, keys[k]));
+                    opsb.Append(s + StringUtils.encodedEntry(bucket, keys[g*X+i]));
                 }
 
                 result = bktMgr.batch(opsb.ToString());
 
                 statResults = JsonConvert.DeserializeObject<StatResponse[]>(result.Response);
 
-                for (i = 0; i < statResults.Length; ++i)
+                for (i = 0; i < X; ++i)
                 {
-                    hashTable.Add(statResults[i].DATA.hash);
-                    lastModified.Add(statResults[i].DATA.putTime);
+                    if (statResults[i].CODE == 200)
+                    {
+                        // FOUND
+                        skip[g * X + i] = true;
+                    }
                 }
             }
             #endregion LOOP
@@ -88,23 +86,24 @@ namespace SunSync.Models
                     s = s1;
                     first = false;
                 }
-                opsb.Append(s + StringUtils.encodedEntry(bucket, keys[k]));
-                ++k;
+                opsb.Append(s + StringUtils.encodedEntry(bucket, keys[G*X+i]));
             }
 
             result = bktMgr.batch(opsb.ToString());
 
             statResults = JsonConvert.DeserializeObject<StatResponse[]>(result.Response);
 
-            for (i = 0; i < statResults.Length; ++i)
+            for (i = 0; i < M; ++i)
             {
-                hashTable.Add(statResults[i].DATA.hash);
-                lastModified.Add(statResults[i].DATA.putTime);
+                if (statResults[i].CODE == 200)
+                {
+                    skip[G * X + i] = true;
+                }
             }
 
             #endregion RESIDUE
         }                 
-
+     
     }
 
     /// <summary>
@@ -157,9 +156,9 @@ namespace SunSync.Models
     }
 
     /// <summary>
-    /// “待上传文件列表”将展示以下3项信息
+    /// 待上传文件的基本信息
     /// </summary>
-    public class UploadItem
+    public class FileItem
     {
         public string LocalFile { set; get; }
         public string SaveKey { set; get; }

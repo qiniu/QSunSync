@@ -40,7 +40,8 @@ namespace SunSync
         // 对于HASH DB的操作，改用事务模型，批量处理，加快速度
 
         // 是否从历史记录载入
-        private bool isLoadFromRecord = false;      
+        private bool isLoadFromRecord = false;
+        private ZoneID zoneId = ZoneID.Default;
 
         // 支持的Zone列表
         private Dictionary<ZoneID, string> zoneNames =
@@ -52,16 +53,11 @@ namespace SunSync
                 {ZoneID.US_North,"北美"}
             };
 
-        // 待上传文件信息
-        private List<UploadItem> uploadItems = new List<UploadItem>(); 
-
         public SyncSettingPage(MainWindow mainWindow)
         {
             InitializeComponent();
             this.mainWindow = mainWindow;
             this.initUIGroupValues();
-
-            this.ButtonStartSync.IsEnabled = false;
         }
 
         /// <summary>
@@ -343,23 +339,25 @@ namespace SunSync
             {
                 string targetBucket = this.SyncTargetBucketsComboBox.SelectedItem.ToString();
 
-                ZoneID zid = ZoneID.Default;
-
                 if (isLoadFromRecord && string.Equals(targetBucket, this.syncSetting.TargetBucket))
                 {
                     // 如果是从历史记录载入并且未更改Bucket，则无需查询，直接抽取
-                    zid = (ZoneID)(this.syncSetting.TargetZoneID);
+                   zoneId = (ZoneID)(this.syncSetting.TargetZoneID);
                 }
                 else
                 {
+                    if(syncSetting==null)
+                    {
+                        syncSetting = new SyncSetting();
+                    }
                     // 否则(如果是新建任务或者更改了Bucket)，则需要向UC发送请求查询
-                    zid = AutoZone.Query(this.account.AccessKey, targetBucket);
+                    zoneId = AutoZone.Query(this.account.AccessKey, targetBucket);
                 }
 
                 // 根据ZoneID完成相应配置
-                Qiniu.Common.Config.ConfigZone(zid);
+                Qiniu.Common.Config.ConfigZone(zoneId);
 
-                this.TextBlockTargetZone.Text = zoneNames[zid];
+                this.TextBlockTargetZone.Text = zoneNames[zoneId];
             }
             catch (Exception ex)
             {
@@ -368,12 +366,9 @@ namespace SunSync
         }
 
         /// <summary>
-        /// 1.根据设定参数进行必要的配置
-        /// 2.检查过滤之后，生成待上传的文件列表并展示
+        /// 检查基本设置
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void ButtonCheckFilesToUpload_Click(object sender, RoutedEventArgs e)
+        private bool CheckSettings()
         {
             #region CHECK_SYNC_SETTINS
 
@@ -381,7 +376,7 @@ namespace SunSync
             if (string.IsNullOrEmpty(this.account.AccessKey) || string.IsNullOrEmpty(this.account.SecretKey))
             {
                 this.SettingsErrorTextBlock.Text = "请设置AK&SK";
-                return;
+                return false;
             }
 
             SystemConfig.ACCESS_KEY = this.account.AccessKey;
@@ -392,12 +387,12 @@ namespace SunSync
             if (string.IsNullOrEmpty(syncDirectory) || !Directory.Exists(syncDirectory))
             {
                 this.SettingsErrorTextBlock.Text = "请设置本地待同步的目录";
-                return;
+                return false;
             }
             if (this.SyncTargetBucketsComboBox.SelectedIndex < 0)
             {
                 this.SettingsErrorTextBlock.Text = "请设置目标空间";
-                return;
+                return false;
             }
 
             string targetBucket = this.SyncTargetBucketsComboBox.SelectedItem.ToString();
@@ -409,6 +404,7 @@ namespace SunSync
 
             this.syncSetting.LocalDirectory = syncDirectory;
             this.syncSetting.TargetBucket = targetBucket;
+            this.syncSetting.TargetZoneID = (int)zoneId;
             this.syncSetting.SyncPrefix = this.PrefixTextBox.Text.Trim();
             this.syncSetting.SkipPrefixes = this.SkipPrefixesTextBox.Text.Trim();
             this.syncSetting.SkipSuffixes = this.SkipSuffixesTextBox.Text.Trim();
@@ -429,20 +425,20 @@ namespace SunSync
             if (statResult.ResponseInfo.isNetworkBroken())
             {
                 this.SettingsErrorTextBlock.Text = "网络故障";
-                return;
+                return false;
             }
 
             if (statResult.ResponseInfo.StatusCode == 401)
             {
                 //ak & sk not right
                 this.SettingsErrorTextBlock.Text = "AK 或 SK 不正确";
-                return;
+                return false;
             }
             else if (statResult.ResponseInfo.StatusCode == 631)
             {
                 //bucket not exist
                 this.SettingsErrorTextBlock.Text = "指定空间不存在";
-                return;
+                return false;
             }
             else if (statResult.ResponseInfo.StatusCode == 612
                 || statResult.ResponseInfo.StatusCode == 200)
@@ -467,284 +463,28 @@ namespace SunSync
                         this.SettingsErrorTextBlock.Text = statResult.ResponseInfo.Error;
                     }
                 }
-                return;
+                return false;
             }
             else
             {
                 this.SettingsErrorTextBlock.Text = "未知错误，请联系七牛";
                 Log.Error(string.Format("get buckets unknown error, {0}:{1}:{2}:{3}", statResult.ResponseInfo.StatusCode,
                        statResult.ResponseInfo.Error, statResult.ResponseInfo.ReqId, statResult.Response));
-                return;
+                return false;
             }
 
             #endregion SIMULATION
 
-            int numFiles = 0; // 总文件数
-            int numUpload = 0;  // 待上传文件数
-            uploadItems.Clear();
-            this.FilesToUploadDataGrid.DataContext = null;
-
-            List<string> localFiles = new List<string>(); // 本地待上传的文件
-            List<string> saveKeys = new List<string>();   // 保存到空间文件名
-            List<string> fileEtags = new List<string>();   // 待上传文件的ETAG
-            List<long> lastModified = new List<long>();  // 文件最后修改时间
-            List<bool> fileSkip = new List<bool>();      // 是否跳过该文件(不上传)
-
-            long T0 = (TimeZone.CurrentTimeZone.ToLocalTime(new DateTime(1970, 1, 1, 0, 0, 0, 0))).Ticks;
-
-            #region TRAVERSE_LOCAL_DIRECTORY
-
-            DirectoryInfo di = new DirectoryInfo(syncDirectory);
-            FileInfo[] ffi = di.GetFiles("*.*", SearchOption.AllDirectories);
-            numFiles = ffi.Length;
-
-            string savePrefix = this.PrefixTextBox.Text.Trim();
-
-            if (this.syncSetting.UseShortFilename)
-            {
-                foreach (var fi in ffi)
-                {
-                    localFiles.Add(fi.FullName);
-                    saveKeys.Add(savePrefix + fi.Name);
-                    fileEtags.Add("_");
-                    lastModified.Add((fi.LastWriteTime.Ticks - T0) / 10000);
-                    fileSkip.Add(false);
-                }
-            }
-            else
-            {
-                foreach (var fi in ffi)
-                {
-                    localFiles.Add(fi.FullName);
-                    saveKeys.Add(savePrefix + fi.FullName);
-                    fileEtags.Add("_");
-                    lastModified.Add((fi.LastWriteTime.Ticks - T0) / 10000);
-                    fileSkip.Add(false);
-                }
-            }
-
-            #endregion TRAVERSE_LOCAL_DIRECTORY
-
-            #region CHECK_PREFIX_SUFFX
-
-            string skipPrefixes = this.SkipPrefixesTextBox.Text.Trim();
-            string skipSuffixes = this.SkipSuffixesTextBox.Text.Trim();
-
-            for (int i = 0; i < numFiles; ++i)
-            {
-                string saveKey = saveKeys[i];
-
-                string[] ssPrfx = skipPrefixes.Split(',');
-                foreach (string prefix in ssPrfx)
-                {
-                    if (!string.IsNullOrWhiteSpace(prefix))
-                    {
-                        if (saveKey.StartsWith(prefix.Trim()))
-                        {
-                            fileSkip[i] = true;
-                            break;
-                        }
-                    }
-                }
-
-                string[] ssSufx = skipSuffixes.Split(',');
-                foreach (string suffix in ssSufx)
-                {
-                    if (!string.IsNullOrWhiteSpace(suffix))
-                    {
-                        if (saveKey.EndsWith(suffix.Trim()))
-                        {
-                            fileSkip[i] = true;
-                            break;
-                        }
-                    }
-                }
-            }
-            #endregion CHECK_PREFIX_SUFFX
-
-            string hashDBFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "qsunsync", "local_hash.db");
-            if (!File.Exists(hashDBFile))
-            {
-                CachedHash.CreateCachedHashDB(hashDBFile);
-            }
-            SQLiteConnection localHashDBConn = new SQLiteConnection(string.Format("data source = {0}", hashDBFile));
-            localHashDBConn.Open();
-            Dictionary<string, HashDBItem> localHashDict = CachedHash.GetAllItems(localHashDBConn);
-            localHashDBConn.Close();
-
-            #region CHECK_LOCAL_DUPLICATE
-
-            if (this.syncSetting.CheckNewFiles)
-            {
-                for (int i = 0; i < numFiles; ++i)
-                {
-                    if (fileSkip[i]) continue;
-
-                    string fileName = localFiles[i];
-
-                    if (localHashDict.ContainsKey(fileName))
-                    {
-                        string oldEtag = localHashDict[fileName].FileHash;
-                        string newEtag = QETag.hash(fileName);
-
-                        if (string.Equals(oldEtag, newEtag))
-                        {
-                            fileSkip[i] = true;
-                        }
-                        else
-                        {
-                            fileEtags[i] = newEtag;
-                        }
-                    }
-                    else
-                    {
-                        fileEtags[i] = QETag.hash(fileName);
-                    }
-                }
-            }
-            else
-            {
-                for (int i = 0; i < numFiles; ++i)
-                {
-                    if (fileSkip[i]) continue;
-                    fileEtags[i] = QETag.hash(localFiles[i]);
-                }
-            }
-
-            #endregion CHECK_LOCAL_DUPLICATE
-
-            #region CHECK_REMOTE_DUPLICATES
-
-            // 如果选择了“强制覆盖”，那么无需进行远程检查
-            if (!this.syncSetting.OverwriteDuplicate)
-            {
-                List<string> remoteHash = new List<string>();
-                List<long> remoteUpdate = new List<long>();
-
-                try
-                {
-                    Mac mac = new Mac(this.account.AccessKey, this.account.SecretKey);
-                    BucketFileHash.BatchStat(mac, targetBucket, saveKeys, fileSkip, ref remoteHash, ref remoteUpdate);
-
-                    for (int i = 0, k = 0; i < numFiles; ++i)
-                    {
-                        if (fileSkip[i]) continue;
-
-                        if (string.Equals(fileEtags[i], remoteHash[k]))
-                        {
-                            // 云端已存在相同文件，跳过
-                            fileSkip[i] = true;
-                        }
-
-                        ++k;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    this.SettingsErrorTextBlock.Text = ex.Message;
-                    Log.Error(ex.Message);
-                }
-            }
-
-            #endregion CHECK_REMOTE_DUPLICATES
-
-            #region SHOW_UPLOAD_DETAILS
-
-            this.SyncSettingTabControl.SelectedItem = this.TabItemFilesToUploadDetail;
-
-            numUpload = numFiles;
-
-            foreach (var b in fileSkip)
-            {
-                if (b) --numUpload;
-            }
-
-            if (numUpload < 1)
-            {
-                TextBlockFilesToUploadSummery.Text = "没有待上传的文件";
-                return;
-            }
-
-
-            double N = 0;
-
-            for (int i = 0; i < numFiles; ++i)
-            {
-                if (fileSkip[i]) continue;
-
-                string fsize = "0";
-
-                long n = ffi[i].Length;
-                double K = 1.0 * n / 1024.0;
-                double M = 0.0;
-                if (K > 1024.0)
-                {
-                    M = K / 1024.0;
-                    fsize = string.Format("{0:0.00}MB", M);
-                }
-                else if (K > 1.0)
-                {
-                    fsize = string.Format("{0:0.00}KB", K);
-                }
-                else
-                {
-                    fsize = string.Format("{0}B", n);
-                }
-
-                N += n;
-
-                uploadItems.Add(new UploadItem() 
-                { 
-                    LocalFile = localFiles[i], 
-                    SaveKey = saveKeys[i], 
-                    FileSize = fsize, 
-                    FileHash = fileEtags[i], 
-                    LastUpdate = lastModified[i].ToString() 
-                });
-            }
-
-            string vol = "";
-            double mega = 1024.0 * 1024;
-            double kilo = 1024.0;
-            if (N > mega)
-            {
-                vol = string.Format("{0:0.00}MB", N / mega);
-            }
-            else if (N > kilo)
-            {
-                vol = string.Format("{0:0.00}KB", N / kilo);
-            }
-            else
-            {
-                vol = string.Format("{0}B", N);
-            }
-
-            TextBlockFilesToUploadSummery.Text = string.Format("待上传的文件总数:{0}, 总大小:{1}", numUpload, vol);
-
-            Dispatcher.Invoke(new Action(delegate
-            {
-                ObservableCollection<UploadItem> dataSource = new ObservableCollection<UploadItem>();
-                foreach (var d in uploadItems)
-                {
-                    dataSource.Add(d);
-                }
-                this.FilesToUploadDataGrid.DataContext = dataSource;
-            }));
-
-            ButtonStartSync.IsEnabled = true;
-
-            #endregion SHOW_UPLOAD_DETAILS
-
+            return true;
         }
-
         
         private void StartSyncButton_EventHandler(object sender, RoutedEventArgs e)
-        {         
-            this.ButtonStartSync.IsEnabled = false;
-            this.mainWindow.SetUploadIteams(uploadItems);
-            this.mainWindow.GotoSyncProgress(syncSetting);
+        {
+            if (CheckSettings())
+            {
+                this.mainWindow.GotoSyncProgress(syncSetting);
+            }
         }
-
 
     }
 }

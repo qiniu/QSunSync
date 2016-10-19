@@ -71,7 +71,7 @@ namespace SunSync
 
         private string jobsDbPath;
 
-        private List<string> batchOpFiles;
+        private List<FileItem> batchOpFiles;
 
         private string cacheDir;
         private string cacheFilePathDone;
@@ -81,34 +81,15 @@ namespace SunSync
         private string syncLogDBPath;
         private SQLiteConnection syncLogDB;
 
-        private List<UploadItem> uploadItems = null;
-        private List<HashDBItem> dbItems = null;
-
-        private int currentIndex = 0;
-
         public SyncProgressPage(MainWindow mainWindow)
         {
             InitializeComponent();
             this.mainWindow = mainWindow;
-            this.batchOpFiles = new List<string>();
+            this.batchOpFiles = new List<FileItem>();
             this.uploadedBytes = new Dictionary<string, string>();
             this.resetSyncStatus();
         }
 
-        public void EndSetUploadIteams(List<UploadItem> uploadItems)
-        {
-            this.uploadItems = uploadItems;
-
-            if (this.dbItems != null)
-            {
-                this.dbItems.Clear();
-            }
-            else
-            {
-                this.dbItems = new List<HashDBItem>();
-            }
-        }
-       
         public SQLiteConnection SyncLogDB()
         {
             return this.syncLogDB;
@@ -128,9 +109,9 @@ namespace SunSync
             this.jobId = Tools.md5Hash(jobName);
 
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunsync", "sync_jobs.db");
+            this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunsync", "jobs.db");
             this.jobLogDir = System.IO.Path.Combine(myDocPath, "qsunsync", "logs", jobId);
-            this.localHashDBPath = System.IO.Path.Combine(myDocPath, "qsunsync", "local_hash.db");
+            this.localHashDBPath = System.IO.Path.Combine(myDocPath, "qsunsync", "hash.db");
             this.cacheDir = System.IO.Path.Combine(myDocPath, "qsunsync", "dircache");
             this.syncLogDir = System.IO.Path.Combine(myDocPath, "qsunsync", "synclog");
             this.syncLogDBPath = System.IO.Path.Combine(this.syncLogDir, jobId + ".log.db");
@@ -152,8 +133,8 @@ namespace SunSync
 
         private void resetSyncStatus()
         {
-            this.doneCount = currentIndex;
-            //this.totalCount = 0;
+            this.doneCount = 0;
+            this.totalCount = 0;
             this.progressLock = new object();
             this.uploadLogLock = new object();
             this.fileSkippedCount = 0;
@@ -166,7 +147,7 @@ namespace SunSync
             this.fileNotOverwriteLock = new object();
             this.fileUploadErrorCount = 0;
             this.fileUploadErrorLock = new object();
-            this.fileUploadSuccessCount = currentIndex;
+            this.fileUploadSuccessCount = 0;
             this.fileUploadSuccessLock = new object();
             this.uploadInfoLock = new object();
             this.cancelSignal = false;
@@ -181,94 +162,156 @@ namespace SunSync
             this.batchOpFiles.Clear();
         }
 
-        /// <summary>
-        /// 更新 2016-09-22 16:40 fengyh
-        /// </summary>
-        private void processUpload()
+
+        private void createDirCache(string localSyncDir)
         {
-            try
+            DirectoryInfo di = new DirectoryInfo(localSyncDir);
+
+            FileInfo[] fileInfos = di.GetFiles("*.*", SearchOption.AllDirectories);
+
+            List<string> files = new List<string>();
+            string[] keys = new string[fileInfos.Length];
+            bool[] skip = new bool[fileInfos.Length];
+            for(int i=0;i<fileInfos.Length;++i)
             {
-                while (currentIndex<uploadItems.Count )
+                files.Add(fileInfos[i].FullName);
+                skip[i] = false;
+            }
+
+            if (syncSetting.CheckNewFiles)
+            {
+                CachedHash.BatchCheck(localHashDB, files, ref skip);
+            }
+
+            if(!syncSetting.OverwriteDuplicate)
+            {                
+                for (int i = 0; i < fileInfos.Length; ++i)
                 {
-                    if (this.cancelSignal)
+                    keys[i] = syncSetting.SyncPrefix;
+                    if(syncSetting.UseShortFilename)
                     {
-                        return;
-                    }
-
-                    int itemsLeft = uploadItems.Count-currentIndex;
-
-                    if (itemsLeft<this.syncSetting.SyncThreadCount)
-                    {
-                        this.uploadFiles(itemsLeft);
-                        currentIndex += itemsLeft;
+                        keys[i] += fileInfos[i].Name;
                     }
                     else
                     {
-                        this.uploadFiles(this.syncSetting.SyncThreadCount);
-                        currentIndex += this.syncSetting.SyncThreadCount;
+                        keys[i] += fileInfos[i].FullName;
                     }
                 }
 
+                Qiniu.Util.Mac mac = new Qiniu.Util.Mac(SystemConfig.ACCESS_KEY,SystemConfig.SECRET_KEY);
+                BucketFileHash.BatchStat(mac, syncSetting.TargetBucket, keys, ref skip);
+            }            
 
-                #region UPDATE_HASH_DB
-
-                if (dbItems.Count > 0)
-                {
-                    SQLiteConnection sqlConn = null;
-                    try
-                    {
-                        if(!File.Exists(this.localHashDBPath))
-                        {
-                            CachedHash.CreateCachedHashDB(this.localHashDBPath);
-                        }
-
-                        var qsb = new SQLiteConnectionStringBuilder { DataSource = this.localHashDBPath };
-                        sqlConn = new SQLiteConnection(qsb.ToString());
-                        sqlConn.Open();
-                        CachedHash.BatchInsertOrUpdate(dbItems, sqlConn);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex.Message);
-                    }
-                    finally
-                    {
-                        if (sqlConn != null)
-                        {
-                            sqlConn.Close();
-                        }
-                    }
-                }
-
-                #endregion UPDATE_HASH_DB
-            }
-            catch (Exception ex)
+            using (StreamWriter sw = new StreamWriter(cacheFilePathDone))
             {
-                Log.Fatal(ex.Message);
+                for (int i = 0; i < files.Count; ++i)
+                {
+                    if (!skip[i])
+                    {
+                        sw.WriteLine(files[i]);                        
+                    }
+                    else
+                    {
+                        this.addFileExistsLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket,
+                            files[i], keys[i]));
+                    }
+                }
             }
         }
 
-        /// <summary>
-        /// 更新 2016-09-22 16:40 fengyh
-        /// </summary>
-        private void uploadFiles(int count)
+
+        private void processUpload(string cacheFilePath)
+        {
+            try
+            {
+                string filePath = null;
+
+                //count
+                using (StreamReader sr = new StreamReader(this.cacheFilePathDone, Encoding.UTF8))
+                {
+                    while ((filePath = sr.ReadLine()) != null)
+                    {
+                        this.totalCount += 1;
+                    }
+                }
+
+                //upload
+                using (StreamReader sr = new StreamReader(this.cacheFilePathDone, Encoding.UTF8))
+                {
+                    while ((filePath = sr.ReadLine()) != null)
+                    {
+                        if (this.cancelSignal)
+                        {
+                            return;
+                        }
+
+                        if (this.batchOpFiles.Count < this.syncSetting.SyncThreadCount)
+                        {
+                            FileInfo fi = new FileInfo(filePath);
+                            string fn = syncSetting.SyncPrefix;
+                            if(syncSetting.UseShortFilename)
+                            {
+                                fn += fi.Name;
+                            }
+                            else
+                            {
+                                fn += filePath;
+                            }
+                            FileItem item = new FileItem()
+                            {
+                                LocalFile = filePath,
+                                SaveKey = fn,
+                                FileHash = Qiniu.Util.QETag.hash(filePath),
+                                LastUpdate = fi.LastWriteTime.Ticks.ToString()
+                            };
+                            this.batchOpFiles.Add(item);
+                        }
+                        else
+                        {
+                            this.uploadFiles(this.batchOpFiles);
+                            this.batchOpFiles.Clear();
+                            FileInfo fi = new FileInfo(filePath);
+                            string fn = syncSetting.SyncPrefix;
+                            if (syncSetting.UseShortFilename)
+                            {
+                                fn += fi.Name;
+                            }
+                            else
+                            {
+                                fn += filePath;
+                            }
+                            FileItem item = new FileItem()
+                            {
+                                LocalFile = filePath,
+                                SaveKey = fn,
+                                FileHash = Qiniu.Util.QETag.hash(filePath),
+                                LastUpdate = fi.LastWriteTime.Ticks.ToString()
+                            };
+                            this.batchOpFiles.Add(item);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal(string.Format("open cache file {0} failed due to {1}", this.cacheFilePathDone, ex.Message));
+            }
+        }
+
+
+        private void uploadFiles(List<FileItem> filesToUpload)
         {
             this.uploadedBytes.Clear();
-            ManualResetEvent[] doneEvents = new ManualResetEvent[count];
-            this.uploadInfos = new UploadInfo[count];
-            for (int taskId = 0; taskId < count; taskId++)
+            ManualResetEvent[] doneEvents = null;
+            int taskMax = filesToUpload.Count;
+            doneEvents = new ManualResetEvent[taskMax];
+            this.uploadInfos = new UploadInfo[taskMax];
+            for (int taskId = 0; taskId < taskMax; taskId++)
             {
                 this.uploadInfos[taskId] = new UploadInfo();
                 doneEvents[taskId] = new ManualResetEvent(false);
                 FileUploader uploader = new FileUploader(this.syncSetting, doneEvents[taskId], this, taskId);
-                UploadItem uploadItem = uploadItems[currentIndex + taskId];
-                dbItems.Add(new HashDBItem()
-                {
-                    LocalFile = uploadItem.LocalFile,
-                    FileHash = uploadItem.FileHash,
-                    LastUpdate = uploadItem.LastUpdate
-                });
-                ThreadPool.QueueUserWorkItem(new WaitCallback(uploader.uploadFile), uploadItem);
+                ThreadPool.QueueUserWorkItem(new WaitCallback(uploader.uploadFile), filesToUpload[taskId]);
             }
 
             try
@@ -277,13 +320,10 @@ namespace SunSync
             }
             catch (Exception ex)
             {
-                Log.Error(ex.Message);
+                Log.Error("wait for job to complete error, " + ex.Message);
             }
         }
 
-        /// <summary>
-        /// 更新 2016-09-22 16:40 fengyh
-        /// </summary>
         private bool initRunJob()
         {
             bool checkOk = true;
@@ -427,31 +467,31 @@ namespace SunSync
                 }));
                 return;
             }
-            ////create optional db
+            //create optional db
             this.createOptionalDB();
-            //try
-            //{
-            //    //open database local hash db
-            //    string conStr = new SQLiteConnectionStringBuilder { DataSource = this.localHashDBPath }.ToString();
-            //    this.localHashDB = new SQLiteConnection(conStr);
-            //    this.localHashDB.Open();
-            //}
-            //catch (Exception ex)
-            //{
-            //    Log.Error(string.Format("open local hash db failed due to {0}", ex.Message));
-            //    if (this.localHashDB != null)
-            //    {
-            //        try
-            //        {
-            //            this.localHashDB.Close();
-            //        }
-            //        catch (Exception ex2)
-            //        {
-            //            Log.Error(string.Format("close local hash db failed due to {0}", ex2.Message));
-            //        }
-            //    }
-            //    this.localHashDB = null;
-            //}
+            try
+            {
+                //open database local hash db
+                string conStr = new SQLiteConnectionStringBuilder { DataSource = this.localHashDBPath }.ToString();
+                this.localHashDB = new SQLiteConnection(conStr);
+                this.localHashDB.Open();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(string.Format("open local hash db failed due to {0}", ex.Message));
+                if (this.localHashDB != null)
+                {
+                    try
+                    {
+                        this.localHashDB.Close();
+                    }
+                    catch (Exception ex2)
+                    {
+                        Log.Error(string.Format("close local hash db failed due to {0}", ex2.Message));
+                    }
+                }
+                this.localHashDB = null;
+            }
 
             try
             {
@@ -485,12 +525,25 @@ namespace SunSync
 
             //list dirs
             string localSyncDir = syncSetting.LocalDirectory;
+            //list & count
+            //if (!File.Exists(this.cacheFilePathDone) || (!resume))
+            //{
+                this.updateUploadLog(string.Format("正在遍历{0}下文件...", localSyncDir));
+                this.createDirCache(localSyncDir);
+            //}
 
             if (!this.cancelSignal)
             {
                 //upload
                 this.updateUploadLog(string.Format("开始同步{0}下所有文件...", localSyncDir));
-                this.processUpload();
+                this.processUpload(this.cacheFilePathDone);
+            }
+
+            if (!this.cancelSignal && this.batchOpFiles.Count > 0)
+            {
+                //finish the remained
+                this.uploadFiles(this.batchOpFiles);
+                this.batchOpFiles.Clear();
             }
 
             //set finish signal
@@ -677,6 +730,7 @@ namespace SunSync
             }
         }
 
+
         internal void addFileUploadSuccessLog(string log)
         {
             lock (this.fileUploadSuccessLock)
@@ -714,8 +768,8 @@ namespace SunSync
             }
             Dispatcher.Invoke(new Action(delegate
             {
-                double percent = this.doneCount * 100.0 / uploadItems.Count;
-                this.UploadProgressTextBlock.Text = string.Format("总上传进度: {0}/{1}, {2}%", this.doneCount, uploadItems.Count, percent.ToString("F1"));
+                double percent = this.doneCount * 100.0 / this.totalCount;
+                this.UploadProgressTextBlock.Text = string.Format("总上传进度: {0}/{1}, {2}%", this.doneCount, this.totalCount, percent.ToString("F1"));
             }));
         }
 

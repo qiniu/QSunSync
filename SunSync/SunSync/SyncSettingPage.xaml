@@ -146,31 +146,9 @@
                                 
                         </StackPanel>
                     </TabItem>
-                    <TabItem Header="文件列表" FontSize="16" Name="TabItemFilesToUploadDetail">
-                        <StackPanel Orientation="Vertical">
-                            <DataGrid Height="420" Name="FilesToUploadDataGrid" ItemsSource="{Binding}" 
-                                          AutoGenerateColumns="false" IsReadOnly="True">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Header="本地文件名" Binding="{Binding LocalFile}" Width="300" FontSize="12"></DataGridTextColumn>
-                                    <DataGridTextColumn Header="空间文件名" Binding="{Binding SaveKey}" Width="200" FontSize="12"></DataGridTextColumn>
-                                    <DataGridTextColumn Header="文件大小" Binding="{Binding FileSize}" Width="100" FontSize="12"></DataGridTextColumn>
-                                </DataGrid.Columns>
-                            </DataGrid>
-                            <TextBlock Name="TextBlockFilesToUploadSummery" HorizontalAlignment="Center" Height="30" Margin="10"></TextBlock>
-                        </StackPanel>
-                    </TabItem>
                 </TabControl>
                 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Name="ButtonCheckFilesToUpload" 
-                            Width="100" Height="32" Margin="0,10,50,10"
-                            Content="确认设置" Click="ButtonCheckFilesToUpload_Click">
-                        <Button.ToolTip>
-                            <ToolTip BorderThickness="0" Background="Black" Foreground="Yellow" FontSize="16">
-                                此操作需要遍历待同步文件夹，文件越多耗时越多
-                            </ToolTip>
-                        </Button.ToolTip>
-                    </Button>
                     <Button Content="开始同步" Width="100" Height="32" Margin="0 10" 
                             HorizontalAlignment="Right"
                             FontSize="14" Name="ButtonStartSync"
