@@ -54,6 +54,7 @@ namespace SunSync.Models
                 {
                     if (dr.Read())
                     {
+                        cachedHash.LocalPath = localPath;
                         cachedHash.Etag = dr["etag"].ToString();
                         cachedHash.LastModified = dr["last_modified"].ToString();
                     }
@@ -187,33 +188,7 @@ namespace SunSync.Models
             }
         }
 
-        /// <summary>
-        /// 简化查询为SELECT * FROM而不是逐一查询 SELECt * FROm WHERE *
-        /// 查询后利用Dictionary<fileName,V>加快查询速度
-        /// </summary>
-        /// <param name="sqlConn"></param>
-        /// <returns></returns>
-        public static void BatchCheck(SQLiteConnection hashDBConn,List<string> keys,ref bool[] skip)
-        {
-            using (SQLiteCommand sqlCmd = new SQLiteCommand(hashDBConn))
-            {
-                sqlCmd.CommandText = "SELECT [local_path] FROM [cached_hash]";
-                using (SQLiteDataReader dr = sqlCmd.ExecuteReader())
-                {
-                    while (dr.Read())
-                    {
-                        string file = dr["local_path"].ToString();
-                        int p = keys.IndexOf(file);
-                        if(p>=0)
-                        {
-                            skip[p] = true;
-                        }
-                    }
-                }
-            }
-        }
-
-        private static List<string> GetAllKeys(SQLiteConnection hashDBConn)
+        public static List<string> GetAllKeys(SQLiteConnection hashDBConn)
         {
             List<string> keys = new List<string>();
             using (SQLiteCommand sqlCmd = new SQLiteCommand(hashDBConn))
@@ -231,5 +206,25 @@ namespace SunSync.Models
             return keys;
         }
 
+        public static Dictionary<string,string> GetAllItems(SQLiteConnection hashDBConn)
+        {
+            Dictionary<string, string> itemDict = new Dictionary<string, string>();
+
+            using (SQLiteCommand sqlCmd = new SQLiteCommand(hashDBConn))
+            {
+                sqlCmd.CommandText = "SELECT [local_path],[etag],[last_modified] FROM [cached_hash]";
+                using (SQLiteDataReader dr = sqlCmd.ExecuteReader())
+                {
+                    while (dr.Read())
+                    {
+                        string file = dr["local_path"].ToString();
+                        string etag = dr["etag"].ToString();
+                        itemDict.Add(file, etag);
+                    }
+                }
+            }
+
+            return itemDict;
+        }
     }
 }

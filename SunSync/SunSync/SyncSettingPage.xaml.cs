@@ -39,9 +39,11 @@ namespace SunSync
         // 改进之后的版本，每次上传之前先进行一次batch stat操作，避免了多次stat的时间浪费
         // 对于HASH DB的操作，改用事务模型，批量处理，加快速度
 
-        // 是否从历史记录载入
-        private bool isLoadFromRecord = false;
-        private ZoneID zoneId = ZoneID.Default;
+        // 用于构建(Bucket-ZoneID)列表
+
+
+        private bool isLoadedFromRecord;
+        private Dictionary<string, ZoneID> zoneDict = new Dictionary<string, ZoneID>();
 
         // 支持的Zone列表
         private Dictionary<ZoneID, string> zoneNames =
@@ -80,47 +82,57 @@ namespace SunSync
         /// <param name="syncSetting"></param>
         public void LoadSyncSetting(SyncSetting syncSetting)
         {
-            this.syncSetting = syncSetting;
-            this.bucketManager = null;
+            if(syncSetting==null)
+            {
+                isLoadedFromRecord = false;
+                this.syncSetting = new SyncSetting();
+            }
+            else
+            {
+                isLoadedFromRecord = true;
+                this.syncSetting = syncSetting;
+            }
 
-            // [2016-09-01 11:40] 更新 @fengyh
-            // 如果syncSetting已被设置，就说明是从历史记录载入
-            // 如果syncSetting没有设置，就说明是新建任务
-            this.isLoadFromRecord = (this.syncSetting != null);
+            this.bucketManager = null;
         }
 
         /// <summary>
         /// sync setting page loaded event handler
+        /// 更新 2016-10-20 15:51
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void SyncSettingPageLoaded_EventHandler(object sender, RoutedEventArgs e)
         {
-            this.initBucketManager();
-            if (this.bucketManager != null)
-            {
-                //clear old buckets
-                this.SyncTargetBucketsComboBox.ItemsSource = null;
-                new Thread(new ThreadStart(this.reloadBuckets)).Start();
-            }
-            this.initUIDefaults();
-        }
-
-        /// <summary>
-        /// init the bucket manager
-        /// </summary>
-        private void initBucketManager()
-        {
+            // 尝试载入account
             this.account = Account.TryLoadAccount();
 
-            if (string.IsNullOrEmpty(account.AccessKey) || string.IsNullOrEmpty(account.SecretKey))
+            // 检查AK&SK
+            if (string.IsNullOrEmpty(this.account.AccessKey) || string.IsNullOrEmpty(this.account.SecretKey))
             {
-                Log.Info("account info not set");
-                this.SettingsErrorTextBlock.Text = "请返回设置 AK 和 SK";
+                this.SettingsErrorTextBlock.Text = "请设置AK&SK";
                 return;
             }
+
+            // 设置AK&SK
+            SystemConfig.ACCESS_KEY = this.account.AccessKey;
+            SystemConfig.SECRET_KEY = this.account.SecretKey;
+
+            // 初始化bucketManager
             Mac mac = new Mac(this.account.AccessKey, this.account.SecretKey);
             this.bucketManager = new BucketManager(mac);
+
+            if (!ValidateAccount())
+            {
+                return;
+            }
+                
+            // 重建bucket列表
+            this.SyncTargetBucketsComboBox.ItemsSource = null;
+            new Thread(new ThreadStart(this.reloadBuckets)).Start();
+            
+            // 其他界面元素初始化
+            this.initUIDefaults();
         }
 
         /// <summary>
@@ -132,30 +144,11 @@ namespace SunSync
             this.SyncSettingTabControl.SelectedItem = this.TabItemSyncSettingsBasics;
             this.SettingsErrorTextBlock.Text = "";
 
-            if (this.syncSetting == null)
-            {
-                //basic settings
-                this.SyncLocalFolderTextBox.Text = "";
-                this.SyncTargetBucketsComboBox.SelectedIndex = -1;
-
-                //advanced settings
-                this.PrefixTextBox.Text = "";
-                this.SkipPrefixesTextBox.Text = "";
-                this.SkipSuffixesTextBox.Text = "";
-                this.CheckNewFilesCheckBox.IsChecked = true;
-                this.CheckBoxUseShortFilename.IsChecked = true;
-                this.RadioButtonSkipDuplicate.IsChecked = true;
-                this.ChunkDefaultSizeComboBox.SelectedIndex = 5; //512KB
-                this.ChunkUploadThresholdSlider.Value = 100;//100MB
-                this.ThreadCountSlider.Value = 10;
-                this.ThreadCountLabel.Content = "10";
-                this.RadioButtonDirect.IsChecked = true;
-            }
-            else
+            if (isLoadedFromRecord)
             {
                 //basic settings
                 this.SyncLocalFolderTextBox.Text = this.syncSetting.LocalDirectory;
-                this.SyncTargetBucketsComboBox.SelectedIndex = -1;
+                this.SyncTargetBucketsComboBox.SelectedItem = this.syncSetting.TargetBucket;
 
                 //advanced settings
                 this.PrefixTextBox.Text = this.syncSetting.SyncPrefix;
@@ -190,6 +183,25 @@ namespace SunSync
                     this.RadioButtonDirect.IsChecked = true;
                 }
             }
+            else
+            {
+                //basic settings
+                this.SyncLocalFolderTextBox.Text = "";
+                this.SyncTargetBucketsComboBox.SelectedIndex = -1;
+
+                //advanced settings
+                this.PrefixTextBox.Text = "";
+                this.SkipPrefixesTextBox.Text = "";
+                this.SkipSuffixesTextBox.Text = "";
+                this.CheckNewFilesCheckBox.IsChecked = true;
+                this.CheckBoxUseShortFilename.IsChecked = true;
+                this.RadioButtonSkipDuplicate.IsChecked = true;
+                this.ChunkDefaultSizeComboBox.SelectedIndex = 5; //512KB
+                this.ChunkUploadThresholdSlider.Value = 100;//100MB
+                this.ThreadCountSlider.Value = 10;
+                this.ThreadCountLabel.Content = "10";
+                this.RadioButtonDirect.IsChecked = true;
+            }
         }
 
         //reload buckets
@@ -200,13 +212,17 @@ namespace SunSync
             if (bucketsResult.ResponseInfo.isOk())
             {
                 List<string> buckets = bucketsResult.Buckets;
+
+                zoneDict.Clear();
+                foreach(string bucket in buckets)
+                {
+                    ZoneID zoneId = AutoZone.Query(account.AccessKey, bucket);
+                    zoneDict.Add(bucket, zoneId);
+                }
+
                 Dispatcher.Invoke(new Action(delegate
                 {
                     this.SyncTargetBucketsComboBox.ItemsSource = buckets;
-                    if (this.syncSetting != null)
-                    {
-                        this.SyncTargetBucketsComboBox.SelectedItem = this.syncSetting.TargetBucket;
-                    }
                 }));
             }
             else if (bucketsResult.ResponseInfo.isNetworkBroken())
@@ -338,26 +354,8 @@ namespace SunSync
             try
             {
                 string targetBucket = this.SyncTargetBucketsComboBox.SelectedItem.ToString();
-
-                if (isLoadFromRecord && string.Equals(targetBucket, this.syncSetting.TargetBucket))
-                {
-                    // 如果是从历史记录载入并且未更改Bucket，则无需查询，直接抽取
-                   zoneId = (ZoneID)(this.syncSetting.TargetZoneID);
-                }
-                else
-                {
-                    if(syncSetting==null)
-                    {
-                        syncSetting = new SyncSetting();
-                    }
-                    // 否则(如果是新建任务或者更改了Bucket)，则需要向UC发送请求查询
-                    zoneId = AutoZone.Query(this.account.AccessKey, targetBucket);
-                }
-
-                // 根据ZoneID完成相应配置
-                Qiniu.Common.Config.ConfigZone(zoneId);
-
-                this.TextBlockTargetZone.Text = zoneNames[zoneId];
+                ZoneID zoneId = zoneDict[targetBucket];               
+                this.TextBlockTargetZone.Text = "目标空间所在机房: " + zoneNames[zoneId];
             }
             catch (Exception ex)
             {
@@ -366,61 +364,12 @@ namespace SunSync
         }
 
         /// <summary>
-        /// 检查基本设置
+        /// 使用stat模拟操作来检查Account是否正确
         /// </summary>
-        private bool CheckSettings()
+        /// <returns></returns>
+        private bool ValidateAccount()
         {
-            #region CHECK_SYNC_SETTINS
-
-            // 检查并设置AK&SK
-            if (string.IsNullOrEmpty(this.account.AccessKey) || string.IsNullOrEmpty(this.account.SecretKey))
-            {
-                this.SettingsErrorTextBlock.Text = "请设置AK&SK";
-                return false;
-            }
-
-            SystemConfig.ACCESS_KEY = this.account.AccessKey;
-            SystemConfig.SECRET_KEY = this.account.SecretKey;
-
-            // 检查本地同步目录与远程同步空间
-            string syncDirectory = this.SyncLocalFolderTextBox.Text.Trim();
-            if (string.IsNullOrEmpty(syncDirectory) || !Directory.Exists(syncDirectory))
-            {
-                this.SettingsErrorTextBlock.Text = "请设置本地待同步的目录";
-                return false;
-            }
-            if (this.SyncTargetBucketsComboBox.SelectedIndex < 0)
-            {
-                this.SettingsErrorTextBlock.Text = "请设置目标空间";
-                return false;
-            }
-
-            string targetBucket = this.SyncTargetBucketsComboBox.SelectedItem.ToString();
-
-            if (this.syncSetting == null)
-            {
-                this.syncSetting = new SyncSetting();
-            }
-
-            this.syncSetting.LocalDirectory = syncDirectory;
-            this.syncSetting.TargetBucket = targetBucket;
-            this.syncSetting.TargetZoneID = (int)zoneId;
-            this.syncSetting.SyncPrefix = this.PrefixTextBox.Text.Trim();
-            this.syncSetting.SkipPrefixes = this.SkipPrefixesTextBox.Text.Trim();
-            this.syncSetting.SkipSuffixes = this.SkipSuffixesTextBox.Text.Trim();
-            this.syncSetting.CheckNewFiles = this.CheckNewFilesCheckBox.IsChecked.Value;
-            this.syncSetting.UseShortFilename = this.CheckBoxUseShortFilename.IsChecked.Value;
-            this.syncSetting.OverwriteDuplicate = this.RadioButtonOverwriteDuplicate.IsChecked.Value;
-            this.syncSetting.SyncThreadCount = (int)this.ThreadCountSlider.Value;
-            this.syncSetting.ChunkUploadThreshold = (int)this.ChunkUploadThresholdSlider.Value * 1024 * 1024;
-            this.syncSetting.DefaultChunkSize = this.defaultChunkSize;
-            this.syncSetting.UploadFromCDN = this.RadioButtonFromCDN.IsChecked.Value;
-
-            #endregion CHECK_SYNC_SETTINS
-
-            #region SIMULATION
-
-            StatResult statResult = this.bucketManager.stat(this.syncSetting.TargetBucket, "NONE_EXIST_KEY");
+            StatResult statResult = this.bucketManager.stat("NONE_EXIST_BUCKET", "NONE_EXIST_KEY");
 
             if (statResult.ResponseInfo.isNetworkBroken())
             {
@@ -437,8 +386,7 @@ namespace SunSync
             else if (statResult.ResponseInfo.StatusCode == 631)
             {
                 //bucket not exist
-                this.SettingsErrorTextBlock.Text = "指定空间不存在";
-                return false;
+                //ignore
             }
             else if (statResult.ResponseInfo.StatusCode == 612
                 || statResult.ResponseInfo.StatusCode == 200)
@@ -473,14 +421,54 @@ namespace SunSync
                 return false;
             }
 
-            #endregion SIMULATION
+            return true;
+        }
+
+        /// <summary>
+        /// 检查基本设置
+        /// </summary>
+        private bool CheckSyncSettings()
+        {         
+            // 检查本地同步目录与远程同步空间
+            string syncDirectory = this.SyncLocalFolderTextBox.Text.Trim();
+            if (string.IsNullOrEmpty(syncDirectory) || !Directory.Exists(syncDirectory))
+            {
+                this.SettingsErrorTextBlock.Text = "请设置本地待同步的目录";
+                return false;
+            }
+            if (this.SyncTargetBucketsComboBox.SelectedIndex < 0)
+            {
+                this.SettingsErrorTextBlock.Text = "请设置目标空间";
+                return false;
+            }
+
+            string targetBucket = this.SyncTargetBucketsComboBox.SelectedItem.ToString();
+            ZoneID targetZoneId = zoneDict[targetBucket];
+
+            // 完成syncSetting配置
+            this.syncSetting.LocalDirectory = syncDirectory;
+            this.syncSetting.TargetBucket = targetBucket;
+            this.syncSetting.TargetZoneID = (int)targetZoneId;
+            this.syncSetting.SyncThreadCount = (int)this.ThreadCountSlider.Value;
+            this.syncSetting.SyncPrefix = this.PrefixTextBox.Text.Trim();
+            this.syncSetting.SkipPrefixes = this.SkipPrefixesTextBox.Text.Trim();
+            this.syncSetting.SkipSuffixes = this.SkipSuffixesTextBox.Text.Trim();
+            this.syncSetting.CheckNewFiles = this.CheckNewFilesCheckBox.IsChecked.Value;
+            this.syncSetting.UseShortFilename = this.CheckBoxUseShortFilename.IsChecked.Value;
+            this.syncSetting.OverwriteDuplicate = this.RadioButtonOverwriteDuplicate.IsChecked.Value;
+            this.syncSetting.DefaultChunkSize = this.defaultChunkSize;
+            this.syncSetting.ChunkUploadThreshold = (int)this.ChunkUploadThresholdSlider.Value * 1024 * 1024;
+            this.syncSetting.UploadFromCDN = this.RadioButtonFromCDN.IsChecked.Value;
+
+            // 根据ZoneID完成相应配置
+            Qiniu.Common.Config.ConfigZone(targetZoneId);
 
             return true;
         }
         
         private void StartSyncButton_EventHandler(object sender, RoutedEventArgs e)
         {
-            if (CheckSettings())
+            if (CheckSyncSettings())
             {
                 this.mainWindow.GotoSyncProgress(syncSetting);
             }

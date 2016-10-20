@@ -4,7 +4,7 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       mc:Ignorable="d" 
-      d:DesignHeight="680" d:DesignWidth="680"
+      d:DesignHeight="700" d:DesignWidth="680"
 	Title="SyncSettingPage" Loaded="SyncSettingPageLoaded_EventHandler">
 
     <Grid>
@@ -24,7 +24,7 @@
         </StackPanel>
         <StackPanel Grid.Row="1" Margin="10">
             <StackPanel Orientation="Vertical">
-                <TabControl Height="500" Name="SyncSettingTabControl">
+                <TabControl Height="520" Name="SyncSettingTabControl">
                     <TabItem Name="TabItemSyncSettingsBasics" Header="基本设置" FontSize="16">
                         <StackPanel Orientation="Vertical" Width="500" Margin="10">
                             <StackPanel>
@@ -51,15 +51,14 @@
                                         <Image Source="Pictures/reload.png"></Image>
                                     </Button>
                                 </StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                    <Label FontSize="16" Foreground="LightGray">目标空间所在机房:</Label>
-                                    <TextBlock Name="TextBlockTargetZone" FontSize="16" Padding="0,5,0,0" Foreground="LightGray"></TextBlock>
+                                <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                    <TextBlock Name="TextBlockTargetZone" FontSize="14" Foreground="Green"></TextBlock>
                                 </StackPanel>
                             </StackPanel>
-                            <TextBlock Name="SettingsErrorTextBlock" Foreground="Red" FontSize="14" TextWrapping="Wrap" Margin="0,10,0,0"></TextBlock>
+                            <TextBlock Name="SettingsErrorTextBlock" Foreground="Red" FontSize="14" TextWrapping="Wrap" Margin="0,20,0,0"></TextBlock>
                         </StackPanel>
                     </TabItem>
-                    <TabItem Name="TabItemSyncSettingsAdvanced" Header="高级设置" FontSize="16" Height="26" VerticalAlignment="Top">
+                    <TabItem Name="TabItemSyncSettingsAdvanced" Header="高级设置" FontSize="16" Margin="-2,-2,-2,2">
                         <StackPanel Orientation="Vertical" Width="560" Margin="0">
                             <StackPanel>
                                 <GroupBox Header="可选参数" FontSize="16">
@@ -81,11 +80,6 @@
                                         </StackPanel>
                                         <StackPanel Margin="5">
                                             <CheckBox Content="增量同步(只上传待同步目录下新增的文件)" FontSize="16" Name="CheckNewFilesCheckBox" VerticalContentAlignment="Center" Margin="5 0">
-                                                <CheckBox.ToolTip>
-                                                    <ToolTip BorderThickness="0" Background="Black" Foreground="Yellow">
-                                                        勾选此项时，对于之前上传过的文件，会直接跳过(不再上传)
-                                                    </ToolTip>
-                                                </CheckBox.ToolTip>
                                             </CheckBox>
                                         </StackPanel>
                                         <StackPanel Margin="5">
