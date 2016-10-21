@@ -124,8 +124,12 @@ namespace SunSync
 
             if (!ValidateAccount())
             {
+                // Account设置不正确-->无法开始任务
+                ButtonStartSync.IsEnabled = false;
                 return;
             }
+
+            ButtonStartSync.IsEnabled = true;
                 
             // 重建bucket列表
             this.SyncTargetBucketsComboBox.ItemsSource = null;
@@ -373,14 +377,20 @@ namespace SunSync
 
             if (statResult.ResponseInfo.isNetworkBroken())
             {
-                this.SettingsErrorTextBlock.Text = "网络故障";
+                Dispatcher.Invoke(new Action(delegate
+                {
+                    this.SettingsErrorTextBlock.Text = "网络故障";
+                }));
                 return false;
             }
 
             if (statResult.ResponseInfo.StatusCode == 401)
             {
                 //ak & sk not right
-                this.SettingsErrorTextBlock.Text = "AK 或 SK 不正确";
+                Dispatcher.Invoke(new Action(delegate
+                {
+                    this.SettingsErrorTextBlock.Text = "AK 或 SK 不正确，请返回设置";
+                }));
                 return false;
             }
             else if (statResult.ResponseInfo.StatusCode == 631)
@@ -398,24 +408,36 @@ namespace SunSync
             {
                 if (string.IsNullOrEmpty(statResult.ResponseInfo.Error))
                 {
-                    this.SettingsErrorTextBlock.Text = "未知错误(状态代码400)";
+                    Dispatcher.Invoke(new Action(delegate
+                    {
+                        this.SettingsErrorTextBlock.Text = "未知错误(状态代码400)";
+                    }));
                 }
                 else
                 {
                     if (statResult.ResponseInfo.Error.Equals("incorrect zone"))
                     {
-                        this.SettingsErrorTextBlock.Text = "上传入口机房设置错误";
+                        Dispatcher.Invoke(new Action(delegate
+                        {
+                            this.SettingsErrorTextBlock.Text = "上传入口机房设置错误";
+                        }));
                     }
                     else
                     {
-                        this.SettingsErrorTextBlock.Text = statResult.ResponseInfo.Error;
+                        Dispatcher.Invoke(new Action(delegate
+                        {
+                            this.SettingsErrorTextBlock.Text = statResult.ResponseInfo.Error;
+                        }));
                     }
                 }
                 return false;
             }
             else
             {
-                this.SettingsErrorTextBlock.Text = "未知错误，请联系七牛";
+                Dispatcher.Invoke(new Action(delegate
+                {
+                    this.SettingsErrorTextBlock.Text = "未知错误，请联系七牛";
+                }));
                 Log.Error(string.Format("get buckets unknown error, {0}:{1}:{2}:{3}", statResult.ResponseInfo.StatusCode,
                        statResult.ResponseInfo.Error, statResult.ResponseInfo.ReqId, statResult.Response));
                 return false;
@@ -428,7 +450,7 @@ namespace SunSync
         /// 检查基本设置
         /// </summary>
         private bool CheckSyncSettings()
-        {         
+        {          
             // 检查本地同步目录与远程同步空间
             string syncDirectory = this.SyncLocalFolderTextBox.Text.Trim();
             if (string.IsNullOrEmpty(syncDirectory) || !Directory.Exists(syncDirectory))
