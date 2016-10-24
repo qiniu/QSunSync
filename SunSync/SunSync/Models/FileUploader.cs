@@ -111,7 +111,7 @@ namespace SunSync.Models
                     else
                     {
                         // 写入记录
-                        CachedHash.InsertCachedHash(item.LocalFile, item.FileHash, "", localHashDB);
+                        CachedHash.InsertOrUpdateCachedHash(item.LocalFile, item.FileHash, "", localHashDB);
 
                         //insert or update sync log for file
                         try
@@ -124,10 +124,11 @@ namespace SunSync.Models
                         }                                            
 
                         //update 
-                        if (this.syncSetting.OverwriteDuplicate)
+                        if(this.syncProgressPage.isOverwritten(item.LocalFile))
                         {
-                            this.syncProgressPage.addFileOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket,
-                                 fileFullPath, item.SaveKey));
+                            // 如果该文件覆盖了云端原始文件
+                            this.syncProgressPage.addFileOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket, item.LocalFile, item.SaveKey));
+                            this.syncProgressPage.updateUploadLog("空间已存在相同文件，强制覆盖 " + item.LocalFile);
                         }
                         this.syncProgressPage.updateUploadLog("上传成功 " + fileFullPath);
                         this.syncProgressPage.addFileUploadSuccessLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket,

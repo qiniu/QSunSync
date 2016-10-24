@@ -23,8 +23,10 @@ namespace SunSync.Models
         /// <param name="bucket"></param>
         /// <param name="keys"></param>
         /// <returns></returns>
-        public static void BatchStat(Mac mac, string bucket, string[] keys, ref bool[] skip)
+        public static string[] BatchStat(Mac mac, string bucket, string[] keys)
         {
+            string[] remoteHash = new string[keys.Length];
+
             BucketManager bktMgr = new BucketManager(mac);
 
             StringBuilder opsb = new StringBuilder();
@@ -68,7 +70,7 @@ namespace SunSync.Models
                     if (statResults[i].CODE == 200)
                     {
                         // FOUND
-                        skip[g * X + i] = true;
+                        remoteHash[g * X + i] = statResults[i].DATA.hash;
                     }
                 }
             }
@@ -97,11 +99,13 @@ namespace SunSync.Models
             {
                 if (statResults[i].CODE == 200)
                 {
-                    skip[G * X + i] = true;
+                    remoteHash[G * X + i] = statResults[i].DATA.hash;
                 }
             }
 
             #endregion RESIDUE
+
+            return remoteHash;
         }                 
      
     }

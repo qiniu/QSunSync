@@ -70,6 +70,10 @@ namespace SunSync
         private void SaveAccountSetting(object accountObj)
         {
             Account account = (Account)accountObj;
+
+            //check ak & sk validity
+            ValidateAccount(account);
+
             //write settings to local file
             string accData = JsonConvert.SerializeObject(account);
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
@@ -104,12 +108,26 @@ namespace SunSync
                 {
                     this.SettingsErrorTextBlock.Text = "帐号设置写入文件失败";
                 }));
-            }
+            }            
+        }
+
+        /// <summary>
+        /// 使用stat模拟操作来检查Account是否正确
+        /// </summary>
+        /// <returns></returns>
+        private bool ValidateAccount(Account account)
+        {
+            Dispatcher.Invoke(new Action(delegate
+            {
+                this.SettingsErrorTextBlock.Text = "";
+            }));
 
             //check ak & sk validity
             Mac mac = new Mac(account.AccessKey, account.SecretKey);
             BucketManager bucketManager = new BucketManager(mac);
+
             StatResult statResult = bucketManager.stat("NONE_EXIST_BUCKET", "NONE_EXIST_KEY");
+
             if (statResult.ResponseInfo.isNetworkBroken())
             {
                 Log.Error("stat file network error, " + statResult.ResponseInfo.ToString());
@@ -147,8 +165,9 @@ namespace SunSync
                     }));
                 }
             }
-        }
 
+            return true;
+        }
 
         /// <summary>
         /// save account settings button click handler
