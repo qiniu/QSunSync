@@ -204,7 +204,7 @@ namespace SunSync
                 this.ChunkUploadThresholdSlider.Value = 100;//100MB
                 this.ThreadCountSlider.Value = 10;
                 this.ThreadCountLabel.Content = "10";
-                this.RadioButtonDirect.IsChecked = true;
+                this.RadioButtonFromCDN.IsChecked = true;
             }
         }
 
