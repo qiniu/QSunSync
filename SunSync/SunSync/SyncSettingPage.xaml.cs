@@ -483,7 +483,8 @@ namespace SunSync
             this.syncSetting.UploadFromCDN = this.RadioButtonFromCDN.IsChecked.Value;
 
             // 根据ZoneID完成相应配置
-            Qiniu.Common.Config.ConfigZone(targetZoneId);
+            Config.ConfigZone(targetZoneId);
+            Config.UploadFromCDN = this.syncSetting.UploadFromCDN;
 
             return true;
         }
