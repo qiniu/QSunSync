@@ -22,7 +22,7 @@
                 </StackPanel>
             </Border>
         </StackPanel>
-        <StackPanel Grid.Row="1" Margin="10">
+        <StackPanel Grid.Row="1" Margin="5">
             <StackPanel Orientation="Vertical">
                 <TabControl Height="520" Name="SyncSettingTabControl">
                     <TabItem Name="TabItemSyncSettingsBasics" Header="基本设置" FontSize="16">
@@ -58,39 +58,50 @@
                             <TextBlock Name="SettingsErrorTextBlock" Foreground="Red" FontSize="14" TextWrapping="Wrap" Margin="0,20,0,0"></TextBlock>
                         </StackPanel>
                     </TabItem>
-                    <TabItem Name="TabItemSyncSettingsAdvanced" Header="高级设置" FontSize="16" Margin="-2,-2,-2,2">
+                    <TabItem Name="TabItemSyncSettingsAdvanced" Header="高级设置" FontSize="14" Margin="-2,-2,-2,2">
                         <StackPanel Orientation="Vertical" Width="560" Margin="0">
                             <StackPanel>
-                                <GroupBox Header="可选参数" FontSize="16">
+                                <GroupBox Header="可选参数" FontSize="14">
                                     <StackPanel Orientation="Vertical" Margin="5">
                                         <StackPanel Orientation="Horizontal" Margin="5">
-                                            <Label FontSize="16" Content="附加文件前缀" VerticalAlignment="Center" Width="110"></Label>
+                                            <Label FontSize="14" Content="附加文件前缀" VerticalAlignment="Center" Width="110"></Label>
                                             <TextBox Width="350" Margin="10 0" VerticalContentAlignment="Center"
                                                      Name="PrefixTextBox" Foreground="Green"></TextBox>
                                         </StackPanel>                                       
                                         <StackPanel Orientation="Horizontal" Margin="5">
-                                            <Label FontSize="16" Content="按前缀跳过" VerticalAlignment="Center" Width="110"></Label>
+                                            <Label FontSize="14" Content="按前缀跳过" VerticalAlignment="Center" Width="110"></Label>
                                             <TextBox Width="350" Margin="10 0" VerticalContentAlignment="Center"
                                                      Name="SkipPrefixesTextBox" Foreground="Green"></TextBox>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="5">
-                                            <Label FontSize="16" Content="按后缀跳过" VerticalAlignment="Center" Width="110"></Label>
+                                            <Label FontSize="14" Content="按后缀跳过" VerticalAlignment="Center" Width="110"></Label>
                                             <TextBox Width="350" Margin="10 0" VerticalContentAlignment="Center"
                                                      Name="SkipSuffixesTextBox" Foreground="Green"></TextBox>
                                         </StackPanel>
                                         <StackPanel Margin="5">
-                                            <CheckBox Content="增量同步(只上传待同步目录下新增的文件)" FontSize="16" Name="CheckNewFilesCheckBox" VerticalContentAlignment="Center" Margin="5 0">
+                                            <CheckBox Content="增量同步(只上传待同步目录下新增的文件)" FontSize="14" Name="CheckNewFilesCheckBox" VerticalContentAlignment="Center" Margin="5 0">
                                             </CheckBox>
                                         </StackPanel>
-                                        <StackPanel Margin="5">
-                                            <CheckBox Content="使用短文件名(保存文件名中不含路径前缀)" FontSize="16" Name="CheckBoxUseShortFilename" VerticalContentAlignment="Center" Margin="5 0">
-                                                <CheckBox.ToolTip>
-                                                    <ToolTip BorderThickness="0" Background="Black" Foreground="Yellow">
-                                                        举例：源文件'C:/fakepath/hello.jpg'的短文件名为'hello.jpg'
-                                                    </ToolTip>
-                                                </CheckBox.ToolTip>
-                                            </CheckBox>
-                                        </StackPanel>
+                                        <GroupBox>
+                                            <StackPanel Orientation="Vertical">
+                                                <RadioButton Content="使用完整路径(保存文件名包含完整路径)" FontSize="14" Name="RadioButtonUseFullFilename" VerticalContentAlignment="Center" Margin="5">
+                                                </RadioButton>
+                                                <RadioButton Content="使用相对路径(从当前路径开始)" FontSize="14" Name="RadioButtonUseRelativePath" VerticalContentAlignment="Center" Margin="5">
+                                                    <RadioButton.ToolTip>
+                                                        <ToolTip BorderThickness="0" Background="Black" Foreground="Yellow">
+                                                            举例：当前路径'C:/dir1/','源文件'C:/dir1/dir2/hello.jpg',即将保存文件名为'dir2/hello.jpg'
+                                                        </ToolTip>
+                                                    </RadioButton.ToolTip>
+                                                </RadioButton>
+                                                <RadioButton Content="使用短文件名(保存文件名中不含路径前缀)" FontSize="14" Name="RadioButtonUseShortFilename" VerticalContentAlignment="Center" Margin="5">
+                                                    <RadioButton.ToolTip>
+                                                        <ToolTip BorderThickness="0" Background="Black" Foreground="Yellow">
+                                                            举例：源文件'C:/fakepath/hello.jpg'的短文件名为'hello.jpg'
+                                                        </ToolTip>
+                                                    </RadioButton.ToolTip>
+                                                </RadioButton>                                                
+                                            </StackPanel>                                            
+                                        </GroupBox>                                        
                                         <StackPanel Margin="5" Orientation="Horizontal">
                                             <Label>空间中同名文件</Label>
                                             <RadioButton GroupName="CheckRemoteDuplicates" Name="RadioButtonSkipDuplicate" Content="跳过" Margin="5,5,0,0"></RadioButton>
@@ -100,8 +111,8 @@
                                 </GroupBox>
                             </StackPanel>
                             <StackPanel Margin="0 ">
-                                <GroupBox Header="高级参数" FontSize="16">
-                                    <StackPanel Orientation="Vertical" Margin="5">
+                                <GroupBox Header="高级参数" FontSize="14">
+                                    <StackPanel Orientation="Vertical">
                                         <StackPanel Orientation="Horizontal" Margin="5">
                                             <Label Content="分片默认大小" VerticalAlignment="Center" Width="110"></Label>
                                             <ComboBox Width="320" VerticalAlignment="Center" Margin="10 0" Name="ChunkDefaultSizeComboBox" SelectionChanged="ChunkDefaultSizeSelectChanged_EventHandler">

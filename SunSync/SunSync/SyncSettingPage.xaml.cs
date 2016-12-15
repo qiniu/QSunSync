@@ -159,7 +159,19 @@ namespace SunSync
                 this.SkipPrefixesTextBox.Text = this.syncSetting.SkipPrefixes;
                 this.SkipSuffixesTextBox.Text = this.syncSetting.SkipSuffixes;
                 this.CheckNewFilesCheckBox.IsChecked = this.syncSetting.CheckNewFiles;
-                this.CheckBoxUseShortFilename.IsChecked = this.syncSetting.UseShortFilename;
+                switch(this.syncSetting.FilenameKind)
+                {
+                    case 0:
+                        this.RadioButtonUseFullFilename.IsChecked = true;
+                        break;
+                    case 1:
+                        this.RadioButtonUseRelativePath.IsChecked = true;
+                        break;
+                    case 2:
+                    default:
+                        this.RadioButtonUseShortFilename.IsChecked = true;
+                        break;
+                }
                 if (this.syncSetting.OverwriteDuplicate)
                 {
                     this.RadioButtonOverwriteDuplicate.IsChecked = true;
@@ -198,7 +210,7 @@ namespace SunSync
                 this.SkipPrefixesTextBox.Text = "";
                 this.SkipSuffixesTextBox.Text = "";
                 this.CheckNewFilesCheckBox.IsChecked = true;
-                this.CheckBoxUseShortFilename.IsChecked = true;
+                this.RadioButtonUseShortFilename.IsChecked = true;
                 this.RadioButtonSkipDuplicate.IsChecked = true;
                 this.ChunkDefaultSizeComboBox.SelectedIndex = 5; //512KB
                 this.ChunkUploadThresholdSlider.Value = 100;//100MB
@@ -293,7 +305,7 @@ namespace SunSync
             DialogResult dr = fbd.ShowDialog();
             if (dr.Equals(DialogResult.OK))
             {
-                this.SyncLocalFolderTextBox.Text = fbd.SelectedPath;
+                this.SyncLocalFolderTextBox.Text = fbd.SelectedPath.Replace('\\', '/');
             }
         }
 
@@ -467,6 +479,9 @@ namespace SunSync
             string targetBucket = this.SyncTargetBucketsComboBox.SelectedItem.ToString();
             ZoneID targetZoneId = zoneDict[targetBucket];
 
+            bool fnk0 = this.RadioButtonUseFullFilename.IsChecked.Value;
+            bool fnk1 = this.RadioButtonUseRelativePath.IsChecked.Value;
+
             // 完成syncSetting配置
             this.syncSetting.LocalDirectory = syncDirectory;
             this.syncSetting.TargetBucket = targetBucket;
@@ -476,14 +491,15 @@ namespace SunSync
             this.syncSetting.SkipPrefixes = this.SkipPrefixesTextBox.Text.Trim();
             this.syncSetting.SkipSuffixes = this.SkipSuffixesTextBox.Text.Trim();
             this.syncSetting.CheckNewFiles = this.CheckNewFilesCheckBox.IsChecked.Value;
-            this.syncSetting.UseShortFilename = this.CheckBoxUseShortFilename.IsChecked.Value;
+            this.syncSetting.FilenameKind = fnk0 ? 0 : (fnk1 ? 1 : 2);
             this.syncSetting.OverwriteDuplicate = this.RadioButtonOverwriteDuplicate.IsChecked.Value;
             this.syncSetting.DefaultChunkSize = this.defaultChunkSize;
             this.syncSetting.ChunkUploadThreshold = (int)this.ChunkUploadThresholdSlider.Value * 1024 * 1024;
             this.syncSetting.UploadFromCDN = this.RadioButtonFromCDN.IsChecked.Value;
 
             // 根据ZoneID完成相应配置
-            Qiniu.Common.Config.ConfigZone(targetZoneId);
+            Config.ConfigZone(targetZoneId);
+            Config.UploadFromCDN = this.syncSetting.UploadFromCDN;
 
             return true;
         }

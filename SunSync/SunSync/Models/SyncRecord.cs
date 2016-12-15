@@ -31,7 +31,7 @@ namespace SunSync.Models
         {
             SyncSetting setting = null;
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string jobsDb = System.IO.Path.Combine(myDocPath, "qsunsync", "sync_jobs.db");
+            string jobsDb = System.IO.Path.Combine(myDocPath, "qsunsync", "sync_jobs_v1.6.0.5.db");
 
             if (File.Exists(jobsDb))
             {
@@ -57,7 +57,7 @@ namespace SunSync.Models
                                 setting.SkipPrefixes = Convert.ToString(dr["skip_prefixes"]);
                                 setting.SkipSuffixes = Convert.ToString(dr["skip_suffixes"]);
                                 setting.CheckNewFiles = Convert.ToBoolean(dr["check_new_files"]);
-                                setting.UseShortFilename = Convert.ToBoolean(dr["use_short_filename"]);
+                                setting.FilenameKind = Convert.ToInt32(dr["file_name_kind"]);
                                 setting.OverwriteDuplicate = Convert.ToBoolean(dr["overwrite_duplicate"]);
                                 setting.DefaultChunkSize = Convert.ToInt32(dr["default_chunk_size"]);
                                 setting.ChunkUploadThreshold = Convert.ToInt32(dr["chunk_upload_threshold"]);
@@ -88,7 +88,7 @@ namespace SunSync.Models
                 .Append("[skip_prefixes] VARCHAR(500) NOT NULL,")
                 .Append("[skip_suffixes] VARCHAR(500) NOT NULL,")
                 .Append("[check_new_files] BOOLEAN NOT NULL,")
-                .Append("[use_short_filename] BOOLEAN NOT NULL,")
+                .Append("[file_name_kind] INTEGER NOT NULL,")
                 .Append("[overwrite_duplicate] BOOLEAN NOT NULL,")                
                 .Append("[default_chunk_size] INTEGER NOT NULL,")
                 .Append("[chunk_upload_threshold] INTEGER NOT NULL,")
@@ -151,7 +151,7 @@ namespace SunSync.Models
                             record.Settings.SkipPrefixes = Convert.ToString(dr["skip_prefixes"]);
                             record.Settings.SkipSuffixes = Convert.ToString(dr["skip_suffixes"]);
                             record.Settings.CheckNewFiles = Convert.ToBoolean(dr["check_new_files"]);
-                            record.Settings.UseShortFilename = Convert.ToBoolean(dr["use_short_filename"]);
+                            record.Settings.FilenameKind = Convert.ToInt32(dr["file_name_kind"]);
                             record.Settings.OverwriteDuplicate = Convert.ToBoolean(dr["overwrite_duplicate"]);
                             record.Settings.DefaultChunkSize = Convert.ToInt32(dr["default_chunk_size"]);
                             record.Settings.ChunkUploadThreshold = Convert.ToInt32(dr["chunk_upload_threshold"]);
@@ -174,10 +174,10 @@ namespace SunSync.Models
             string conStr = new SQLiteConnectionStringBuilder { DataSource = jobsDbPath }.ToString();
             string queryDelete = "DELETE FROM [sync_jobs] WHERE [job_id]=@job_id";
             string queryInsert = new StringBuilder().Append("INSERT INTO [sync_jobs] ([job_id], [date_time], [local_directory], [target_bucket], [target_zone_id],")
-                .Append("[sync_prefix], [skip_prefixes], [skip_suffixes], [check_new_files], [use_short_filename], [overwrite_duplicate],")
+                .Append("[sync_prefix], [skip_prefixes], [skip_suffixes], [check_new_files], [file_name_kind], [overwrite_duplicate],")
                 .Append("[default_chunk_size], [chunk_upload_threshold], [sync_thread_count], [upload_from_cdn])")
                 .Append(" VALUES ( @job_id, @date_time, @local_directory, @target_bucket, @target_zone_id, @sync_prefix, ")
-                .Append("@skip_prefixes, @skip_suffixes, @check_new_files, @use_short_filename, @overwrite_duplicate, ")
+                .Append("@skip_prefixes, @skip_suffixes, @check_new_files, @file_name_kind, @overwrite_duplicate, ")
                 .Append("@default_chunk_size, @chunk_upload_threshold, @sync_thread_count, @upload_from_cdn )").ToString();
             using (SQLiteConnection sqlCon = new SQLiteConnection(conStr))
             {
@@ -204,7 +204,7 @@ namespace SunSync.Models
                         sqlCmd.Parameters.Add("@skip_prefixes", System.Data.DbType.String);
                         sqlCmd.Parameters.Add("@skip_suffixes", System.Data.DbType.String);
                         sqlCmd.Parameters.Add("@check_new_files",System.Data.DbType.Boolean);
-                        sqlCmd.Parameters.Add("@use_short_filename", System.Data.DbType.Boolean);
+                        sqlCmd.Parameters.Add("@file_name_kind", System.Data.DbType.Int32);
                         sqlCmd.Parameters.Add("@overwrite_duplicate", System.Data.DbType.Boolean);                        
                         sqlCmd.Parameters.Add("@default_chunk_size", System.Data.DbType.Int32);
                         sqlCmd.Parameters.Add("@chunk_upload_threshold", System.Data.DbType.Int32);
@@ -220,7 +220,7 @@ namespace SunSync.Models
                         sqlCmd.Parameters["@skip_prefixes"].Value = syncSetting.SkipPrefixes;
                         sqlCmd.Parameters["@skip_suffixes"].Value = syncSetting.SkipSuffixes;
                         sqlCmd.Parameters["@check_new_files"].Value = syncSetting.CheckNewFiles;
-                        sqlCmd.Parameters["@use_short_filename"].Value = syncSetting.UseShortFilename;
+                        sqlCmd.Parameters["@file_name_kind"].Value = syncSetting.FilenameKind;
                         sqlCmd.Parameters["@overwrite_duplicate"].Value = syncSetting.OverwriteDuplicate;
                         sqlCmd.Parameters["@default_chunk_size"].Value = syncSetting.DefaultChunkSize;
                         sqlCmd.Parameters["@chunk_upload_threshold"].Value = syncSetting.ChunkUploadThreshold;

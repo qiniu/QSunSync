@@ -6,7 +6,7 @@
 
 ##下载安装
 
-下载链接(包含32bit和64bit版本)： [QSunSync-v1.6.0](http://devtools.qiniu.com/QSunSync-v1.6.0.zip)
+下载链接(包含32bit和64bit版本)： [QSunSync-v1.6.0.5](http://devtools.qiniu.com/QSunSync-v1.6.0.5.zip)
 
 **注意** 该软件的使用需要`.NET Framework 4.0`支持，如果您的机器上没有安装，可以从 [微软官方下载中心](https://www.microsoft.com/zh-cn/download/details.aspx?id=17718) 下载安装。
 
@@ -28,7 +28,7 @@
 如果你打算自行编译这个项目的话，请按照如下方式：
 
 1. 这个项目是使用 Visual Studio 2012 开发的，所以这个版本以上的都可以；
-2. 这个项目依赖另外一个项目提供的SDK，这个项目是 [qiniu-csharp-sdk](https://github.com/jemygraw/qiniu-csharp-sdk)；
+2. 这个项目依赖七牛云存储SDK ，请戳github链接[csharp-sdk](https://github.com/qiniu/csharp-sdk)；
 3. 然后，编译吧。
 
 

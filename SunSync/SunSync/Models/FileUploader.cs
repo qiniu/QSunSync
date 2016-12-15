@@ -101,35 +101,35 @@ namespace SunSync.Models
                                 fileFullPath, item.SaveKey, respInfo.Error + "" + response));
 
                         //file exists error
-                        if (respInfo.StatusCode == 614)
-                        {
-                            this.syncProgressPage.updateUploadLog("空间已存在，未覆盖 " + fileFullPath);
-                            this.syncProgressPage.addFileNotOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket,
-                                fileFullPath, item.SaveKey));
-                        }
+                        //if (respInfo.StatusCode == 614)
+                        //{
+                        //    this.syncProgressPage.updateUploadLog("空间已存在，未覆盖 " + fileFullPath);
+                        //    this.syncProgressPage.addFileNotOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket,
+                        //        fileFullPath, item.SaveKey));
+                        //}
                     }
                     else
                     {
                         // 写入记录
-                        CachedHash.InsertOrUpdateCachedHash(item.LocalFile, item.FileHash, "", localHashDB);
+                        //CachedHash.InsertOrUpdateCachedHash(item.LocalFile, item.FileHash, "", localHashDB);
 
                         //insert or update sync log for file
-                        try
-                        {
-                            SyncLog.InsertOrUpdateSyncLog(item.SaveKey, fileFullPath, fileLastModified, this.syncLogDB);
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Error(string.Format("insert ot update sync log error {0}", ex.Message));
-                        }                                            
+                        //try
+                        //{
+                        //    SyncLog.InsertOrUpdateSyncLog(item.SaveKey, fileFullPath, fileLastModified, this.syncLogDB);
+                        //}
+                        //catch (Exception ex)
+                        //{
+                        //    Log.Error(string.Format("insert ot update sync log error {0}", ex.Message));
+                        //}                                            
 
                         //update 
-                        if(this.syncProgressPage.isOverwritten(item.LocalFile))
-                        {
-                            // 如果该文件覆盖了云端原始文件
-                            this.syncProgressPage.addFileOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket, item.LocalFile, item.SaveKey));
-                            this.syncProgressPage.updateUploadLog("空间已存在相同文件，强制覆盖 " + item.LocalFile);
-                        }
+                        //if(this.syncProgressPage.isOverwritten(item.LocalFile))
+                        //{
+                        //    // 如果该文件覆盖了云端原始文件
+                        //    this.syncProgressPage.addFileOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket, item.LocalFile, item.SaveKey));
+                        //    this.syncProgressPage.updateUploadLog("空间已存在相同文件，强制覆盖 " + item.LocalFile);
+                        //}
                         this.syncProgressPage.updateUploadLog("上传成功 " + fileFullPath);
                         this.syncProgressPage.addFileUploadSuccessLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket,
                                 fileFullPath, item.SaveKey));

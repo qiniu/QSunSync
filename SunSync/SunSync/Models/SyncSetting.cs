@@ -28,7 +28,11 @@ namespace SunSync.Models
         public bool CheckNewFiles { set; get; }
         
         //using short filename (ingnore directory path)
-        public bool UseShortFilename { set; get; }
+        // or fullname relative-path
+        // 0: Full
+        // 1: Relative
+        // 2: Short
+        public int FilenameKind { set; get; }
 
         //overwrite remote duplicate
         public bool OverwriteDuplicate { set; get; }
