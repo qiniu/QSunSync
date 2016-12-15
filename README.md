@@ -6,7 +6,7 @@
 
 ##下载安装
 
-下载链接(包含32bit和64bit版本)： [QSunSync-v1.6.0](http://devtools.qiniu.com/QSunSync-v1.6.0.zip)
+下载链接(包含32bit和64bit版本)： [QSunSync-v1.6.0.5](http://devtools.qiniu.com/QSunSync-v1.6.0.5.zip)
 
 **注意** 该软件的使用需要`.NET Framework 4.0`支持，如果您的机器上没有安装，可以从 [微软官方下载中心](https://www.microsoft.com/zh-cn/download/details.aspx?id=17718) 下载安装。
 
