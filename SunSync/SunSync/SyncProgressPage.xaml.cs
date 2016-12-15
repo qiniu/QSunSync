@@ -110,7 +110,7 @@ namespace SunSync
             this.jobId = Tools.md5Hash(jobName);
 
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunsync", "sync_jobs.db");
+            this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunsync", "sync_jobs_v1.6.0.5.db");
             this.jobLogDir = System.IO.Path.Combine(myDocPath, "qsunsync", "logs", jobId);
 
             string localHashDBDir = System.IO.Path.Combine(myDocPath, "qsunsync", "hashdb");
@@ -182,21 +182,30 @@ namespace SunSync
             string[] keys = new string[originalCount];
             bool[] skip = new bool[originalCount];
             overwriteDict = new Dictionary<string, bool>();
+
             for(int i=0;i<originalCount;++i)
             {
-                files.Add(fileInfos[i].FullName);
+                string fullName = fileInfos[i].FullName.Replace('\\', '/');
+                string relativeName = fullName.Substring(syncSetting.LocalDirectory.Length + 1);
 
-                if(syncSetting.UseShortFilename)
+                files.Add(fullName);                
+
+                switch(syncSetting.FilenameKind)
                 {
-                    keys[i] = syncSetting.SyncPrefix + fileInfos[i].Name;
-                }
-                else
-                {
-                    keys[i] = syncSetting.SyncPrefix + fileInfos[i].FullName;
+                    case 0:
+                        keys[i] = syncSetting.SyncPrefix + fullName;
+                        break;
+                    case 1:
+                        keys[i] = syncSetting.SyncPrefix + relativeName;
+                        break;
+                    case 2:
+                    default:
+                        keys[i] = syncSetting.SyncPrefix + fileInfos[i].Name;
+                        break;
                 }
 
                 skip[i] = false;
-                overwriteDict.Add(fileInfos[i].FullName, false);
+                overwriteDict.Add(fullName, false);
             }
 
             // 按照前缀/后缀跳过
@@ -253,8 +262,26 @@ namespace SunSync
             Qiniu.Util.Mac mac = new Qiniu.Util.Mac(SystemConfig.ACCESS_KEY, SystemConfig.SECRET_KEY);
             string[] remoteHash = BucketFileHash.BatchStat(mac, syncSetting.TargetBucket, keys);
 
-            // 跳过
-            if (!syncSetting.OverwriteDuplicate)
+            // 覆盖
+            if (syncSetting.OverwriteDuplicate)
+            {
+                for (int i = 0; i < originalCount; ++i)
+                {
+                    if (skip[i]) continue;
+
+                    if (!string.IsNullOrEmpty(remoteHash[i]))
+                    {
+                        string localHash = Qiniu.Util.QETag.hash(files[i]);
+                        if (string.Equals(localHash, remoteHash[i]))
+                        {
+                            addFileOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket, files[i], keys[i]));
+                            updateUploadLog("空间已存在相同文件，覆盖文件 " + files[i]);
+                            overwriteDict[files[i]] = true;
+                        }
+                    }
+                }
+            }
+            else // 跳过
             {
                 for (int i = 0; i < originalCount; ++i)
                 {
@@ -270,25 +297,7 @@ namespace SunSync
                             skip[i] = true;
                         }
                     }
-                }
-            }
-            else // 覆盖
-            {
-                for (int i = 0; i < originalCount; ++i)
-                {
-                    if (skip[i]) continue;
-
-                    if (!string.IsNullOrEmpty(remoteHash[i]))
-                    {
-                        string localHash = Qiniu.Util.QETag.hash(files[i]);
-                        if (string.Equals(localHash, remoteHash[i]))
-                        {
-                            addFileNotOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket, files[i], keys[i]));
-                            updateUploadLog("空间已存在相同文件，跳过文件 " + files[i]);
-                            overwriteDict[files[i]] = true;
-                        }
-                    }
-                }
+                } 
             }
 
             using (StreamWriter sw = new StreamWriter(cacheFilePathDone))
@@ -365,15 +374,26 @@ namespace SunSync
                         if (this.batchOpFiles.Count < this.syncSetting.SyncThreadCount)
                         {
                             FileInfo fi = new FileInfo(filePath);
+
+                            string fullName = fi.FullName.Replace('\\', '/');
+                            string relativeName = fullName.Substring(syncSetting.LocalDirectory.Length + 1);
+
                             string fn = syncSetting.SyncPrefix;
-                            if(syncSetting.UseShortFilename)
+
+                            switch (syncSetting.FilenameKind)
                             {
-                                fn += fi.Name;
+                                case 0:
+                                    fn += fullName;
+                                    break;
+                                case 1:
+                                    fn += relativeName;
+                                    break;
+                                case 2:
+                                default:
+                                    fn += fi.Name;
+                                    break;
                             }
-                            else
-                            {
-                                fn += filePath;
-                            }
+
                             FileItem item = new FileItem()
                             {
                                 LocalFile = filePath,
@@ -388,15 +408,25 @@ namespace SunSync
                             this.uploadFiles(this.batchOpFiles);
                             this.batchOpFiles.Clear();
                             FileInfo fi = new FileInfo(filePath);
+                            string fullName = fi.FullName.Replace('\\', '/');
+                            string relativeName = fullName.Substring(syncSetting.LocalDirectory.Length + 1);
+
                             string fn = syncSetting.SyncPrefix;
-                            if (syncSetting.UseShortFilename)
+
+                            switch (syncSetting.FilenameKind)
                             {
-                                fn += fi.Name;
+                                case 0:
+                                    fn += fi.Name;
+                                    break;
+                                case 1:
+                                    fn += relativeName;
+                                    break;
+                                case 2:
+                                default:
+                                    fn += fullName;
+                                    break;
                             }
-                            else
-                            {
-                                fn += filePath;
-                            }
+
                             FileItem item = new FileItem()
                             {
                                 LocalFile = filePath,
@@ -404,6 +434,7 @@ namespace SunSync
                                 FileHash = Qiniu.Util.QETag.hash(filePath),
                                 LastUpdate = fi.LastWriteTime.Ticks.ToString()
                             };
+
                             this.batchOpFiles.Add(item);
                         }
                     }
@@ -433,6 +464,8 @@ namespace SunSync
             try
             {
                 WaitHandle.WaitAll(doneEvents);
+                CachedHash.BatchInsertOrUpdate(filesToUpload, localHashDB);
+                SyncLog.BatchInsertOrUpdate(filesToUpload, syncLogDB);
             }
             catch (Exception ex)
             {
