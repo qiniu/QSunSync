@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
+﻿using System.Text;
+using Qiniu.Common;
 using Qiniu.Util;
-using Qiniu.Storage;
+using Qiniu.RS;
+using Qiniu.RS.Model;
 using Qiniu.Http;
 using Newtonsoft.Json;
 
@@ -29,78 +27,60 @@ namespace SunSync.Models
 
             BucketManager bktMgr = new BucketManager(mac);
 
-            StringBuilder opsb = new StringBuilder();
-
             int N = keys.Length;
             int X = 1000;
             int G = N / X;
             int M = N % X;
             int i;
-            bool first = false;
-
-            string s1 = "op=/stat/";
-            string s2 = "&op=/stat/";
-            string s = "";
-
-            HttpResult result = null;
-            StatResponse[] statResults = null;
 
             #region LOOP
             for (int g = 0; g < G; ++g)
             {
-                opsb.Clear();
-                first = true;
+                string[] keys_1 = new string[X];
                 for (i = 0; i < X; ++i)
                 {
-                    s = s2;
-                    if (first)
-                    {
-                        s = s1;
-                        first = false;
-                    }
-                    opsb.Append(s + StringUtils.encodedEntry(bucket, keys[g*X+i]));
+                    keys_1[i] = keys[g * X + i];
                 }
 
-                result = bktMgr.batch(opsb.ToString());
-
-                statResults = JsonConvert.DeserializeObject<StatResponse[]>(result.Response);
+                var r1 = bktMgr.BatchStat(bucket,keys_1);
 
                 for (i = 0; i < X; ++i)
                 {
-                    if (statResults[i].CODE == 200)
+                    var s1r = r1.Result[i];
+                    if (s1r.Code == HttpHelper.STATUS_CODE_OK )
                     {
+                        var s = JsonConvert.DeserializeObject<StatInfo>(s1r.Data.ToString());
                         // FOUND
-                        remoteHash[g * X + i] = statResults[i].DATA.hash;
+                        remoteHash[g * X + i] = s.Hash;
                     }
                 }
             }
             #endregion LOOP
-            
+
             #region RESIDUE
 
-            opsb.Clear();
-            first = true;
+            string[] keys_2 = new string[M];
             for (i = 0; i < M; ++i)
             {
-                s = s2;
-                if (first)
-                {
-                    s = s1;
-                    first = false;
-                }
-                opsb.Append(s + StringUtils.encodedEntry(bucket, keys[G*X+i]));
+                keys_2[i] = keys[G * X + i];
             }
 
-            result = bktMgr.batch(opsb.ToString());
-
-            statResults = JsonConvert.DeserializeObject<StatResponse[]>(result.Response);
+            var r2 = bktMgr.BatchStat(bucket, keys_2);
 
             for (i = 0; i < M; ++i)
             {
-                if (statResults[i].CODE == 200)
+                var s2r = r2.Result[i];
+
+                if(s2r.Code==HttpHelper.STATUS_CODE_OK)
                 {
-                    remoteHash[G * X + i] = statResults[i].DATA.hash;
+                    var s = JsonConvert.DeserializeObject<StatInfo>(s2r.Data.ToString());
+                    // FOUND
+                    remoteHash[G * X + i] = s.Hash;
                 }
+                //if (r2[i].Code == 200)
+                //{
+                //    remoteHash[G * X + i] = r2[i].StatInfo.Hash;
+                //}
             }
 
             #endregion RESIDUE
@@ -167,6 +147,8 @@ namespace SunSync.Models
         public string LocalFile { set; get; }
         public string SaveKey { set; get; }
         public string FileSize { get; set; }
+
+        public long Length { get; set; }
 
         public string FileHash { get; set; }
         public string LastUpdate { get; set; }

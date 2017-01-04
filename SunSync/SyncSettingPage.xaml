@@ -15,7 +15,7 @@
         <StackPanel Grid.Row="0">
             <Border BorderBrush="#FF1986D1" BorderThickness="0 0 0 2">
                 <StackPanel Orientation="Horizontal" Margin="10">
-                    <Image Height="48" Width="48" Source="Pictures/back.png" VerticalAlignment="Center" 
+                    <Image Height="48" Width="48" Source="Images/back.png" VerticalAlignment="Center" 
                        Cursor="Hand"
                        MouseLeftButtonUp="BackToHome_EventHandler"/>
                     <TextBlock Text="同步设置" FontSize="32" VerticalAlignment="Center" Margin="10 0"></TextBlock>
@@ -34,7 +34,7 @@
                                              VerticalContentAlignment="Center" Name="SyncLocalFolderTextBox"></TextBox>
                                     <Button Width="52" Height="52" Margin="10 0" 
                                             Click="BrowseFolderButton_EventHandler">
-                                        <Image Source="Pictures/folder.png"></Image>
+                                        <Image Source="Images/folder.png"></Image>
                                     </Button>
                                 </StackPanel>
                             </StackPanel>
@@ -48,7 +48,7 @@
                                     </ComboBox>
                                     <Button Width="52" Height="52" Margin="10 0" 
                                                 Click="ReloadBucketButton_EventHandler">
-                                        <Image Source="Pictures/reload.png"></Image>
+                                        <Image Source="Images/reload.png"></Image>
                                     </Button>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
@@ -126,11 +126,11 @@
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="5">
                                             <Label Content="分片上传阈值" VerticalAlignment="Center" Width="110"></Label>
-                                            <Slider  Width="320" VerticalAlignment="Center" Margin="10 0" Minimum="4" Maximum="500"
+                                            <Slider  Width="320" VerticalAlignment="Center" Margin="10 0" Minimum="4" Maximum="100"
                                                      Name="ChunkUploadThresholdSlider" 
                                                       IsSnapToTickEnabled="True" TickFrequency="1"
                                                      VerticalContentAlignment="Center" ValueChanged="ChunkUploadThresholdChange_EventHandler"/>
-                                            <Label Name="ChunkUploadThresholdLabel" FontSize="10" VerticalContentAlignment="Center">10MB</Label>
+                                            <Label Name="ChunkUploadThresholdLabel" FontSize="10" VerticalContentAlignment="Center">4MB</Label>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="5">
                                             <Label Content="同步的并发数" VerticalAlignment="Center" Width="110"></Label>

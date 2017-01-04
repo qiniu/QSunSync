@@ -43,8 +43,8 @@ namespace SunSync
             }
             this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunsync", "sync_jobs_v1.6.0.5.db");
             this.topBGImages = new List<string>();
-            this.topBGImages.Add("Pictures/qiniu_logo.jpg");
-            this.topBGImages.Add("Pictures/qiniu_logo.jpg");
+            this.topBGImages.Add("Images/qiniu_logo.jpg");
+            this.topBGImages.Add("Images/qiniu_logo.jpg");
             this.clickCount = 0;
         }
 
@@ -281,6 +281,10 @@ namespace SunSync
             }
             else
             {
+                // 设置AK&SK
+                SystemConfig.ACCESS_KEY = account.AccessKey;
+                SystemConfig.SECRET_KEY = account.SecretKey;
+
                 this.CreateNewTask_TextBlock.Foreground = System.Windows.Media.Brushes.MediumBlue;
                 this.CreateNewTask_TextBlock.IsEnabled = true;
             }

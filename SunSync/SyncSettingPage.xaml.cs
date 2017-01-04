@@ -4,15 +4,13 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Forms;
-using SunSync.Models;
-using Qiniu.Common;
-using Qiniu.Storage;
-using Qiniu.Util;
-using Qiniu.Storage.Model;
 using System.Threading;
 using System;
-using System.Collections.ObjectModel;
-using System.Data.SQLite;
+using SunSync.Models;
+using Qiniu.Common;
+using Qiniu.RS;
+using Qiniu.RS.Model;
+using Qiniu.Http;
 
 namespace SunSync
 {
@@ -27,7 +25,6 @@ namespace SunSync
         private Dictionary<int, int> defaultChunkDict;
         private MainWindow mainWindow;
 
-        private Account account;
         private SyncSetting syncSetting;
         private BucketManager bucketManager;
 
@@ -82,7 +79,7 @@ namespace SunSync
         /// <param name="syncSetting"></param>
         public void LoadSyncSetting(SyncSetting syncSetting)
         {
-            if(syncSetting==null)
+            if (syncSetting == null)
             {
                 isLoadedFromRecord = false;
                 this.syncSetting = new SyncSetting();
@@ -93,7 +90,9 @@ namespace SunSync
                 this.syncSetting = syncSetting;
             }
 
-            this.bucketManager = null;
+            // 初始化bucketManager
+            Mac mac = new Mac(SystemConfig.ACCESS_KEY, SystemConfig.SECRET_KEY);
+            this.bucketManager = new BucketManager(mac);
         }
 
         /// <summary>
@@ -103,34 +102,7 @@ namespace SunSync
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void SyncSettingPageLoaded_EventHandler(object sender, RoutedEventArgs e)
-        {
-            // 尝试载入account
-            this.account = Account.TryLoadAccount();
-
-            // 检查AK&SK
-            if (string.IsNullOrEmpty(this.account.AccessKey) || string.IsNullOrEmpty(this.account.SecretKey))
-            {
-                this.SettingsErrorTextBlock.Text = "请设置AK&SK";
-                return;
-            }
-
-            // 设置AK&SK
-            SystemConfig.ACCESS_KEY = this.account.AccessKey;
-            SystemConfig.SECRET_KEY = this.account.SecretKey;
-
-            // 初始化bucketManager
-            Mac mac = new Mac(this.account.AccessKey, this.account.SecretKey);
-            this.bucketManager = new BucketManager(mac);
-
-            if (!ValidateAccount())
-            {
-                // Account设置不正确-->无法开始任务
-                ButtonStartSync.IsEnabled = false;
-                return;
-            }
-
-            ButtonStartSync.IsEnabled = true;
-                
+        {                
             // 重建bucket列表
             this.SyncTargetBucketsComboBox.ItemsSource = null;
             new Thread(new ThreadStart(this.reloadBuckets)).Start();
@@ -182,7 +154,7 @@ namespace SunSync
                 }
                 this.ThreadCountSlider.Value = this.syncSetting.SyncThreadCount;
                 this.ThreadCountLabel.Content = this.syncSetting.SyncThreadCount.ToString();
-                this.ChunkUploadThresholdSlider.Value = this.syncSetting.ChunkUploadThreshold / 1024 / 1024;
+                this.ChunkUploadThresholdSlider.Value = this.syncSetting.ChunkUploadThreshold / (1024 * 1024);
                 int defaultChunkSizeIndex = 2;
                 if (this.defaultChunkDict.ContainsKey(this.syncSetting.DefaultChunkSize))
                 {
@@ -212,8 +184,8 @@ namespace SunSync
                 this.CheckNewFilesCheckBox.IsChecked = true;
                 this.RadioButtonUseShortFilename.IsChecked = true;
                 this.RadioButtonSkipDuplicate.IsChecked = true;
-                this.ChunkDefaultSizeComboBox.SelectedIndex = 5; //512KB
-                this.ChunkUploadThresholdSlider.Value = 100;//100MB
+                this.ChunkDefaultSizeComboBox.SelectedIndex = 5; //2MB
+                this.ChunkUploadThresholdSlider.Value = 4;//4MB
                 this.ThreadCountSlider.Value = 10;
                 this.ThreadCountLabel.Content = "10";
                 this.RadioButtonFromCDN.IsChecked = true;
@@ -224,15 +196,15 @@ namespace SunSync
         private void reloadBuckets()
         {
             //get new bucket list
-            BucketsResult bucketsResult = this.bucketManager.buckets();
-            if (bucketsResult.ResponseInfo.isOk())
+            BucketsResult bucketsResult = this.bucketManager.Buckets();
+            if (bucketsResult.Code == HttpHelper.STATUS_CODE_OK)
             {
-                List<string> buckets = bucketsResult.Buckets;
+                List<string> buckets = bucketsResult.Result;
 
                 zoneDict.Clear();
-                foreach(string bucket in buckets)
+                foreach (string bucket in buckets)
                 {
-                    ZoneID zoneId = AutoZone.Query(account.AccessKey, bucket);
+                    ZoneID zoneId = ZoneHelper.QueryZone(SystemConfig.ACCESS_KEY, bucket);
                     zoneDict.Add(bucket, zoneId);
                 }
 
@@ -241,32 +213,12 @@ namespace SunSync
                     this.SyncTargetBucketsComboBox.ItemsSource = buckets;
                 }));
             }
-            else if (bucketsResult.ResponseInfo.isNetworkBroken())
-            {
-                Log.Error("get buckets network error, " + bucketsResult.ResponseInfo.ToString());
-                Dispatcher.Invoke(new Action(delegate
-                {
-                    this.SettingsErrorTextBlock.Text = "网络故障";
-                }));
-            }
-            else if (bucketsResult.ResponseInfo.StatusCode == 401)
-            {
-                Dispatcher.Invoke(new Action(delegate
-                {
-                    this.SettingsErrorTextBlock.Text = "AK 或 SK 不正确";
-                }));
-            }
-            else if (bucketsResult.ResponseInfo.StatusCode != 0)
-            {
-                //status code exists,ignore
-            }
             else
             {
-                Log.Error(string.Format("get buckets unknown error, {0}:{1}:{2}:{3}", bucketsResult.ResponseInfo.StatusCode,
-                        bucketsResult.ResponseInfo.Error, bucketsResult.ResponseInfo.ReqId, bucketsResult.Response));
+                Log.Error("get buckets error, " + bucketsResult.Text);
                 Dispatcher.Invoke(new Action(delegate
                 {
-                    this.SettingsErrorTextBlock.Text = "未知错误，请联系七牛";
+                    this.SettingsErrorTextBlock.Text = "获取空间列表时出错";
                 }));
             }
         }
@@ -348,7 +300,7 @@ namespace SunSync
                     this.defaultChunkSize = 4 * 1024 * 1024; //4MB
                     break;
                 default:
-                    this.defaultChunkSize = 512 * 1024;//512KB
+                    this.defaultChunkSize = 2 * 1024 * 1024; //2MB
                     break;
             }
         }
@@ -385,74 +337,24 @@ namespace SunSync
         /// <returns></returns>
         private bool ValidateAccount()
         {
-            StatResult statResult = this.bucketManager.stat("NONE_EXIST_BUCKET", "NONE_EXIST_KEY");
+            int code = bucketManager.Stat("NONE_EXIST_BUCKET", "NONE_EXIST_KEY").Code;
 
-            if (statResult.ResponseInfo.isNetworkBroken())
+            if (code == 631 || code == 612 || code == 200)
             {
+                Log.Info("ak & sk is valid");
                 Dispatcher.Invoke(new Action(delegate
                 {
-                    this.SettingsErrorTextBlock.Text = "网络故障";
+                    this.SettingsErrorTextBlock.Text = "";
+                    this.mainWindow.GotoHomePage();
                 }));
-                return false;
-            }
-
-            if (statResult.ResponseInfo.StatusCode == 401)
-            {
-                //ak & sk not right
-                Dispatcher.Invoke(new Action(delegate
-                {
-                    this.SettingsErrorTextBlock.Text = "AK 或 SK 不正确，请返回设置";
-                }));
-                return false;
-            }
-            else if (statResult.ResponseInfo.StatusCode == 631)
-            {
-                //bucket not exist
-                //ignore
-            }
-            else if (statResult.ResponseInfo.StatusCode == 612
-                || statResult.ResponseInfo.StatusCode == 200)
-            {
-                //file exists or not
-                //ignore
-            }
-            else if (statResult.ResponseInfo.StatusCode == 400)
-            {
-                if (string.IsNullOrEmpty(statResult.ResponseInfo.Error))
-                {
-                    Dispatcher.Invoke(new Action(delegate
-                    {
-                        this.SettingsErrorTextBlock.Text = "未知错误(状态代码400)";
-                    }));
-                }
-                else
-                {
-                    if (statResult.ResponseInfo.Error.Equals("incorrect zone"))
-                    {
-                        Dispatcher.Invoke(new Action(delegate
-                        {
-                            this.SettingsErrorTextBlock.Text = "上传入口机房设置错误";
-                        }));
-                    }
-                    else
-                    {
-                        Dispatcher.Invoke(new Action(delegate
-                        {
-                            this.SettingsErrorTextBlock.Text = statResult.ResponseInfo.Error;
-                        }));
-                    }
-                }
-                return false;
             }
             else
             {
+                Log.Error("ak & sk wrong");
                 Dispatcher.Invoke(new Action(delegate
                 {
-                    this.SettingsErrorTextBlock.Text = "未知错误，请联系七牛";
+                    this.SettingsErrorTextBlock.Text = "AK 或 SK 设置不正确";
                 }));
-                Log.Error(string.Format("get buckets unknown error, {0}:{1}:{2}:{3}", statResult.ResponseInfo.StatusCode,
-                       statResult.ResponseInfo.Error, statResult.ResponseInfo.ReqId, statResult.Response));
-                return false;
             }
 
             return true;
@@ -462,7 +364,7 @@ namespace SunSync
         /// 检查基本设置
         /// </summary>
         private bool CheckSyncSettings()
-        {          
+        {
             // 检查本地同步目录与远程同步空间
             string syncDirectory = this.SyncLocalFolderTextBox.Text.Trim();
             if (string.IsNullOrEmpty(syncDirectory) || !Directory.Exists(syncDirectory))
@@ -498,8 +400,7 @@ namespace SunSync
             this.syncSetting.UploadFromCDN = this.RadioButtonFromCDN.IsChecked.Value;
 
             // 根据ZoneID完成相应配置
-            Config.ConfigZone(targetZoneId);
-            Config.UploadFromCDN = this.syncSetting.UploadFromCDN;
+            Config.SetZone(targetZoneId, false);
 
             return true;
         }

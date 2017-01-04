@@ -6,9 +6,14 @@
 
 ##下载安装
 
-下载链接(包含32bit和64bit版本)： [QSunSync-v1.6.0.5](http://devtools.qiniu.com/QSunSync-v1.6.0.5.zip)
+[QSunSync-v1.5.2](http://devtools.qiniu.com/QSunSync-v1.5.2.zip) 
 
-**注意** 该软件的使用需要`.NET Framework 4.0`支持，如果您的机器上没有安装，可以从 [微软官方下载中心](https://www.microsoft.com/zh-cn/download/details.aspx?id=17718) 下载安装。
+[QSunSync-v1.6.0](https://github.com/fengyhack/QSunSync/releases/tag/v1.6.0)
+
+1. 该软件的使用需要`.NET Framework 4.0`支持，可以从 [微软官方下载中心](https://www.microsoft.com/zh-cn/download/details.aspx?id=17718) 下载安装。  
+2. 该软件使用了`SQLite`数据库来记录本地文件的hash值，所以需要在`.NET Framework4.0`安装完成之后，安装`SQLite`支持软件，这个可以从 [这里](
+http://devtools.qiniu.com/sqlite_net4.0.exe) 下载，该软件仅仅是一个依赖库，不会对原有系统稳定性造成影响。  
+3. 然后下载`QSunSync`解压缩后，双击 `QSunSync.exe` 打开就可以使用了。 
 
 ##功能介绍
 
@@ -28,7 +33,7 @@
 如果你打算自行编译这个项目的话，请按照如下方式：
 
 1. 这个项目是使用 Visual Studio 2012 开发的，所以这个版本以上的都可以；
-2. 这个项目依赖七牛云存储SDK ，请戳github链接[csharp-sdk](https://github.com/qiniu/csharp-sdk)；
+2. 这个项目依赖另外一个项目提供的SDK，这个项目是 [qiniu-csharp-sdk](https://github.com/jemygraw/qiniu-csharp-sdk)；
 3. 然后，编译吧。
 
 

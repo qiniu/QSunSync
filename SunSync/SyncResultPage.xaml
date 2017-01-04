@@ -15,7 +15,7 @@
         <StackPanel Grid.Row="0">
             <Border BorderBrush="#FF1986D1" BorderThickness="0 0 0 2">
                 <StackPanel Orientation="Horizontal" Margin="10">
-                    <Image Height="48" Width="48" Source="Pictures/result.png" VerticalAlignment="Center" />
+                    <Image Height="48" Width="48" Source="Images/result.png" VerticalAlignment="Center" />
                     <TextBlock Text="同步结果" FontSize="32" VerticalAlignment="Center" Margin="10 0" Width="500"
                                Name="SyncResultTitleTextBlock"></TextBlock>
                 </StackPanel>

@@ -6,9 +6,10 @@ using Newtonsoft.Json;
 using SunSync.Models;
 using System.IO;
 using System.Threading;
-using Qiniu.Util;
-using Qiniu.Storage;
-using Qiniu.Storage.Model;
+using Qiniu.Common;
+using Qiniu.RS;
+using Qiniu.RS.Model;
+
 namespace SunSync
 {
     /// <summary>
@@ -125,45 +126,24 @@ namespace SunSync
             //check ak & sk validity
             Mac mac = new Mac(account.AccessKey, account.SecretKey);
             BucketManager bucketManager = new BucketManager(mac);
+            int code = bucketManager.Stat("NONE_EXIST_BUCKET", "NONE_EXIST_KEY").Code;
 
-            StatResult statResult = bucketManager.stat("NONE_EXIST_BUCKET", "NONE_EXIST_KEY");
-
-            if (statResult.ResponseInfo.isNetworkBroken())
+            if (code == 631 || code == 612 || code == 200)
             {
-                Log.Error("stat file network error, " + statResult.ResponseInfo.ToString());
+                Log.Info("ak & sk is valid");
                 Dispatcher.Invoke(new Action(delegate
                 {
-                    this.SettingsErrorTextBlock.Text = "网络故障";
+                    this.SettingsErrorTextBlock.Text = "";
+                    this.mainWindow.GotoHomePage();
                 }));
             }
             else
             {
-                if (statResult.ResponseInfo.StatusCode == 401)
+                Log.Error("ak & sk wrong");
+                Dispatcher.Invoke(new Action(delegate
                 {
-                    Log.Error("ak & sk wrong");
-                    Dispatcher.Invoke(new Action(delegate
-                    {
-                        this.SettingsErrorTextBlock.Text = "AK 或 SK 设置不正确";
-                    }));
-                }
-                else if (statResult.ResponseInfo.StatusCode == 612 || statResult.ResponseInfo.StatusCode == 631)
-                {
-                    Log.Info("ak & sk is valid");
-                    Dispatcher.Invoke(new Action(delegate
-                    {
-                        this.SettingsErrorTextBlock.Text = "";
-                        this.mainWindow.GotoHomePage();
-                    }));
-                }
-                else
-                {
-                    Log.Error(string.Format("valid ak&sk unknown error, {0}:{1}:{2}:{3}", statResult.ResponseInfo.StatusCode,
-                        statResult.ResponseInfo.Error, statResult.ResponseInfo.ReqId, statResult.Response));
-                    Dispatcher.Invoke(new Action(delegate
-                    {
-                        this.SettingsErrorTextBlock.Text = "未知错误，请联系七牛";
-                    }));
-                }
+                    this.SettingsErrorTextBlock.Text = "AK 或 SK 设置不正确";
+                }));
             }
 
             return true;

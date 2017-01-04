@@ -17,7 +17,7 @@
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0">
             <StackPanel Orientation="Horizontal" Margin="10">
-                <Image Height="48" Width="48" Source="Pictures/cloud.png" VerticalAlignment="Center"/>
+                <Image Height="48" Width="48" Source="Images/cloud.png" VerticalAlignment="Center"/>
                 <TextBlock Text="同步进度" FontSize="32" VerticalAlignment="Center" Margin="10 0"></TextBlock>
             </StackPanel>
         </StackPanel>

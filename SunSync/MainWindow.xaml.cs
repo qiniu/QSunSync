@@ -17,6 +17,7 @@ namespace SunSync
         private SyncSettingPage syncSettingPage;
         private SyncProgressPage syncProgressPage;
         private SyncResultPage syncResultPage;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -92,7 +93,7 @@ namespace SunSync
         //go to sync setting page
         internal void GotoSyncSettingPage(SyncSetting syncSetting)
         {
-            this.MainHostFrame.Content = this.syncSettingPage;
+            this.MainHostFrame.Content = this.syncSettingPage;            
             this.syncSettingPage.LoadSyncSetting(syncSetting);
         }
 

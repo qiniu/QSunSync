@@ -15,7 +15,7 @@
         <StackPanel Grid.Row="0">
             <Border BorderBrush="#FF1986D1" BorderThickness="0 0 0 2">
                 <StackPanel Orientation="Horizontal" Margin="10">
-                    <Image Height="48" Width="48" Source="Pictures/back.png" 
+                    <Image Height="48" Width="48" Source="Images/back.png" 
                            VerticalAlignment="Center" Cursor="Hand"
                            MouseLeftButtonUp="BackToHome_MouseLeftButtonUp"
                            />
