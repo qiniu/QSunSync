@@ -126,7 +126,7 @@ namespace SunSync
             //check ak & sk validity
             Mac mac = new Mac(account.AccessKey, account.SecretKey);
             BucketManager bucketManager = new BucketManager(mac);
-            int code = bucketManager.Stat("NONE_EXIST_BUCKET", "NONE_EXIST_KEY").Code;
+            int code = bucketManager.stat("NONE_EXIST_BUCKET", "NONE_EXIST_KEY").Code;
 
             if (code == 631 || code == 612 || code == 200)
             {

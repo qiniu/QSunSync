@@ -42,7 +42,7 @@ namespace SunSync.Models
                     keys_1[i] = keys[g * X + i];
                 }
 
-                var r1 = bktMgr.BatchStat(bucket,keys_1);
+                var r1 = bktMgr.batchStat(bucket,keys_1);
 
                 for (i = 0; i < X; ++i)
                 {
@@ -65,7 +65,7 @@ namespace SunSync.Models
                 keys_2[i] = keys[G * X + i];
             }
 
-            var r2 = bktMgr.BatchStat(bucket, keys_2);
+            var r2 = bktMgr.batchStat(bucket, keys_2);
 
             for (i = 0; i < M; ++i)
             {

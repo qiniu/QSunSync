@@ -82,6 +82,8 @@ namespace SunSync
         private string syncLogDBPath;
         private SQLiteConnection syncLogDB;
 
+        private Qiniu.IO.Model.UploadController upctl;
+
         public SyncProgressPage(MainWindow mainWindow)
         {
             InitializeComponent();
@@ -89,6 +91,10 @@ namespace SunSync
             this.batchOpFiles = new List<FileItem>();
             this.uploadedBytes = new Dictionary<string, string>();
             this.resetSyncStatus();
+
+            upctl = new Qiniu.IO.Model.UploadController(uploadControl);
+
+            HaltActionButton.IsEnabled = false;
         }
 
         public SQLiteConnection SyncLogDB()
@@ -161,8 +167,8 @@ namespace SunSync
             this.cancelSignal = false;
             this.finishSignal = false;
             this.HaltActionButton.Content = "暂停";
-            //this.HaltActionButton.IsEnabled = true;
-            this.HaltActionButton.IsEnabled = false;
+            this.HaltActionButton.IsEnabled = true;
+            //this.HaltActionButton.IsEnabled = false;
             this.ManualFinishButton.IsEnabled = false;
             this.UploadProgressTextBlock.Text = "";
             this.UploadProgressLogTextBlock.Text = "";
@@ -248,7 +254,7 @@ namespace SunSync
                     if (itemDict.ContainsKey(f))
                     {
                         string oldHash = itemDict[f];
-                        string newHash = Qiniu.Util.QETag.CalcHash(f);
+                        string newHash = Qiniu.Util.QETag.calcHash(f);
                         if (string.Equals(oldHash, newHash))
                         {
                             addFileExistsLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket, files[i], keys[i]));
@@ -272,7 +278,7 @@ namespace SunSync
 
                     if (!string.IsNullOrEmpty(remoteHash[i]))
                     {
-                        string localHash = Qiniu.Util.QETag.CalcHash(files[i]);
+                        string localHash = Qiniu.Util.QETag.calcHash(files[i]);
                         if (string.Equals(localHash, remoteHash[i]))
                         {
                             addFileOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket, files[i], keys[i]));
@@ -290,7 +296,7 @@ namespace SunSync
 
                     if (!string.IsNullOrEmpty(remoteHash[i]))
                     {
-                        string localHash = Qiniu.Util.QETag.CalcHash(files[i]);
+                        string localHash = Qiniu.Util.QETag.calcHash(files[i]);
                         if (string.Equals(localHash, remoteHash[i]))
                         {
                             addFileNotOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket, files[i], keys[i]));
@@ -399,7 +405,7 @@ namespace SunSync
                             {
                                 LocalFile = filePath,
                                 SaveKey = fn,
-                                FileHash = Qiniu.Util.QETag.CalcHash(filePath),
+                                FileHash = Qiniu.Util.QETag.calcHash(filePath),
                                 Length = fi.Length,
                                 LastUpdate = fi.LastWriteTime.Ticks.ToString()
                             };
@@ -433,7 +439,7 @@ namespace SunSync
                             {
                                 LocalFile = filePath,
                                 SaveKey = fn,
-                                FileHash = Qiniu.Util.QETag.CalcHash(filePath),
+                                FileHash = Qiniu.Util.QETag.calcHash(filePath),
                                 Length = fi.Length,
                                 LastUpdate = fi.LastWriteTime.Ticks.ToString()
                             };
@@ -460,7 +466,7 @@ namespace SunSync
             {
                 this.uploadInfos[taskId] = new UploadInfo();
                 doneEvents[taskId] = new ManualResetEvent(false);
-                FileUploader uploader = new FileUploader(this.syncSetting, doneEvents[taskId], this, taskId);
+                FileUploader uploader = new FileUploader(this.syncSetting, doneEvents[taskId], this, taskId, upctl);
                 ThreadPool.QueueUserWorkItem(new WaitCallback(uploader.uploadFile), filesToUpload[taskId]);
             }
 
@@ -551,6 +557,25 @@ namespace SunSync
             return checkOk;
         }
 
+        private Qiniu.IO.Model.UPTS uploadControl()
+        {
+            if (finishSignal)
+            {
+                return Qiniu.IO.Model.UPTS.Aborted;
+            }
+            else
+            {
+                if (cancelSignal)
+                {
+                    return Qiniu.IO.Model.UPTS.Suspended;
+                }
+                else
+                {
+                    return Qiniu.IO.Model.UPTS.Activated;
+                }
+            }
+        }
+
         private void createOptionalDB()
         {
             //check jobs db
@@ -611,6 +636,11 @@ namespace SunSync
         //main job scheduler
         private void runSyncJob(object resumeObject)
         {
+            Dispatcher.Invoke(new Action(delegate ()
+            {
+                HaltActionButton.IsEnabled = false;
+            }));
+
             bool resume = (bool)resumeObject;
             this.jobStart = DateTime.Now;
             bool checkOk = this.initRunJob();
@@ -696,6 +726,11 @@ namespace SunSync
                 this.processUpload(this.cacheFilePathDone);
             }
 
+            Dispatcher.Invoke(new Action(delegate ()
+            {
+                HaltActionButton.IsEnabled = true;
+            }));
+
             if (!this.cancelSignal && this.batchOpFiles.Count > 0)
             {
                 //finish the remained
@@ -745,33 +780,36 @@ namespace SunSync
         //halt or resume button click
         private void HaltActionButton_EventHandler(object sender, RoutedEventArgs e)
         {
-            this.HaltActionButton.IsEnabled = false;
+            //this.HaltActionButton.IsEnabled = false;
             if (this.cancelSignal)
             {
-                //reset
-                this.resetSyncStatus();
-                this.HaltActionButton.IsEnabled = true;
+                this.cancelSignal = false;
                 this.HaltActionButton.Content = "暂停";
-                Thread jobThread = new Thread(new ParameterizedThreadStart(this.runSyncJob));
-                jobThread.Start(true);
+                //reset
+                //this.resetSyncStatus();
+                //this.HaltActionButton.IsEnabled = true;
+                //this.HaltActionButton.Content = "暂停";
+                //Thread jobThread = new Thread(new ParameterizedThreadStart(this.runSyncJob));
+                //jobThread.Start(true);
             }
             else
             {
                 this.cancelSignal = true;
-                Thread checkThread = new Thread(new ThreadStart(delegate
-                {
-                    while (!this.finishSignal)
-                    {
-                        Thread.Sleep(1000);
-                    }
-                    Dispatcher.Invoke(new Action(delegate
-                    {
-                        this.HaltActionButton.IsEnabled = true;
-                        this.HaltActionButton.Content = "恢复";
-                        this.ManualFinishButton.IsEnabled = true;
-                    }));
-                }));
-                checkThread.Start();
+                this.HaltActionButton.Content = "继续";
+                //Thread checkThread = new Thread(new ThreadStart(delegate
+                //{
+                //    while (!this.finishSignal)
+                //    {
+                //        Thread.Sleep(1000);
+                //    }
+                //    Dispatcher.Invoke(new Action(delegate
+                //    {
+                //        this.HaltActionButton.IsEnabled = true;
+                //        this.HaltActionButton.Content = "恢复";
+                //        this.ManualFinishButton.IsEnabled = true;
+                //    }));
+                //}));
+                //checkThread.Start();
             }
         }
 

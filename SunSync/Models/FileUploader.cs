@@ -18,7 +18,9 @@ namespace SunSync.Models
         private SQLiteConnection localHashDB;
         private SQLiteConnection syncLogDB;
 
-        public FileUploader(SyncSetting syncSetting, ManualResetEvent doneEvent, SyncProgressPage syncProgressPage, int taskId)
+        private UploadController upController;
+
+        public FileUploader(SyncSetting syncSetting, ManualResetEvent doneEvent, SyncProgressPage syncProgressPage, int taskId, UploadController upctl)
         {
             this.syncSetting = syncSetting;
             this.doneEvent = doneEvent;
@@ -26,6 +28,8 @@ namespace SunSync.Models
             this.taskId = taskId;
             this.localHashDB = syncProgressPage.LocalHashDB();
             this.syncLogDB = syncProgressPage.SyncLogDB();
+
+            upController = upctl;
         }
     
         public void uploadFile(object obj)
@@ -79,9 +83,9 @@ namespace SunSync.Models
             {
                 putPolicy.Scope = this.syncSetting.TargetBucket;
             }
-            putPolicy.SetExpires(24 * 30 * 3600);        
+            putPolicy.setExpires(24 * 30 * 3600);        
             
-            string uptoken = UploadManager.CreateUploadToken(mac, putPolicy);
+            string uptoken = UploadManager.createUploadToken(mac, putPolicy);
 
             this.syncProgressPage.updateUploadLog("开始上传文件 " + fileFullPath);
 
@@ -92,16 +96,19 @@ namespace SunSync.Models
             if (item.Length > putThreshold)
             {
                 ResumableUploader ru = new ResumableUploader(uploadFromCDN, cu);
-                string recordFile = System.IO.Path.Combine(myDocPath, "qsunsync", Qiniu.Util.StringHelper.CalcMD5(fileFullPath));
-                result = ru.UploadFile(fileFullPath, item.SaveKey, uptoken, recordFile, new UploadProgressHandler(delegate(long uploaded, long total)
+                string recordFile = System.IO.Path.Combine(myDocPath, "qsunsync", Qiniu.Util.StringHelper.calcMD5(fileFullPath));
+
+                UploadProgressHandler upph = new UploadProgressHandler(delegate (long uploaded, long total)
                 {
                     this.syncProgressPage.updateSingleFileProgress(taskId, fileFullPath, item.SaveKey, uploaded, fileLength);
-                }));
+                });
+
+                result = ru.uploadFile(fileFullPath, item.SaveKey, uptoken, recordFile, upph, upController);
             }
             else
             {
                 SimpleUploader su = new SimpleUploader(uploadFromCDN);
-                result = su.UploadFile(fileFullPath, item.SaveKey, uptoken);
+                result = su.uploadFile(fileFullPath, item.SaveKey, uptoken);
             }
             
             if(result.Code==HttpHelper.STATUS_CODE_OK)
