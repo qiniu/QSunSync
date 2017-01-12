@@ -1,0 +1,70 @@
+﻿<Page x:Class="SunSync.SyncResultPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      mc:Ignorable="d" 
+      d:DesignHeight="700" d:DesignWidth="700" Loaded="SyncResultLoaded_EventHandler"
+	Title="SyncResultPage">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="70"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0">
+            <Border BorderBrush="#FF1986D1" BorderThickness="0 0 0 2">
+                <StackPanel Orientation="Horizontal" Margin="10">
+                    <Image Height="48" Width="48" Source="Images/result.png" VerticalAlignment="Center" />
+                    <TextBlock Text="同步结果" FontSize="32" VerticalAlignment="Center" Margin="10 0" Width="500"
+                               Name="SyncResultTitleTextBlock"></TextBlock>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+        <StackPanel Grid.Row="1" Margin="10">
+            <Border BorderBrush="LightGray" BorderThickness="1">
+            <Grid Height="435" Margin="20">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"></RowDefinition>
+                    <RowDefinition Height="*"></RowDefinition>
+                    <RowDefinition Height="*"></RowDefinition>
+                    <RowDefinition Height="*"></RowDefinition>
+                    <RowDefinition Height="*"></RowDefinition>
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="0">
+                    <TextBlock FontSize="20" Name="UploadSuccessTextBlock1">##</TextBlock>
+                    <TextBlock FontSize="16" Name="UploadSuccessTextBlock2" Foreground="Gray" Margin="10" TextWrapping="Wrap">##</TextBlock>
+                </StackPanel>
+                <StackPanel Grid.Row="1">
+                    <TextBlock FontSize="20" Name="UploadFailureTextBlock1">##</TextBlock>
+                    <TextBlock FontSize="16" Name="UploadFailureTextBlock2" Foreground="Gray" Margin="10" TextWrapping="Wrap">##</TextBlock>
+                </StackPanel>
+                <StackPanel Grid.Row="2">
+                    <TextBlock FontSize="20" Name="UploadSkippedTextBlock1">##</TextBlock>
+                    <TextBlock FontSize="16" Name="UploadSkippedTextBlock2" Foreground="Gray" Margin="10" TextWrapping="Wrap">##</TextBlock>
+                </StackPanel>
+                <StackPanel Grid.Row="3">
+                    <TextBlock FontSize="20" Name="UploadExistsTextBlock1">##</TextBlock>
+                    <TextBlock FontSize="16" Name="UploadExistsTextBlock2" Foreground="Gray" Margin="10" TextWrapping="Wrap">##</TextBlock>
+                </StackPanel>
+                <StackPanel Grid.Row="4">
+                    <TextBlock FontSize="20" Name="UploadOverwriteTextBlock1">##</TextBlock>
+                    <TextBlock FontSize="16" Name="UploadOverwriteTextBlock2" Foreground="Gray" Margin="10" TextWrapping="Wrap">##</TextBlock>
+                </StackPanel>
+            </Grid>
+            </Border>
+            <Grid Margin="0 10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"></ColumnDefinition>
+                    <ColumnDefinition Width="*"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <Button Content="导出日志" Width="100" Height="32" Margin="0 10" FontSize="14" Click="ExportLog_EventHandler"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button Content="返回首页" Width="100" Height="32" Margin="0 10" FontSize="14" Click="BackToHome_EventHandler"></Button>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </Grid>
+</Page>
