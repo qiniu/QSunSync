@@ -2,7 +2,7 @@
 using System.Data.SQLite;
 using System.IO;
 using System.Threading;
-using Qiniu.Common;
+using Qiniu.Util;
 using Qiniu.IO;
 using Qiniu.IO.Model;
 using Qiniu.Http;
@@ -83,9 +83,9 @@ namespace SunSync.Models
             {
                 putPolicy.Scope = this.syncSetting.TargetBucket;
             }
-            putPolicy.setExpires(24 * 30 * 3600);        
+            putPolicy.SetExpires(24 * 30 * 3600);        
             
-            string uptoken = UploadManager.createUploadToken(mac, putPolicy);
+            string uptoken = Auth.CreateUploadToken(mac, putPolicy.ToJsonString());
 
             this.syncProgressPage.updateUploadLog("开始上传文件 " + fileFullPath);
 
@@ -96,22 +96,22 @@ namespace SunSync.Models
             if (item.Length > putThreshold)
             {
                 ResumableUploader ru = new ResumableUploader(uploadFromCDN, cu);
-                string recordFile = System.IO.Path.Combine(myDocPath, "qsunsync", Qiniu.Util.StringHelper.calcMD5(fileFullPath));
+                string recordFile = System.IO.Path.Combine(myDocPath, "qsunsync", Hashing.CalcMD5(fileFullPath));
 
                 UploadProgressHandler upph = new UploadProgressHandler(delegate (long uploaded, long total)
                 {
                     this.syncProgressPage.updateSingleFileProgress(taskId, fileFullPath, item.SaveKey, uploaded, fileLength);
                 });
 
-                result = ru.uploadFile(fileFullPath, item.SaveKey, uptoken, recordFile, upph, upController);
+                result = ru.UploadFile(fileFullPath, item.SaveKey, uptoken, recordFile, upph, upController);
             }
             else
             {
-                SimpleUploader su = new SimpleUploader(uploadFromCDN);
-                result = su.uploadFile(fileFullPath, item.SaveKey, uptoken);
+                FormUploader su = new FormUploader(uploadFromCDN);
+                result = su.UploadFile(fileFullPath, item.SaveKey, uptoken);
             }
             
-            if(result.Code==HttpHelper.STATUS_CODE_OK)
+            if(result.Code == (int)HttpCode.OK)
             {
                 this.syncProgressPage.updateUploadLog("上传成功 " + fileFullPath);
                 this.syncProgressPage.addFileUploadSuccessLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket,

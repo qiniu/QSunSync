@@ -91,7 +91,7 @@ namespace SunSync
             }
 
             // 初始化bucketManager
-            Mac mac = new Mac(SystemConfig.ACCESS_KEY, SystemConfig.SECRET_KEY);
+            var mac = new Qiniu.Util.Mac(SystemConfig.ACCESS_KEY, SystemConfig.SECRET_KEY);
             this.bucketManager = new BucketManager(mac);
         }
 
@@ -196,15 +196,15 @@ namespace SunSync
         private void reloadBuckets()
         {
             //get new bucket list
-            BucketsResult bucketsResult = this.bucketManager.buckets();
-            if (bucketsResult.Code == HttpHelper.STATUS_CODE_OK)
+            BucketsResult bucketsResult = this.bucketManager.Buckets();
+            if (bucketsResult.Code == (int)HttpCode.OK)
             {
                 List<string> buckets = bucketsResult.Result;
 
                 zoneDict.Clear();
                 foreach (string bucket in buckets)
                 {
-                    ZoneID zoneId = ZoneHelper.queryZone(SystemConfig.ACCESS_KEY, bucket);
+                    ZoneID zoneId = ZoneHelper.QueryZone(SystemConfig.ACCESS_KEY, bucket);
                     zoneDict.Add(bucket, zoneId);
                 }
 
@@ -337,7 +337,7 @@ namespace SunSync
         /// <returns></returns>
         private bool ValidateAccount()
         {
-            int code = bucketManager.stat("NONE_EXIST_BUCKET", "NONE_EXIST_KEY").Code;
+            int code = bucketManager.Stat("NONE_EXIST_BUCKET", "NONE_EXIST_KEY").Code;
 
             if (code == 631 || code == 612 || code == 200)
             {
@@ -400,7 +400,7 @@ namespace SunSync
             this.syncSetting.UploadFromCDN = this.RadioButtonFromCDN.IsChecked.Value;
 
             // 根据ZoneID完成相应配置
-            Config.setZone(targetZoneId, false);
+            Config.SetZone(targetZoneId, false);
 
             return true;
         }

@@ -254,7 +254,7 @@ namespace SunSync
                     if (itemDict.ContainsKey(f))
                     {
                         string oldHash = itemDict[f];
-                        string newHash = Qiniu.Util.QETag.calcHash(f);
+                        string newHash = Qiniu.Util.ETag.CalcHash(f);
                         if (string.Equals(oldHash, newHash))
                         {
                             addFileExistsLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket, files[i], keys[i]));
@@ -266,7 +266,7 @@ namespace SunSync
             }
 
             // 检查云端同名文件  
-            var mac = new Qiniu.Common.Mac(SystemConfig.ACCESS_KEY, SystemConfig.SECRET_KEY);
+            var mac = new Qiniu.Util.Mac(SystemConfig.ACCESS_KEY, SystemConfig.SECRET_KEY);
             string[] remoteHash = BucketFileHash.BatchStat(mac, syncSetting.TargetBucket, keys);
 
             // 覆盖
@@ -278,7 +278,7 @@ namespace SunSync
 
                     if (!string.IsNullOrEmpty(remoteHash[i]))
                     {
-                        string localHash = Qiniu.Util.QETag.calcHash(files[i]);
+                        string localHash = Qiniu.Util.ETag.CalcHash(files[i]);
                         if (string.Equals(localHash, remoteHash[i]))
                         {
                             addFileOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket, files[i], keys[i]));
@@ -296,7 +296,7 @@ namespace SunSync
 
                     if (!string.IsNullOrEmpty(remoteHash[i]))
                     {
-                        string localHash = Qiniu.Util.QETag.calcHash(files[i]);
+                        string localHash = Qiniu.Util.ETag.CalcHash(files[i]);
                         if (string.Equals(localHash, remoteHash[i]))
                         {
                             addFileNotOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket, files[i], keys[i]));
@@ -405,7 +405,7 @@ namespace SunSync
                             {
                                 LocalFile = filePath,
                                 SaveKey = fn,
-                                FileHash = Qiniu.Util.QETag.calcHash(filePath),
+                                FileHash = Qiniu.Util.ETag.CalcHash(filePath),
                                 Length = fi.Length,
                                 LastUpdate = fi.LastWriteTime.Ticks.ToString()
                             };
@@ -439,7 +439,7 @@ namespace SunSync
                             {
                                 LocalFile = filePath,
                                 SaveKey = fn,
-                                FileHash = Qiniu.Util.QETag.calcHash(filePath),
+                                FileHash = Qiniu.Util.ETag.CalcHash(filePath),
                                 Length = fi.Length,
                                 LastUpdate = fi.LastWriteTime.Ticks.ToString()
                             };
