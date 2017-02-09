@@ -6,9 +6,8 @@ using Newtonsoft.Json;
 using SunSync.Models;
 using System.IO;
 using System.Threading;
-using Qiniu.Common;
+using Qiniu.Util;
 using Qiniu.RS;
-using Qiniu.RS.Model;
 
 namespace SunSync
 {
@@ -126,7 +125,7 @@ namespace SunSync
             //check ak & sk validity
             Mac mac = new Mac(account.AccessKey, account.SecretKey);
             BucketManager bucketManager = new BucketManager(mac);
-            int code = bucketManager.stat("NONE_EXIST_BUCKET", "NONE_EXIST_KEY").Code;
+            int code = bucketManager.Stat("NONE_EXIST_BUCKET", "NONE_EXIST_KEY").Code;
 
             if (code == 631 || code == 612 || code == 200)
             {

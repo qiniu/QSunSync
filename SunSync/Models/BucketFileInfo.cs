@@ -42,12 +42,12 @@ namespace SunSync.Models
                     keys_1[i] = keys[g * X + i];
                 }
 
-                var r1 = bktMgr.batchStat(bucket,keys_1);
+                var r1 = bktMgr.BatchStat(bucket,keys_1);
 
                 for (i = 0; i < X; ++i)
                 {
                     var s1r = r1.Result[i];
-                    if (s1r.Code == HttpHelper.STATUS_CODE_OK )
+                    if (s1r.Code == (int)HttpCode.OK )
                     {
                         var s = JsonConvert.DeserializeObject<StatInfo>(s1r.Data.ToString());
                         // FOUND
@@ -65,13 +65,13 @@ namespace SunSync.Models
                 keys_2[i] = keys[G * X + i];
             }
 
-            var r2 = bktMgr.batchStat(bucket, keys_2);
+            var r2 = bktMgr.BatchStat(bucket, keys_2);
 
             for (i = 0; i < M; ++i)
             {
                 var s2r = r2.Result[i];
 
-                if(s2r.Code==HttpHelper.STATUS_CODE_OK)
+                if(s2r.Code == (int)HttpCode.OK)
                 {
                     var s = JsonConvert.DeserializeObject<StatInfo>(s2r.Data.ToString());
                     // FOUND

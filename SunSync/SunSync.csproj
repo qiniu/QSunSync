@@ -48,7 +48,7 @@
     <PlatformTarget>x64</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin_x64\</OutputPath>
+    <OutputPath>bin\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -120,8 +120,8 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Qiniu, Version=7.2.4.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Qiniu.Shared.7.2.4\lib\net40\Qiniu.dll</HintPath>
-      <Private>True</Private>
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\csharp-sdk\bin\net40\Qiniu.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
