@@ -7,6 +7,7 @@ using SunSync.Models;
 using System.IO;
 using System.Threading;
 using Qiniu.Util;
+using Qiniu.Http;
 using Qiniu.RS;
 
 namespace SunSync
@@ -127,7 +128,9 @@ namespace SunSync
             BucketManager bucketManager = new BucketManager(mac);
             int code = bucketManager.Stat("NONE_EXIST_BUCKET", "NONE_EXIST_KEY").Code;
 
-            if (code == 631 || code == 612 || code == 200)
+            if (code == (int)HttpCode.OK ||
+                code == (int)HttpCode.BUCKET_NOT_EXIST ||
+                code == (int)HttpCode.FILE_NOT_EXIST)
             {
                 Log.Info("ak & sk is valid");
                 Dispatcher.Invoke(new Action(delegate
