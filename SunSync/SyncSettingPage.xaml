@@ -66,34 +66,62 @@
                                         <StackPanel Orientation="Horizontal" Margin="5">
                                             <Label FontSize="14" Content="附加文件前缀" VerticalAlignment="Center" Width="110"></Label>
                                             <TextBox Width="350" Margin="10 0" VerticalContentAlignment="Center"
-                                                     Name="PrefixTextBox" Foreground="Green"></TextBox>
+                                                     Name="PrefixTextBox" Foreground="Green">
+                                                <TextBox.ToolTip>
+                                                    <ToolTip BorderThickness="0" Background="Black" Foreground="Yellow">
+                                                        假设原来要保存的文件名为'path/1.jpg'，设置前缀'img-'后将保存为'img-path/1.jpg'
+                                                    </ToolTip>
+                                                </TextBox.ToolTip>
+                                            </TextBox>
                                         </StackPanel>                                       
                                         <StackPanel Orientation="Horizontal" Margin="5">
                                             <Label FontSize="14" Content="按前缀跳过" VerticalAlignment="Center" Width="110"></Label>
                                             <TextBox Width="350" Margin="10 0" VerticalContentAlignment="Center"
-                                                     Name="SkipPrefixesTextBox" Foreground="Green"></TextBox>
+                                                     Name="SkipPrefixesTextBox" Foreground="Green">
+                                                <TextBox.ToolTip>
+                                                    <ToolTip BorderThickness="0" Background="Black" Foreground="Yellow">
+                                                        可设置多个前缀，此时请使用西文逗号(,)间隔
+                                                    </ToolTip>
+                                                </TextBox.ToolTip>
+                                            </TextBox>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="5">
                                             <Label FontSize="14" Content="按后缀跳过" VerticalAlignment="Center" Width="110"></Label>
                                             <TextBox Width="350" Margin="10 0" VerticalContentAlignment="Center"
-                                                     Name="SkipSuffixesTextBox" Foreground="Green"></TextBox>
+                                                     Name="SkipSuffixesTextBox" Foreground="Green">
+                                                <TextBox.ToolTip>
+                                                    <ToolTip BorderThickness="0" Background="Black" Foreground="Yellow">
+                                                        可设置多个后缀，此时请使用西文逗号(,)间隔
+                                                    </ToolTip>
+                                                </TextBox.ToolTip>
+                                            </TextBox>
                                         </StackPanel>
-                                        <StackPanel Margin="5">
+                                        <StackPanel Margin="5 10">
                                             <CheckBox Content="增量同步(只上传待同步目录下新增的文件)" FontSize="14" Name="CheckNewFilesCheckBox" VerticalContentAlignment="Center" Margin="5 0">
+                                                <CheckBox.ToolTip>
+                                                    <ToolTip BorderThickness="0" Background="Black" Foreground="Yellow">
+                                                       勾选此项时程序会扫描同步历史记录并跳过记录中已有文件；取消勾选则不扫描历史记录
+                                                    </ToolTip>
+                                                </CheckBox.ToolTip>
                                             </CheckBox>
                                         </StackPanel>
-                                        <GroupBox>
-                                            <StackPanel Orientation="Vertical">
+                                        <!--
+                                        <GroupBox Header="保存文件名设置">
+                                        -->
+                                            <StackPanel Orientation="Horizontal" Margin="5 10">
+                                                <Label>保存文件名设置</Label>
+                                                <!--
                                                 <RadioButton Content="使用完整路径(保存文件名包含完整路径)" FontSize="14" Name="RadioButtonUseFullFilename" VerticalContentAlignment="Center" Margin="5">
                                                 </RadioButton>
-                                                <RadioButton Content="使用相对路径(从当前路径开始)" FontSize="14" Name="RadioButtonUseRelativePath" VerticalContentAlignment="Center" Margin="5">
+                                                -->
+                                                <RadioButton Content="使用相对路径" FontSize="14" Name="RadioButtonUseRelativePath" VerticalContentAlignment="Center" Margin="5">
                                                     <RadioButton.ToolTip>
                                                         <ToolTip BorderThickness="0" Background="Black" Foreground="Yellow">
                                                             举例：当前路径'C:/dir1/','源文件'C:/dir1/dir2/hello.jpg',即将保存文件名为'dir2/hello.jpg'
                                                         </ToolTip>
                                                     </RadioButton.ToolTip>
                                                 </RadioButton>
-                                                <RadioButton Content="使用短文件名(保存文件名中不含路径前缀)" FontSize="14" Name="RadioButtonUseShortFilename" VerticalContentAlignment="Center" Margin="5">
+                                                <RadioButton Content="使用短文件名" FontSize="14" Name="RadioButtonUseShortFilename" VerticalContentAlignment="Center" Margin="5">
                                                     <RadioButton.ToolTip>
                                                         <ToolTip BorderThickness="0" Background="Black" Foreground="Yellow">
                                                             举例：源文件'C:/fakepath/hello.jpg'的短文件名为'hello.jpg'
@@ -101,7 +129,9 @@
                                                     </RadioButton.ToolTip>
                                                 </RadioButton>                                                
                                             </StackPanel>                                            
-                                        </GroupBox>                                        
+                                    <!--    
+                                    </GroupBox> 
+                                    -->
                                         <StackPanel Margin="5" Orientation="Horizontal">
                                             <Label>空间中同名文件</Label>
                                             <RadioButton GroupName="CheckRemoteDuplicates" Name="RadioButtonSkipDuplicate" Content="跳过" Margin="5,5,0,0"></RadioButton>

@@ -133,9 +133,9 @@ namespace SunSync
                 this.CheckNewFilesCheckBox.IsChecked = this.syncSetting.CheckNewFiles;
                 switch(this.syncSetting.FilenameKind)
                 {
-                    case 0:
-                        this.RadioButtonUseFullFilename.IsChecked = true;
-                        break;
+                    //case 0:
+                    //    this.RadioButtonUseFullFilename.IsChecked = true;
+                    //    break;
                     case 1:
                         this.RadioButtonUseRelativePath.IsChecked = true;
                         break;
@@ -339,7 +339,9 @@ namespace SunSync
         {
             int code = bucketManager.Stat("NONE_EXIST_BUCKET", "NONE_EXIST_KEY").Code;
 
-            if (code == 631 || code == 612 || code == 200)
+            if (code==(int)HttpCode.OK ||
+                code == (int)HttpCode.BUCKET_NOT_EXIST || 
+                code == (int)HttpCode.FILE_NOT_EXIST)
             {
                 Log.Info("ak & sk is valid");
                 Dispatcher.Invoke(new Action(delegate
@@ -381,7 +383,7 @@ namespace SunSync
             string targetBucket = this.SyncTargetBucketsComboBox.SelectedItem.ToString();
             ZoneID targetZoneId = zoneDict[targetBucket];
 
-            bool fnk0 = this.RadioButtonUseFullFilename.IsChecked.Value;
+            //bool fnk0 = this.RadioButtonUseFullFilename.IsChecked.Value;
             bool fnk1 = this.RadioButtonUseRelativePath.IsChecked.Value;
 
             // 完成syncSetting配置
@@ -393,7 +395,7 @@ namespace SunSync
             this.syncSetting.SkipPrefixes = this.SkipPrefixesTextBox.Text.Trim();
             this.syncSetting.SkipSuffixes = this.SkipSuffixesTextBox.Text.Trim();
             this.syncSetting.CheckNewFiles = this.CheckNewFilesCheckBox.IsChecked.Value;
-            this.syncSetting.FilenameKind = fnk0 ? 0 : (fnk1 ? 1 : 2);
+            this.syncSetting.FilenameKind = fnk1 ? 1 : 2; //fnk0 ? 0 : (fnk1 ? 1 : 2);
             this.syncSetting.OverwriteDuplicate = this.RadioButtonOverwriteDuplicate.IsChecked.Value;
             this.syncSetting.DefaultChunkSize = this.defaultChunkSize;
             this.syncSetting.ChunkUploadThreshold = (int)this.ChunkUploadThresholdSlider.Value * 1024 * 1024;

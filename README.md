@@ -4,7 +4,7 @@
 
 `QSunSync`是使用`C# + WPF`开发的用于将本地文件同步到七牛云端空间的Windows客户端。该客户端的特点就是简单易用，而且方便增量同步。
 
-最新版本下载 [QSunSync-v1.9.0](http://devtools.qiniu.com/QSunSync-v1.9.0.zip)
+最新版本下载 [QSunSync-v1.9.1](http://devtools.qiniu.com/QSunSync-v1.9.1.zip)
 
 使用手册请戳这里 [在线浏览](http://oiy037d6a.bkt.clouddn.com/qsunsync-man-v1.7.0/index.html)
 
