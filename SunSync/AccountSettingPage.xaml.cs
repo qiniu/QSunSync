@@ -101,6 +101,10 @@ namespace SunSync
                 {
                     sw.Write(accData);
                 }
+
+                // 设置AK&SK
+                SystemConfig.ACCESS_KEY = account.AccessKey;
+                SystemConfig.SECRET_KEY = account.SecretKey;
             }
             catch (Exception ex)
             {
