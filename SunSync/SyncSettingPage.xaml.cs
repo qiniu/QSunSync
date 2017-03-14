@@ -201,17 +201,29 @@ namespace SunSync
             {
                 List<string> buckets = bucketsResult.Result;
 
-                zoneDict.Clear();
-                foreach (string bucket in buckets)
+                if (buckets == null || buckets.Count == 0)
                 {
-                    ZoneID zoneId = ZoneHelper.QueryZone(SystemConfig.ACCESS_KEY, bucket);
-                    zoneDict.Add(bucket, zoneId);
+                    Log.Error("no buckets found, " + bucketsResult.Text);
+                    Dispatcher.Invoke(new Action(delegate
+                    {
+                        this.SyncTargetBucketsComboBox.ItemsSource = null;
+                        this.SettingsErrorTextBlock.Text = "请检查此账号下是否有创建空间";
+                    }));
                 }
-
-                Dispatcher.Invoke(new Action(delegate
+                else
                 {
-                    this.SyncTargetBucketsComboBox.ItemsSource = buckets;
-                }));
+                    zoneDict.Clear();
+                    foreach (string bucket in buckets)
+                    {
+                        ZoneID zoneId = ZoneHelper.QueryZone(SystemConfig.ACCESS_KEY, bucket);
+                        zoneDict.Add(bucket, zoneId);
+                    }
+
+                    Dispatcher.Invoke(new Action(delegate
+                    {
+                        this.SyncTargetBucketsComboBox.ItemsSource = buckets;
+                    }));
+                }
             }
             else
             {

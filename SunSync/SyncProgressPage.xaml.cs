@@ -113,7 +113,7 @@ namespace SunSync
             this.syncSetting = syncSetting;
 
             string jobName = string.Join("\t", new string[] { syncSetting.LocalDirectory, syncSetting.TargetBucket });
-            this.jobId = Tools.md5Hash(jobName);
+            this.jobId = Qiniu.Util.Hashing.CalcMD5X(jobName);
 
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunsync", "sync_jobs_v1.6.0.5.db");
@@ -124,7 +124,7 @@ namespace SunSync
             {
                 Directory.CreateDirectory(localHashDBDir);
             }
-            string bucketId = Tools.md5Hash(syncSetting.TargetBucket);
+            string bucketId = Qiniu.Util.Hashing.CalcMD5X(syncSetting.TargetBucket);
             this.localHashDBPath = System.IO.Path.Combine(localHashDBDir, bucketId + ".db");
             this.cacheDir = System.IO.Path.Combine(myDocPath, "qsunsync", "dircache");
             this.syncLogDir = System.IO.Path.Combine(myDocPath, "qsunsync", "synclog");

@@ -70,7 +70,7 @@ namespace SunSync.Models
             //support resume upload
             string recorderKey = string.Format("{0}:{1}:{2}:{3}:{4}", this.syncSetting.LocalDirectory,
                 this.syncSetting.TargetBucket, item.SaveKey, fileFullPath, fileLastModified);
-            recorderKey = Tools.md5Hash(recorderKey);
+            recorderKey = Hashing.CalcMD5X(recorderKey);
 
             this.syncProgressPage.updateUploadLog("准备上传文件 " + fileFullPath);
 
@@ -96,7 +96,7 @@ namespace SunSync.Models
             if (item.Length > putThreshold)
             {
                 ResumableUploader ru = new ResumableUploader(uploadFromCDN, cu);
-                string recordFile = System.IO.Path.Combine(myDocPath, "qsunsync", Hashing.CalcMD5(fileFullPath));
+                string recordFile = System.IO.Path.Combine(recordPath, Hashing.CalcMD5X(fileFullPath));
 
                 UploadProgressHandler upph = new UploadProgressHandler(delegate (long uploaded, long total)
                 {
