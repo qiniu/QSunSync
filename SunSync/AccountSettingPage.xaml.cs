@@ -62,7 +62,6 @@ namespace SunSync
             {
                 this.SecretKeyTextBox.Text = acct.SecretKey;
             }
-            this.IsAbroadAccountCheckBox.IsChecked = acct.IsAbroad;
         }
 
         /// <summary>
@@ -105,6 +104,7 @@ namespace SunSync
                 // 设置AK&SK
                 SystemConfig.ACCESS_KEY = account.AccessKey;
                 SystemConfig.SECRET_KEY = account.SecretKey;
+                Log.Info("write the ak&sk to local file success");
             }
             catch (Exception ex)
             {
@@ -168,32 +168,7 @@ namespace SunSync
             Account account = new Account();
             account.AccessKey = accessKey;
             account.SecretKey = secretKey;
-            account.IsAbroad = isAbroad;
             new Thread(new ParameterizedThreadStart(this.SaveAccountSetting)).Start(account);
-        }
-
-        private void IsAbroadChecked_EvnentHandler(object sender, System.Windows.RoutedEventArgs e)
-        {
-            this.IsAbroadEventHandle(true);
-        }
-
-        private void IsAbroadUnchecked_EventHandler(object sender, System.Windows.RoutedEventArgs e)
-        {
-            this.IsAbroadEventHandle(false);
-        }
-
-        private void IsAbroadEventHandle(bool checkBoxVal)
-        {
-            //if (checkBoxVal)
-            //{
-            //    this.myAKSKLink = "https://portal.gdipper.com/setting/key";
-            //    Qiniu.Common.Config.RS_HOST = "http://rs.gdipper.com";
-            //}
-            //else
-            //{
-            //    this.myAKSKLink = "https://portal.qiniu.com/setting/key";
-            //    Qiniu.Common.Config.RS_HOST = "http://rs.qiniu.com";
-            //}
         }
     }
 }

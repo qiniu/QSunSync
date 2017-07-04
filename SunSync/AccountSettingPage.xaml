@@ -82,8 +82,6 @@
                         </StackPanel>
                         <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                                <CheckBox Content="七牛国外帐号" Name="IsAbroadAccountCheckBox" VerticalAlignment="Center" Visibility="Hidden" 
-                                          Margin="0 0 10 0" FontSize="14" Checked="IsAbroadChecked_EvnentHandler" Unchecked="IsAbroadUnchecked_EventHandler"></CheckBox>
                                 <Button Content="保存" Width="120" Height="32"  FontSize="14" Click="SaveAccountSettings_EventHandler"></Button>
                             </StackPanel>
                         </StackPanel>
