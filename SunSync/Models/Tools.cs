@@ -23,20 +23,5 @@ namespace SunSync.Models
             }
             return sb.ToString();
         }
-
-        public static string getAppFile(string subDir, string fileName)
-        {
-            string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string appFilePath = System.IO.Path.Combine(myDocPath, "qsunsync",subDir, fileName);
-            return appFilePath;
-        }
-
-        public static string getAppFile(string fileName)
-        {
-            return getAppFile("", fileName);
-        }
-       
     }
-
-
 }

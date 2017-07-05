@@ -4,7 +4,7 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       mc:Ignorable="d" 
-      d:DesignHeight="700" d:DesignWidth="700"
+      d:DesignHeight="670" d:DesignWidth="700"
 	Title="SyncProgressPage" Loaded="SyncProgressPageLoaded_EventHandler">
     <Page.Resources>
     <SolidColorBrush x:Key="GrayGridLine" Color="Gray" />
@@ -17,7 +17,7 @@
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0">
             <StackPanel Orientation="Horizontal" Margin="10">
-                <Image Height="48" Width="48" Source="Images/cloud.png" VerticalAlignment="Center"/>
+                <Image Height="48" Width="48" Source="Pictures/cloud.png" VerticalAlignment="Center"/>
                 <TextBlock Text="同步进度" FontSize="32" VerticalAlignment="Center" Margin="10 0"></TextBlock>
             </StackPanel>
         </StackPanel>

@@ -7,9 +7,8 @@ using SunSync.Models;
 using System.IO;
 using System.Threading;
 using Qiniu.Util;
-using Qiniu.Http;
 using Qiniu.RS;
-
+using Qiniu.RS.Model;
 namespace SunSync
 {
     /// <summary>
@@ -70,17 +69,10 @@ namespace SunSync
         private void SaveAccountSetting(object accountObj)
         {
             Account account = (Account)accountObj;
-
-            //check ak & sk validity
-            bool valid= ValidateAccount(account);
-            if (!valid)
-            {
-                return;
-            }
-
             //write settings to local file
             string accData = JsonConvert.SerializeObject(account);
-            string appDir = Tools.getAppDir();
+            string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string appDir = System.IO.Path.Combine(myDocPath, "qsunsync");
             try
             {
                 if (!Directory.Exists(appDir))
@@ -98,21 +90,11 @@ namespace SunSync
                         }));
                     }
                 }
-                string accPath = Tools.getAccountFile();
+                string accPath = System.IO.Path.Combine(appDir, "account.json");
                 using (StreamWriter sw = new StreamWriter(accPath, false, Encoding.UTF8))
                 {
                     sw.Write(accData);
                 }
-
-                // 设置AK&SK
-                SystemConfig.ACCESS_KEY = account.AccessKey;
-                SystemConfig.SECRET_KEY = account.SecretKey;
-                Log.Info("write the ak&sk to local file success");
-
-                Dispatcher.Invoke(new Action(delegate {
-                    //go to the home page
-                    this.mainWindow.GotoHomePage();
-                }));
             }
             catch (Exception ex)
             {
@@ -122,45 +104,40 @@ namespace SunSync
                     this.SettingsErrorTextBlock.Text = "帐号设置写入文件失败";
                 }));
             }
-        }
-
-        /// <summary>
-        /// 使用stat模拟操作来检查Account是否正确
-        /// </summary>
-        /// <returns></returns>
-        private bool ValidateAccount(Account account)
-        {
-            Dispatcher.Invoke(new Action(delegate
-            {
-                this.SettingsErrorTextBlock.Text = "";
-            }));
 
             //check ak & sk validity
             Mac mac = new Mac(account.AccessKey, account.SecretKey);
             BucketManager bucketManager = new BucketManager(mac);
-            int code = bucketManager.Stat("NONE_EXIST_BUCKET", "NONE_EXIST_KEY").Code;
+            StatResult statResult = bucketManager.Stat("NONE_EXIST_BUCKET", "NONE_EXIST_KEY");
 
-            if (code == (int)HttpCode.OK ||
-                code == (int)HttpCode.BUCKET_NOT_EXIST ||
-                code == (int)HttpCode.FILE_NOT_EXIST)
+
+            if (statResult.Code == 401)
             {
-                Log.Info("validate account, ak & sk is valid");
-                Dispatcher.Invoke(new Action(delegate
-                {
-                    this.SettingsErrorTextBlock.Text = "";
-                }));
-                return true;
-            }
-            else
-            {
-                Log.Error("validate account, ak & sk wrong");
+                Log.Error("ak & sk wrong");
                 Dispatcher.Invoke(new Action(delegate
                 {
                     this.SettingsErrorTextBlock.Text = "AK 或 SK 设置不正确";
                 }));
-                return false;
+            }
+            else if (statResult.Code == 612 || statResult.Code == 631)
+            {
+                Log.Info("ak & sk is valid");
+                Dispatcher.Invoke(new Action(delegate
+                {
+                    this.SettingsErrorTextBlock.Text = "";
+                    this.mainWindow.GotoHomePage();
+                }));
+            }
+            else
+            {
+                Log.Error("stat file network error, " + statResult.Text);
+                Dispatcher.Invoke(new Action(delegate
+                {
+                    this.SettingsErrorTextBlock.Text = statResult.Text;
+                }));
             }
         }
+
 
         /// <summary>
         /// save account settings button click handler

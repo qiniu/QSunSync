@@ -71,8 +71,7 @@ namespace SunSync
 
         private string jobsDbPath;
 
-        private List<FileItem> batchOpFiles;
-        private Dictionary<string,bool> overwriteDict;
+        private List<string> batchOpFiles;
 
         private string cacheDir;
         private string cacheFilePathDone;
@@ -82,19 +81,13 @@ namespace SunSync
         private string syncLogDBPath;
         private SQLiteConnection syncLogDB;
 
-        private Qiniu.IO.Model.UploadController upctl;
-
         public SyncProgressPage(MainWindow mainWindow)
         {
             InitializeComponent();
             this.mainWindow = mainWindow;
-            this.batchOpFiles = new List<FileItem>();
+            this.batchOpFiles = new List<string>();
             this.uploadedBytes = new Dictionary<string, string>();
             this.resetSyncStatus();
-
-            upctl = new Qiniu.IO.Model.UploadController(uploadControl);
-
-            HaltActionButton.IsEnabled = false;
         }
 
         public SQLiteConnection SyncLogDB()
@@ -112,20 +105,13 @@ namespace SunSync
         {
             this.syncSetting = syncSetting;
 
-            string jobName = string.Join("\t", new string[] { syncSetting.LocalDirectory, syncSetting.TargetBucket });
-            this.jobId = Qiniu.Util.Hashing.CalcMD5X(jobName);
+            string jobName = string.Join("\t", new string[] { syncSetting.SyncLocalDir, syncSetting.SyncTargetBucket });
+            this.jobId = Tools.md5Hash(jobName);
 
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunsync", "sync_jobs_v1.6.0.5.db");
+            this.jobsDbPath = System.IO.Path.Combine(myDocPath, "qsunsync", "jobs.db");
             this.jobLogDir = System.IO.Path.Combine(myDocPath, "qsunsync", "logs", jobId);
-
-            string localHashDBDir = System.IO.Path.Combine(myDocPath, "qsunsync", "hashdb");
-            if(!Directory.Exists(localHashDBDir))
-            {
-                Directory.CreateDirectory(localHashDBDir);
-            }
-            string bucketId = Qiniu.Util.Hashing.CalcMD5X(syncSetting.TargetBucket);
-            this.localHashDBPath = System.IO.Path.Combine(localHashDBDir, bucketId + ".db");
+            this.localHashDBPath = System.IO.Path.Combine(myDocPath, "qsunsync", "hash.db");
             this.cacheDir = System.IO.Path.Combine(myDocPath, "qsunsync", "dircache");
             this.syncLogDir = System.IO.Path.Combine(myDocPath, "qsunsync", "synclog");
             this.syncLogDBPath = System.IO.Path.Combine(this.syncLogDir, jobId + ".log.db");
@@ -168,7 +154,6 @@ namespace SunSync
             this.finishSignal = false;
             this.HaltActionButton.Content = "暂停";
             this.HaltActionButton.IsEnabled = true;
-            //this.HaltActionButton.IsEnabled = false;
             this.ManualFinishButton.IsEnabled = false;
             this.UploadProgressTextBlock.Text = "";
             this.UploadProgressLogTextBlock.Text = "";
@@ -177,180 +162,98 @@ namespace SunSync
             this.batchOpFiles.Clear();
         }
 
+
         private void createDirCache(string localSyncDir)
         {
-            DirectoryInfo di = new DirectoryInfo(localSyncDir);
-
-            FileInfo[] fileInfos = di.GetFiles("*.*", SearchOption.AllDirectories);
-
-            int originalCount = fileInfos.Length;
-
-            List<string> files = new List<string>();
-            string[] keys = new string[originalCount];
-            bool[] skip = new bool[originalCount];
-            overwriteDict = new Dictionary<string, bool>();
-
-            for(int i=0;i<originalCount;++i)
+            if (File.Exists(this.cacheFilePathDone))
             {
-                string fullName = fileInfos[i].FullName.Replace('\\', '/');
-                string relativeName = fullName.Substring(syncSetting.LocalDirectory.Length + 1);
-
-                files.Add(fullName);                
-
-                switch(syncSetting.FilenameKind)
+                try
                 {
-                    case 0:
-                        keys[i] = syncSetting.SyncPrefix + fullName;
-                        break;
-                    case 1:
-                        keys[i] = syncSetting.SyncPrefix + relativeName;
-                        break;
-                    case 2:
-                    default:
-                        keys[i] = syncSetting.SyncPrefix + fileInfos[i].Name;
-                        break;
+                    File.Delete(this.cacheFilePathDone);
                 }
-
-                skip[i] = false;
-                overwriteDict.Add(fullName, false);
-            }
-
-            // 按照前缀/后缀跳过
-            string[] skippedPrefixes = this.syncSetting.SkipPrefixes.Split(',');
-            string[] skippedSuffixes = this.syncSetting.SkipSuffixes.Split(',');
-            for (int i = 0; i < originalCount; ++i)
-            {
-                string shortFileName = fileInfos[i].Name;
-
-                if (skip[i]) continue;
-                if (shouldSkipByPrefix(shortFileName, skippedPrefixes))
+                catch (Exception ex)
                 {
-                    skip[i] = true;
-                    addFileSkippedLog(string.Format("{0}\t{1}", this.syncSetting.TargetBucket,files[i]));
-                    updateUploadLog("按照前缀规则跳过文件 " + files[i]);
-                }
-
-                if (skip[i]) continue;
-                if (shouldSkipBySuffix(shortFileName, skippedSuffixes))
-                {
-                    skip[i] = true;
-                    addFileSkippedLog(string.Format("{0}\t{1}", this.syncSetting.TargetBucket, files[i]));
-                    updateUploadLog("按照后缀规则跳过文件 " + files[i]);
-                }
-            }         
-
-            // 检查本地增量文件
-            if (syncSetting.CheckNewFiles)
-            {
-                List<string> cachedKeys = CachedHash.GetAllKeys(localHashDB);
-
-                Dictionary<string, string> itemDict = CachedHash.GetAllItems(localHashDB);
-
-                for (int i = 0; i < originalCount; ++i)
-                {
-                    if (skip[i]) continue;
-
-                    string f = files[i];
-                    if (itemDict.ContainsKey(f))
-                    {
-                        string oldHash = itemDict[f];
-                        string newHash = Qiniu.Util.ETag.CalcHash(f);
-                        if (string.Equals(oldHash, newHash))
-                        {
-                            addFileExistsLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket, files[i], keys[i]));
-                            updateUploadLog("本地检查已同步，跳过文件 " + files[i]);
-                            skip[i] = true;
-                        }
-                    }
+                    Log.Error(string.Format("delete old cache file {0} failed due to {1}", this.cacheFilePathDone, ex.Message));
                 }
             }
 
-            // 检查云端同名文件  
-            var mac = new Qiniu.Util.Mac(SystemConfig.ACCESS_KEY, SystemConfig.SECRET_KEY);
-            string[] remoteHash = BucketFileHash.BatchStat(mac, syncSetting.TargetBucket, keys);
-
-            // 覆盖
-            if (syncSetting.OverwriteDuplicate)
+            try
             {
-                for (int i = 0; i < originalCount; ++i)
-                {
-                    if (skip[i]) continue;
+                DateTime startCacheTime = DateTime.Now;
 
-                    if (!string.IsNullOrEmpty(remoteHash[i]))
-                    {
-                        string localHash = Qiniu.Util.ETag.CalcHash(files[i]);
-                        if (string.Equals(localHash, remoteHash[i]))
-                        {
-                            addFileOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket, files[i], keys[i]));
-                            updateUploadLog("空间已存在相同文件，覆盖文件 " + files[i]);
-                            overwriteDict[files[i]] = true;
-                        }
-                    }
+                using (StreamWriter sw = new StreamWriter(this.cacheFilePathTemp, false, Encoding.UTF8))
+                {
+                    processDir(localSyncDir, localSyncDir, sw);
                 }
-            }
-            else // 跳过
-            {
-                for (int i = 0; i < originalCount; ++i)
-                {
-                    if (skip[i]) continue;
 
-                    if (!string.IsNullOrEmpty(remoteHash[i]))
-                    {
-                        string localHash = Qiniu.Util.ETag.CalcHash(files[i]);
-                        if (string.Equals(localHash, remoteHash[i]))
-                        {
-                            addFileNotOverwriteLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.TargetBucket, files[i], keys[i]));
-                            updateUploadLog("空间已存在相同文件，跳过文件 " + files[i]);
-                            skip[i] = true;
-                        }
-                    }
-                } 
+                Log.Info(string.Format("cache dir {0} last for {1} s", localSyncDir, DateTime.Now.Subtract(startCacheTime).TotalSeconds));
+            }
+            catch (Exception ex)
+            {
+                Log.Error(string.Format(string.Format("cache dir {0} failed due to {1}", localSyncDir, ex.Message)));
             }
 
-            using (StreamWriter sw = new StreamWriter(cacheFilePathDone))
+            if (!this.cancelSignal)
             {
-                for (int i = 0; i < files.Count; ++i)
+                try
                 {
-                    if (!skip[i])
-                    {
-                        sw.WriteLine(files[i]);                        
-                    }
+                    File.Move(this.cacheFilePathTemp, this.cacheFilePathDone);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("move temp cache {0} to final cache {1} failed due to {2}", this.cacheFilePathTemp, this.cacheFilePathDone, ex.Message));
                 }
             }
         }
 
-        private bool shouldSkipByPrefix(string shortFileName, string[] skippedPrefixes)
+        private void processDir(string rootDir, string targetDir, StreamWriter sw)
         {
-            foreach (string prefix in skippedPrefixes)
+            this.updateUploadLog(string.Format("正在遍历目录 {0} ...", targetDir));
+            try
             {
-                string sks = prefix.Trim();
-                if (!string.IsNullOrEmpty(sks))
+                string[] fileEntries = Directory.GetFiles(targetDir);
+                foreach (string fileName in fileEntries)
                 {
-                    if (shortFileName.StartsWith(sks))
+                    if (this.cancelSignal)
                     {
-                        return true;
+                        break;
+                    }
+                    try
+                    {
+                        sw.WriteLine(fileName);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(string.Format("write sync dir cache failed for {0} due to {1}", fileName, ex.Message));
                     }
                 }
             }
-
-            return false;
-        }
-
-        private bool shouldSkipBySuffix(string shortFileName, string[] skippedSuffixes)
-        {
-            foreach (string suffix in skippedSuffixes)
+            catch (Exception ex)
             {
-                string sfx = suffix.Trim();
-                if (!string.IsNullOrEmpty(sfx))
-                {
-                    if (shortFileName.EndsWith(suffix.Trim()))
-                    {
-                        return true;
-                    }
-                }
+                Log.Error(string.Format("counting: get files from {0} failed due to {1}", targetDir, ex.Message));
             }
 
-            return false;
+            if (this.cancelSignal)
+            {
+                return;
+            }
+
+            try
+            {
+                string[] subDirs = Directory.GetDirectories(targetDir);
+                foreach (string subDir in subDirs)
+                {
+                    if (this.cancelSignal)
+                    {
+                        return;
+                    }
+                    processDir(rootDir, subDir, sw);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(string.Format("listing: get dirs from {0} failed due to {1}", targetDir, ex.Message));
+            }
         }
 
         private void processUpload(string cacheFilePath)
@@ -380,71 +283,13 @@ namespace SunSync
 
                         if (this.batchOpFiles.Count < this.syncSetting.SyncThreadCount)
                         {
-                            FileInfo fi = new FileInfo(filePath);
-
-                            string fullName = fi.FullName.Replace('\\', '/');
-                            string relativeName = fullName.Substring(syncSetting.LocalDirectory.Length + 1);
-
-                            string fn = syncSetting.SyncPrefix;
-
-                            switch (syncSetting.FilenameKind)
-                            {
-                                case 0:
-                                    fn += fullName;
-                                    break;
-                                case 1:
-                                    fn += relativeName;
-                                    break;
-                                case 2:
-                                default:
-                                    fn += fi.Name;
-                                    break;
-                            }
-
-                            FileItem item = new FileItem()
-                            {
-                                LocalFile = filePath,
-                                SaveKey = fn,
-                                FileHash = Qiniu.Util.ETag.CalcHash(filePath),
-                                Length = fi.Length,
-                                LastUpdate = fi.LastWriteTime.Ticks.ToString()
-                            };
-                            this.batchOpFiles.Add(item);
+                            this.batchOpFiles.Add(filePath);
                         }
                         else
                         {
                             this.uploadFiles(this.batchOpFiles);
                             this.batchOpFiles.Clear();
-                            FileInfo fi = new FileInfo(filePath);
-                            string fullName = fi.FullName.Replace('\\', '/');
-                            string relativeName = fullName.Substring(syncSetting.LocalDirectory.Length + 1);
-
-                            string fn = syncSetting.SyncPrefix;
-
-                            switch (syncSetting.FilenameKind)
-                            {
-                                case 0:
-                                    fn += fi.Name;
-                                    break;
-                                case 1:
-                                    fn += relativeName;
-                                    break;
-                                case 2:
-                                default:
-                                    fn += fullName;
-                                    break;
-                            }
-
-                            FileItem item = new FileItem()
-                            {
-                                LocalFile = filePath,
-                                SaveKey = fn,
-                                FileHash = Qiniu.Util.ETag.CalcHash(filePath),
-                                Length = fi.Length,
-                                LastUpdate = fi.LastWriteTime.Ticks.ToString()
-                            };
-
-                            this.batchOpFiles.Add(item);
+                            this.batchOpFiles.Add(filePath);
                         }
                     }
                 }
@@ -455,7 +300,8 @@ namespace SunSync
             }
         }
 
-        private void uploadFiles(List<FileItem> filesToUpload)
+
+        private void uploadFiles(List<string> filesToUpload)
         {
             this.uploadedBytes.Clear();
             ManualResetEvent[] doneEvents = null;
@@ -466,15 +312,13 @@ namespace SunSync
             {
                 this.uploadInfos[taskId] = new UploadInfo();
                 doneEvents[taskId] = new ManualResetEvent(false);
-                FileUploader uploader = new FileUploader(this.syncSetting, doneEvents[taskId], this, taskId, upctl);
+                FileUploader uploader = new FileUploader(this.syncSetting, doneEvents[taskId], this, taskId);
                 ThreadPool.QueueUserWorkItem(new WaitCallback(uploader.uploadFile), filesToUpload[taskId]);
             }
 
             try
             {
                 WaitHandle.WaitAll(doneEvents);
-                CachedHash.BatchInsertOrUpdate(filesToUpload, localHashDB);
-                SyncLog.BatchInsertOrUpdate(filesToUpload, syncLogDB);
             }
             catch (Exception ex)
             {
@@ -557,25 +401,6 @@ namespace SunSync
             return checkOk;
         }
 
-        private Qiniu.IO.Model.UPTS uploadControl()
-        {
-            if (finishSignal)
-            {
-                return Qiniu.IO.Model.UPTS.Aborted;
-            }
-            else
-            {
-                if (cancelSignal)
-                {
-                    return Qiniu.IO.Model.UPTS.Suspended;
-                }
-                else
-                {
-                    return Qiniu.IO.Model.UPTS.Activated;
-                }
-            }
-        }
-
         private void createOptionalDB()
         {
             //check jobs db
@@ -595,7 +420,7 @@ namespace SunSync
                 DateTime syncDateTime = DateTime.Now;
                 try
                 {
-                    SyncRecord.InsertRecord(this.jobId, syncDateTime, this.syncSetting, this.jobsDbPath);
+                    SyncRecord.RecordSyncJob(this.jobId, syncDateTime, this.syncSetting, this.jobsDbPath);
                 }
                 catch (Exception ex)
                 {
@@ -628,19 +453,9 @@ namespace SunSync
             }
         }
 
-        public bool isOverwritten(string localFile)
-        {
-            return overwriteDict[localFile];
-        }
-
         //main job scheduler
         private void runSyncJob(object resumeObject)
         {
-            Dispatcher.Invoke(new Action(delegate ()
-            {
-                HaltActionButton.IsEnabled = false;
-            }));
-
             bool resume = (bool)resumeObject;
             this.jobStart = DateTime.Now;
             bool checkOk = this.initRunJob();
@@ -705,19 +520,19 @@ namespace SunSync
 
             //start job
             this.jobStart = System.DateTime.Now;
-            Log.Info(string.Format("start to sync dir {0}", this.syncSetting.LocalDirectory));
+            Log.Info(string.Format("start to sync dir {0}", this.syncSetting.SyncLocalDir));
             //set before run status
             this.finishSignal = false;
             this.cancelSignal = false;
 
             //list dirs
-            string localSyncDir = syncSetting.LocalDirectory;
+            string localSyncDir = syncSetting.SyncLocalDir;
             //list & count
-            //if (!File.Exists(this.cacheFilePathDone) || (!resume))
-            //{
+            if (!File.Exists(this.cacheFilePathDone) || (!resume && this.syncSetting.CheckNewFiles))
+            {
                 this.updateUploadLog(string.Format("正在遍历{0}下文件...", localSyncDir));
                 this.createDirCache(localSyncDir);
-            //}
+            }
 
             if (!this.cancelSignal)
             {
@@ -725,11 +540,6 @@ namespace SunSync
                 this.updateUploadLog(string.Format("开始同步{0}下所有文件...", localSyncDir));
                 this.processUpload(this.cacheFilePathDone);
             }
-
-            Dispatcher.Invoke(new Action(delegate ()
-            {
-                HaltActionButton.IsEnabled = true;
-            }));
 
             if (!this.cancelSignal && this.batchOpFiles.Count > 0)
             {
@@ -767,7 +577,7 @@ namespace SunSync
             {
                 //job auto finish, jump to result page
                 DateTime jobEnd = System.DateTime.Now;
-                this.mainWindow.GotoSyncResultPage(this.jobId, jobEnd - this.jobStart, this.syncSetting.OverwriteDuplicate,
+                this.mainWindow.GotoSyncResultPage(this.jobId, jobEnd - this.jobStart, this.syncSetting.OverwriteFile,
                     this.fileSkippedCount, this.fileSkippedLogPath,
                     this.fileExistsCount, this.fileExistsLogPath,
                     this.fileOverwriteCount, this.fileOverwriteLogPath,
@@ -780,36 +590,33 @@ namespace SunSync
         //halt or resume button click
         private void HaltActionButton_EventHandler(object sender, RoutedEventArgs e)
         {
-            //this.HaltActionButton.IsEnabled = false;
+            this.HaltActionButton.IsEnabled = false;
             if (this.cancelSignal)
             {
-                this.cancelSignal = false;
-                this.HaltActionButton.Content = "暂停";
                 //reset
-                //this.resetSyncStatus();
-                //this.HaltActionButton.IsEnabled = true;
-                //this.HaltActionButton.Content = "暂停";
-                //Thread jobThread = new Thread(new ParameterizedThreadStart(this.runSyncJob));
-                //jobThread.Start(true);
+                this.resetSyncStatus();
+                this.HaltActionButton.IsEnabled = true;
+                this.HaltActionButton.Content = "暂停";
+                Thread jobThread = new Thread(new ParameterizedThreadStart(this.runSyncJob));
+                jobThread.Start(true);
             }
             else
             {
                 this.cancelSignal = true;
-                this.HaltActionButton.Content = "继续";
-                //Thread checkThread = new Thread(new ThreadStart(delegate
-                //{
-                //    while (!this.finishSignal)
-                //    {
-                //        Thread.Sleep(1000);
-                //    }
-                //    Dispatcher.Invoke(new Action(delegate
-                //    {
-                //        this.HaltActionButton.IsEnabled = true;
-                //        this.HaltActionButton.Content = "恢复";
-                //        this.ManualFinishButton.IsEnabled = true;
-                //    }));
-                //}));
-                //checkThread.Start();
+                Thread checkThread = new Thread(new ThreadStart(delegate
+                {
+                    while (!this.finishSignal)
+                    {
+                        Thread.Sleep(1000);
+                    }
+                    Dispatcher.Invoke(new Action(delegate
+                    {
+                        this.HaltActionButton.IsEnabled = true;
+                        this.HaltActionButton.Content = "恢复";
+                        this.ManualFinishButton.IsEnabled = true;
+                    }));
+                }));
+                checkThread.Start();
             }
         }
 
@@ -817,7 +624,7 @@ namespace SunSync
         private void ManualFinishButton_EventHandler(object sender, RoutedEventArgs e)
         {
             DateTime jobEnd = System.DateTime.Now;
-            this.mainWindow.GotoSyncResultPage(this.jobId, jobEnd - this.jobStart, this.syncSetting.OverwriteDuplicate,
+            this.mainWindow.GotoSyncResultPage(this.jobId, jobEnd - this.jobStart, this.syncSetting.OverwriteFile,
                this.fileSkippedCount, this.fileSkippedLogPath,
                this.fileExistsCount, this.fileExistsLogPath,
                this.fileOverwriteCount, this.fileOverwriteLogPath,
@@ -968,13 +775,13 @@ namespace SunSync
             }));
         }
 
-        internal void updateSingleFileProgress(int taskId, string fileFullPath, string fileKey, long uploadedBytes, long fileLength)
+        internal void updateSingleFileProgress(int taskId, string fileFullPath, string fileKey, long fileLength, double percent)
         {
             lock (this.uploadInfoLock)
             {
                 //calc
-                string uploadProgress = string.Format("{0:0.000}%", 100.0 * uploadedBytes / fileLength);
-
+                string uploadProgress = string.Format("{0}", percent.ToString("P"));
+                long newUploaded = (long)(fileLength * percent);
                 TimeSpan ts = DateTime.Now.Subtract(new DateTime(1970, 1, 1, 0, 0, 0));
                 long newMills = (long)(ts.TotalMilliseconds);
 
@@ -991,7 +798,7 @@ namespace SunSync
                     long oldUploaded = Convert.ToInt64(lastUploadItems[0]);
                     long oldMills = Convert.ToInt64(lastUploadItems[1]);
 
-                    long deltaBytes = uploadedBytes - oldUploaded;
+                    long deltaBytes = newUploaded - oldUploaded;
                     long deltaMillis = newMills - oldMills;
 
                     if (deltaMillis > 0 && deltaBytes > 0)
@@ -1009,7 +816,7 @@ namespace SunSync
                             speedStr = string.Format("{0} KB/s", speed.ToString("F1"));
                         }
 
-                        if (uploadedBytes < fileLength)
+                        if (newUploaded < fileLength)
                         {
                             uploadInfo.Speed = speedStr;
                         }
@@ -1022,7 +829,7 @@ namespace SunSync
                 }
                 else
                 {
-                    this.uploadedBytes.Add(fileKey, string.Format("{0}:{1}", uploadedBytes, newMills));
+                    this.uploadedBytes.Add(fileKey, string.Format("{0}:{1}", newUploaded, newMills));
                     uploadInfo.Speed = "---";
                 }
             }

@@ -21,7 +21,8 @@ namespace SunSync.Models
         public static Account TryLoadAccount()
         {
             Account acct = new Account();
-            string accPath = Tools.getAccountFile();
+            string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string accPath = System.IO.Path.Combine(myDocPath, "qsunsync", "account.json");
             if (File.Exists(accPath))
             {
                 string accData = "";
@@ -32,11 +33,10 @@ namespace SunSync.Models
                 try
                 {
                     acct = JsonConvert.DeserializeObject<Account>(accData);
-                    Log.Info("try load account, parse account info success");
                 }
                 catch (Exception ex)
                 {
-                    Log.Error("try load account, parse account info failed, " + ex.Message);
+                    Log.Error("parse account info failed, " + ex.Message);
                 }
             }
             return acct;

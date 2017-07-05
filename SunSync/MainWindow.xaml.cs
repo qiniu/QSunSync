@@ -1,6 +1,5 @@
 ﻿using SunSync.Models;
 using System;
-using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Forms;
 
@@ -17,7 +16,6 @@ namespace SunSync
         private SyncSettingPage syncSettingPage;
         private SyncProgressPage syncProgressPage;
         private SyncResultPage syncResultPage;
-
         public MainWindow()
         {
             InitializeComponent();
@@ -26,9 +24,8 @@ namespace SunSync
 
             try
             {
-                Version version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-                this.Title =string.Format("{0} v{1}.{2}.{3}.{4}", 
-                    this.Title,version.Major,version.Minor,version.Build,version.Revision);
+                string version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
+                this.Title =string.Format("{0} v{1}", this.Title,version);
                 //init tray
                 this.nIcon = new NotifyIcon();
                 this.nIcon.Text = "QSunSync 七牛云文件同步";
@@ -94,7 +91,7 @@ namespace SunSync
         //go to sync setting page
         internal void GotoSyncSettingPage(SyncSetting syncSetting)
         {
-            this.MainHostFrame.Content = this.syncSettingPage;            
+            this.MainHostFrame.Content = this.syncSettingPage;
             this.syncSettingPage.LoadSyncSetting(syncSetting);
         }
 
