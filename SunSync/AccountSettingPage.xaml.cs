@@ -72,12 +72,15 @@ namespace SunSync
             Account account = (Account)accountObj;
 
             //check ak & sk validity
-            ValidateAccount(account);
+            bool valid= ValidateAccount(account);
+            if (!valid)
+            {
+                return;
+            }
 
             //write settings to local file
             string accData = JsonConvert.SerializeObject(account);
-            string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string appDir = System.IO.Path.Combine(myDocPath, "qsunsync");
+            string appDir = Tools.getAppDir();
             try
             {
                 if (!Directory.Exists(appDir))
@@ -95,7 +98,7 @@ namespace SunSync
                         }));
                     }
                 }
-                string accPath = System.IO.Path.Combine(appDir, "account.json");
+                string accPath = Tools.getAccountFile();
                 using (StreamWriter sw = new StreamWriter(accPath, false, Encoding.UTF8))
                 {
                     sw.Write(accData);
@@ -105,6 +108,11 @@ namespace SunSync
                 SystemConfig.ACCESS_KEY = account.AccessKey;
                 SystemConfig.SECRET_KEY = account.SecretKey;
                 Log.Info("write the ak&sk to local file success");
+
+                Dispatcher.Invoke(new Action(delegate {
+                    //go to the home page
+                    this.mainWindow.GotoHomePage();
+                }));
             }
             catch (Exception ex)
             {
@@ -113,7 +121,7 @@ namespace SunSync
                 {
                     this.SettingsErrorTextBlock.Text = "帐号设置写入文件失败";
                 }));
-            }            
+            }
         }
 
         /// <summary>
@@ -136,23 +144,22 @@ namespace SunSync
                 code == (int)HttpCode.BUCKET_NOT_EXIST ||
                 code == (int)HttpCode.FILE_NOT_EXIST)
             {
-                Log.Info("ak & sk is valid");
+                Log.Info("validate account, ak & sk is valid");
                 Dispatcher.Invoke(new Action(delegate
                 {
                     this.SettingsErrorTextBlock.Text = "";
-                    this.mainWindow.GotoHomePage();
                 }));
+                return true;
             }
             else
             {
-                Log.Error("ak & sk wrong");
+                Log.Error("validate account, ak & sk wrong");
                 Dispatcher.Invoke(new Action(delegate
                 {
                     this.SettingsErrorTextBlock.Text = "AK 或 SK 设置不正确";
                 }));
+                return false;
             }
-
-            return true;
         }
 
         /// <summary>
@@ -164,7 +171,6 @@ namespace SunSync
         {
             string accessKey = this.AccessKeyTextBox.Text.Trim();
             string secretKey = this.SecretKeyTextBox.Text.Trim();
-            bool isAbroad = this.IsAbroadAccountCheckBox.IsChecked.Value;
             Account account = new Account();
             account.AccessKey = accessKey;
             account.SecretKey = secretKey;

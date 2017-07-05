@@ -21,7 +21,7 @@ namespace SunSync.Models
         public static Account TryLoadAccount()
         {
             Account acct = new Account();
-            string accPath = Tools.getAppFile("account.json");
+            string accPath = Tools.getAccountFile();
             if (File.Exists(accPath))
             {
                 string accData = "";
