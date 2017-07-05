@@ -308,8 +308,10 @@ namespace SunSync.Models
             else
             {
                 putPolicy.Scope = this.syncSetting.SyncTargetBucket;
-            }
+            }         
             putPolicy.SetExpires(24 * 30 * 3600);
+            //set file type
+            putPolicy.FileType = this.syncSetting.FileType;
             Auth auth = new Auth(mac);
             string uptoken = auth.CreateUploadToken(putPolicy.ToJsonString());
 

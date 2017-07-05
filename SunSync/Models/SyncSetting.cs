@@ -9,6 +9,8 @@ namespace SunSync.Models
         public string SyncLocalDir { set; get; }
         //target bucket
         public string SyncTargetBucket { set; get; }
+        // file type
+        public int FileType { set; get; }
         //check remote duplicate
         public bool CheckRemoteDuplicate { set; get; }
         //prefix
@@ -64,6 +66,7 @@ namespace SunSync.Models
                                 setting = new SyncSetting();
                                 setting.SyncLocalDir = Convert.ToString(dr["sync_local_dir"]);
                                 setting.SyncTargetBucket = Convert.ToString(dr["sync_target_bucket"]);
+                                setting.FileType = Convert.ToInt32(dr["file_type"]);
                                 setting.CheckRemoteDuplicate = Convert.ToBoolean(dr["check_remote_duplicate"]);
                                 setting.SyncPrefix = Convert.ToString(dr["sync_prefix"]);
                                 setting.CheckNewFiles = Convert.ToBoolean(dr["check_new_files"]);

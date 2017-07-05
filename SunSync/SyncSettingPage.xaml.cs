@@ -57,6 +57,7 @@ namespace SunSync
                 //clear old buckets
                 this.SyncTargetBucketsComboBox.ItemsSource = null;
                 new Thread(new ThreadStart(this.reloadBuckets)).Start();
+                Thread.Sleep(10);
             }
             this.initUIDefaults();   
         }
@@ -91,6 +92,7 @@ namespace SunSync
                 //basic settings
                 this.SyncLocalFolderTextBox.Text = "";
                 this.SyncTargetBucketsComboBox.SelectedIndex = -1;
+                this.FileTypeComboBox.SelectedIndex = 0;
                 this.CheckRemoteDuplicateCheckBox.IsChecked = false;
                 //advanced settings
                 this.PrefixTextBox.Text = "";
@@ -109,6 +111,7 @@ namespace SunSync
             {
                 //basic settings
                 this.SyncLocalFolderTextBox.Text = syncSetting.SyncLocalDir;
+                this.FileTypeComboBox.SelectedIndex = syncSetting.FileType;
                 this.SyncTargetBucketsComboBox.SelectedIndex = -1;
                 this.CheckRemoteDuplicateCheckBox.IsChecked = syncSetting.CheckRemoteDuplicate;
                 //advanced settings
@@ -352,6 +355,22 @@ namespace SunSync
         private void UploadBySrcRadioButton_Checked(object sender, RoutedEventArgs e)
         {
             this.uploadEntryDomain = 1;
+        }
+
+        private void CheckRemoteDuplicateCheckBox_Checked(object sender, RoutedEventArgs e)
+        {
+            System.Windows.Forms.MessageBox.Show("您选中这个选项是因为空间可能存在同名文件吗？如果您想覆盖这些同名文件，请在【高级设置】里面选中【覆盖空间中已有同名文件】的选项，否则默认情况下，不会帮您覆盖的！",
+                "提示",MessageBoxButtons.OK,MessageBoxIcon.Information);
+        }
+
+        private void FileTypeCommon_Checked(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void FileTypeLowFrequency_Checked(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 

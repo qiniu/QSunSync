@@ -14,6 +14,7 @@ namespace SunSync.Models
         public string SyncId { set; get; }
         public string SyncLocalDir { set; get; }
         public string SyncTargetBucket { set; get; }
+        public int FileType { set; get; }
         public bool CheckRemoteDuplicate { set; get; }
         public string SyncPrefix { set; get; }
         public bool CheckNewFiles { set; get; }
@@ -40,6 +41,7 @@ namespace SunSync.Models
                 .Append("([sync_id] CHAR(32)  UNIQUE NOT NULL, ")
                 .Append("[sync_local_dir] VARCHAR(255)  NOT NULL,")
                 .Append("[sync_target_bucket] VARCHAR(64)  NOT NULL,")
+                .Append("[file_type] INTEGER NOT NULL,")
                 .Append("[check_remote_duplicate] BOOLEAN NOT NULL,")
                 .Append("[sync_prefix] VARCHAR(255) NOT NULL,")
                 .Append("[check_new_files] BOOLEAN NOT NULL,")
@@ -97,6 +99,7 @@ namespace SunSync.Models
                             SyncRecord record = new SyncRecord();
                             record.SyncId = Convert.ToString(dr["sync_id"]);
                             record.SyncLocalDir = Convert.ToString(dr["sync_local_dir"]);
+                            record.FileType=Convert.ToInt32(dr["file_type"]);
                             record.CheckRemoteDuplicate = Convert.ToBoolean(dr["check_remote_duplicate"]);
                             record.SyncTargetBucket = Convert.ToString(dr["sync_target_bucket"]);
                             record.SyncPrefix = Convert.ToString(dr["sync_prefix"]);
@@ -124,9 +127,9 @@ namespace SunSync.Models
         {
             string conStr = new SQLiteConnectionStringBuilder { DataSource = jobsDbPath }.ToString();
             string queryDelete = "DELETE FROM [sync_jobs] WHERE [sync_id]=@sync_id";
-            string queryInsert = new StringBuilder().Append("INSERT INTO [sync_jobs] ([sync_id], [sync_local_dir], [sync_target_bucket], [check_remote_duplicate], ")
+            string queryInsert = new StringBuilder().Append("INSERT INTO [sync_jobs] ([sync_id], [sync_local_dir], [sync_target_bucket], [file_type], [check_remote_duplicate], ")
                 .Append("[sync_prefix], [check_new_files], [ignore_dir], [skip_prefixes], [skip_suffixes], [overwrite_file], [default_chunk_size], [chunk_upload_threshold], [sync_thread_count], ")
-                .Append("[upload_entry_domain], [sync_date_time]) VALUES ( @sync_id, @sync_local_dir, @sync_target_bucket, @check_remote_duplicate, @sync_prefix, @check_new_files, @ignore_dir, ")
+                .Append("[upload_entry_domain], [sync_date_time]) VALUES ( @sync_id, @sync_local_dir, @sync_target_bucket, @file_type, @check_remote_duplicate, @sync_prefix, @check_new_files, @ignore_dir, ")
                 .Append("@skip_prefixes, @skip_suffixes, @overwrite_file, @default_chunk_size, @chunk_upload_threshold, @sync_thread_count, @upload_entry_domain, @sync_date_time)").ToString();
             using (SQLiteConnection sqlCon = new SQLiteConnection(conStr))
             {
@@ -147,6 +150,7 @@ namespace SunSync.Models
                         sqlCmd.Parameters.Add("@sync_id", System.Data.DbType.String);
                         sqlCmd.Parameters.Add("@sync_local_dir", System.Data.DbType.String);
                         sqlCmd.Parameters.Add("@sync_target_bucket", System.Data.DbType.String);
+                        sqlCmd.Parameters.Add("@file_type",System.Data.DbType.Int32);
                         sqlCmd.Parameters.Add("@check_remote_duplicate",System.Data.DbType.Boolean);
                         sqlCmd.Parameters.Add("@sync_prefix", System.Data.DbType.String);
                         sqlCmd.Parameters.Add("@check_new_files",System.Data.DbType.Boolean);
@@ -163,6 +167,7 @@ namespace SunSync.Models
                         sqlCmd.Parameters["@sync_id"].Value = syncId;
                         sqlCmd.Parameters["@sync_local_dir"].Value = syncSetting.SyncLocalDir;
                         sqlCmd.Parameters["@sync_target_bucket"].Value = syncSetting.SyncTargetBucket;
+                        sqlCmd.Parameters["@file_type"].Value = syncSetting.FileType;
                         sqlCmd.Parameters["@check_remote_duplicate"].Value = syncSetting.CheckRemoteDuplicate;
                         sqlCmd.Parameters["@sync_prefix"].Value = syncSetting.SyncPrefix;
                         sqlCmd.Parameters["@check_new_files"].Value = syncSetting.CheckNewFiles;
