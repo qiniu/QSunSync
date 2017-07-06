@@ -295,8 +295,10 @@ namespace SunSync.Models
             }
             uploadManager.SetChunkUnit(chunkSize);
             uploadManager.SetRecordFile(System.IO.Path.Combine(recordPath,recorderKey));
-            uploadManager.SetUploadProgressHandler(new UploadProgressHandler(delegate(long uploadBytes,long totalBytes ) {
-                double percent = uploadBytes * 100.0 / totalBytes;
+            uploadManager.SetUploadProgressHandler(new UploadProgressHandler(delegate(long uploadBytes,long totalBytes )
+            {
+                Console.WriteLine("progress: " + uploadBytes + ", " + totalBytes);
+                double percent = uploadBytes * 1.0 / totalBytes;
                 this.syncProgressPage.updateSingleFileProgress(taskId, fileFullPath, fileKey, fileLength, percent);
             }));
           

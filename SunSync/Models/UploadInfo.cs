@@ -7,6 +7,5 @@ namespace SunSync.Models
         public string FileKey { set; get; }
         public string Progress { set; get; }
         public string Speed { set; get; }
-        public string FinalSpeed { set; get; }
     }
 }

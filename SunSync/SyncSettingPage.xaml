@@ -77,18 +77,18 @@
                                 <GroupBox Header="可选参数" FontSize="16">
                                     <StackPanel Orientation="Vertical" Margin="5">
                                         <StackPanel Orientation="Horizontal" Margin="5">
-                                            <Label FontSize="16" Content="附加文件前缀" VerticalAlignment="Center" Width="110"></Label>
+                                            <Label FontSize="16" Content="附加文件前缀" VerticalAlignment="Center" Width="120"></Label>
                                             <TextBox Width="350" Margin="10 0" VerticalContentAlignment="Center"
                                                      Name="PrefixTextBox" Foreground="Green"></TextBox>
                                         </StackPanel>
                                         
                                         <StackPanel Orientation="Horizontal" Margin="5">
-                                            <Label FontSize="16" Content="按前缀跳过" VerticalAlignment="Center" Width="110"></Label>
+                                            <Label FontSize="16" Content="按前缀跳过不传" VerticalAlignment="Center" Width="120"></Label>
                                             <TextBox Width="350" Margin="10 0" VerticalContentAlignment="Center"
                                                      Name="SkipPrefixesTextBox" Foreground="Green"></TextBox>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="5">
-                                            <Label FontSize="16" Content="按后缀跳过" VerticalAlignment="Center" Width="110"></Label>
+                                            <Label FontSize="16" Content="按后缀跳过不传" VerticalAlignment="Center" Width="120"></Label>
                                             <TextBox Width="350" Margin="10 0" VerticalContentAlignment="Center"
                                                      Name="SkipSuffixesTextBox" Foreground="Green"></TextBox>
                                         </StackPanel>
