@@ -138,7 +138,7 @@ namespace SunSync.Models
                 BucketManager bucketManager = new BucketManager(mac);
                 StatResult statResult = bucketManager.Stat(this.syncSetting.SyncTargetBucket, fileKey);
 
-                if (!string.IsNullOrEmpty(statResult.Result.Hash))
+                if (statResult.Result != null && !string.IsNullOrEmpty(statResult.Result.Hash))
                 {
                     //file exists in bucket
                     string localHash = "";

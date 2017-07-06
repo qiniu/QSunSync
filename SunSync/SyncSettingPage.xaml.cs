@@ -142,6 +142,7 @@ namespace SunSync
         //reload buckets
         private void reloadBuckets()
         {
+            DateTime start = System.DateTime.Now;
             //get new bucket list
             BucketsResult bucketsResult = this.bucketManager.Buckets();
             if (bucketsResult.Code==200)
@@ -154,6 +155,7 @@ namespace SunSync
                     {
                         this.SyncTargetBucketsComboBox.SelectedItem = this.syncSetting.SyncTargetBucket;
                     }
+                    Log.Info("load buckets last for "+  System.DateTime.Now.Subtract(start).TotalSeconds+" seconds");
                 }));
             }
             else if (bucketsResult.Code == 401)
@@ -162,10 +164,6 @@ namespace SunSync
                 {
                     this.SettingsErrorTextBlock.Text = "AK 或 SK 不正确";
                 }));
-            }
-            else if (bucketsResult.Code != 0)
-            {
-                //status code exists,ignore
             }
             else
             {
