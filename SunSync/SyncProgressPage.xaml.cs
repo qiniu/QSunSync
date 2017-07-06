@@ -790,7 +790,7 @@ namespace SunSync
                 uploadInfo.LocalPath = fileFullPath;
                 uploadInfo.FileKey = fileKey;
                 uploadInfo.Progress = uploadProgress;
-                if (this.uploadedBytes.ContainsKey(fileKey) && string.IsNullOrEmpty(uploadInfo.FinalSpeed))
+                if (this.uploadedBytes.ContainsKey(fileKey))
                 {
                     string lastUploadInfo = this.uploadedBytes[fileKey];
                     string[] lastUploadItems = lastUploadInfo.Split(':');
@@ -804,7 +804,7 @@ namespace SunSync
                     if (deltaMillis > 0 && deltaBytes > 0)
                     {
                         //KB/s
-                        double speed = (deltaBytes / 1.024) / deltaMillis;
+                        double speed = (deltaBytes * 1000 / 1024) / deltaMillis;
                         string speedStr = "";
                         if (speed > 1024)
                         {
@@ -823,7 +823,6 @@ namespace SunSync
                         else
                         {
                             uploadInfo.Speed = speedStr;
-                            uploadInfo.FinalSpeed = speedStr;
                         }
                     }
                 }
