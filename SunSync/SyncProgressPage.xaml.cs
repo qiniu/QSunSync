@@ -551,28 +551,8 @@ namespace SunSync
             //set finish signal
             this.finishSignal = true;
             this.closeLogWriters();
-            if (this.localHashDB != null)
-            {
-                try
-                {
-                    this.localHashDB.Close();
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(string.Format("job finish close local hash db failed {0}", ex.Message));
-                }
-            }
-            if (this.syncLogDB != null)
-            {
-                try
-                {
-                    this.syncLogDB.Close();
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(string.Format("job finish close sync log db failed {0}", ex.Message));
-                }
-            }
+            this.closeHashDb();
+            this.closeSyncLogDb();
             if (!this.cancelSignal)
             {
                 //job auto finish, jump to result page
@@ -603,20 +583,16 @@ namespace SunSync
             else
             {
                 this.cancelSignal = true;
-                Thread checkThread = new Thread(new ThreadStart(delegate
+                this.closeHashDb();
+                this.closeSyncLogDb();
+                this.closeLogWriters();
+                Dispatcher.Invoke(new Action(delegate
                 {
-                    while (!this.finishSignal)
-                    {
-                        Thread.Sleep(1000);
-                    }
-                    Dispatcher.Invoke(new Action(delegate
-                    {
-                        this.HaltActionButton.IsEnabled = true;
-                        this.HaltActionButton.Content = "恢复";
-                        this.ManualFinishButton.IsEnabled = true;
-                    }));
+                    this.HaltActionButton.IsEnabled = true;
+                    this.HaltActionButton.Content = "恢复";
+                    this.ManualFinishButton.IsEnabled = true;
                 }));
-                checkThread.Start();
+
             }
         }
 
@@ -849,6 +825,37 @@ namespace SunSync
         internal bool checkCancelSignal()
         {
             return this.cancelSignal;
+        }
+
+
+        private void closeHashDb()
+        {
+            if (this.localHashDB != null)
+            {
+                try
+                {
+                    this.localHashDB.Close();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("job finish close local hash db failed {0}", ex.Message));
+                }
+            }
+        }
+
+        private void closeSyncLogDb()
+        {
+            if (this.syncLogDB != null)
+            {
+                try
+                {
+                    this.syncLogDB.Close();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(string.Format("job finish close sync log db failed {0}", ex.Message));
+                }
+            }
         }
 
         //close the log writers

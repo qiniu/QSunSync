@@ -253,6 +253,8 @@ namespace SunSync.Models
                 catch (Exception ex)
                 {
                     Log.Error(string.Format("get sync log failed {0}", ex.Message));
+                    this.doneEvent.Set();
+                    return;
                 }
 
                 if (this.syncSetting.OverwriteFile)
@@ -376,8 +378,9 @@ namespace SunSync.Models
                 this.syncProgressPage.addFileUploadSuccessLog(string.Format("{0}\t{1}\t{2}", this.syncSetting.SyncTargetBucket,
                         fileFullPath, fileKey));
                 this.syncProgressPage.updateTotalUploadProgress();
-                this.doneEvent.Set();
             }
+            this.doneEvent.Set();
+            return;
         }
     }
 }
