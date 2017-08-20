@@ -1,17 +1,19 @@
 ﻿# QSunSync 七牛云文件同步工具
 
-##简单介绍
+## 简单介绍
 
 `QSunSync`是使用`C# + WPF`开发的用于将本地文件同步到七牛云端空间的Windows客户端。该客户端的特点就是简单易用，而且方便增量同步。
 
-##下载安装
+## 下载安装
 
-[QSunSync-v1.10.2](http://devtools.qiniu.com/QSunSync-v1.10.2.zip) 
+[QSunSync-v2.0.0](http://devtools.qiniu.com/QSunSync-v2.0.0.zip) 
 
 1. 该软件的使用需要`.NET Framework 4.0`支持，可以从 [微软官方下载中心](https://www.microsoft.com/zh-cn/download/details.aspx?id=17718) 下载安装。  
 2. 该软件使用了`SQLite`数据库来记录本地文件的hash值，所以需要在`.NET Framework4.0`安装完成之后，安装`SQLite`支持软件，这个可以从 [这里](
 http://devtools.qiniu.com/sqlite_net4.0.exe) 下载，该软件仅仅是一个依赖库，不会对原有系统稳定性造成影响。  
 3. 然后下载`QSunSync`解压缩后，双击 `QSunSync.exe` 打开就可以使用了。 
+
+备注：如果使用的是旧版本，请先删除 "我的文档" 目录下的文件夹 `qsunsync` 。
 
 ##功能介绍
 
@@ -26,16 +28,16 @@ http://devtools.qiniu.com/sqlite_net4.0.exe) 下载，该软件仅仅是一个�
 7. 可以根据实际带宽的情况，选择分片上传的片的大小，带宽越大，片大小可以选择越大，效率越高  
 8. 支持单文件断点续传，支持目录增量同步
 
-##自行编译
+##  自行编译
 
 如果你打算自行编译这个项目的话，请按照如下方式： 
  
-1. 这个项目是使用 Visual Studio 2012 开发的，所以这个版本以上的都可以；  
-2. 这个项目依赖另外一个项目提供的SDK，这个项目是 [qiniu-csharp-sdk](https://github.com/jemygraw/qiniu-csharp-sdk)；  
+1. 这个项目是使用 Visual Studio 2015 开发的，所以这个版本以上的都可以；  
+2. 这个项目依赖另外一个项目提供的SDK，这个项目是 [csharp-sdk](https://github.com/qiniu/csharp-sdk)；  
 3. 然后，编译吧。  
  
 
-##使用方式
+## 使用方式
 
 1. 首次打开软件的时候，需要进行帐号设置才能去“新建同步任务”，七牛云存储的文件上传使用一对密钥`AK/SK`来进行权限校验，这一对密钥在七牛云存储的后台里面是可以找到的。  
 2. 你可以直接到“帐号设置”里面点击“查看我的AS&SK”，这将自动帮你打开浏览器并导向到`AK/SK`的所在地，你直接拷贝，粘贴到本地的输入框里面就好了，输入完成之后，点击“保存”
@@ -44,6 +46,6 @@ http://devtools.qiniu.com/sqlite_net4.0.exe) 下载，该软件仅仅是一个�
 4. 设置完成之后，你就可以点击“开始同步”进行同步了。  
 
 
-##意见&帮助
+## 意见&帮助
 
-如果你有任何的意见，可以通过提 issue，我们来讨论。如果你需要帮助，可以联系我 （QQ: 2037014430），非技术勿扰。
+如果你有任何的意见，可以通过提 issue，我们来讨论。如果你需要帮助，可以加入群 （QQ: 343822521），非技术勿扰。
