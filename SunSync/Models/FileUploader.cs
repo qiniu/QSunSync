@@ -1,13 +1,10 @@
 ﻿using Newtonsoft.Json;
 using Qiniu.Http;
-using Qiniu.IO;
 using Qiniu.Util;
-using Qiniu.RS;
-using Qiniu.RS.Model;
 using System;
 using System.Data.SQLite;
 using System.IO;
-using Qiniu.IO.Model;
+using Qiniu.Storage;
 using System.Threading;
 
 namespace SunSync.Models
@@ -122,9 +119,9 @@ namespace SunSync.Models
 
             bool overwriteUpload = false;
             Mac mac = new Mac(SystemConfig.ACCESS_KEY, SystemConfig.SECRET_KEY);
-            Qiniu.Common.Config.AutoZone(SystemConfig.ACCESS_KEY, this.syncSetting.SyncTargetBucket,false);
+
             //current file info
-            FileInfo fileInfo = new FileInfo(fileFullPath);
+            System.IO.FileInfo fileInfo = new System.IO.FileInfo(fileFullPath);
             long fileLength = fileInfo.Length;
             string fileLastModified = fileInfo.LastWriteTimeUtc.ToFileTime().ToString();
             //support resume upload
@@ -135,7 +132,7 @@ namespace SunSync.Models
             if (syncSetting.CheckRemoteDuplicate)
             {
                 //check remotely
-                BucketManager bucketManager = new BucketManager(mac);
+                BucketManager bucketManager = new BucketManager(mac, new Config());
                 StatResult statResult = bucketManager.Stat(this.syncSetting.SyncTargetBucket, fileKey);
 
                 if (statResult.Result != null && !string.IsNullOrEmpty(statResult.Result.Hash))
@@ -274,8 +271,6 @@ namespace SunSync.Models
                 default:
                     uploadByCdn = true; break;
             }
-            UploadManager uploadManager = new UploadManager(this.syncSetting.ChunkUploadThreshold,
-                uploadByCdn);
 
             ChunkUnit chunkSize = ChunkUnit.U4096K;
             switch (this.syncSetting.DefaultChunkSize)
@@ -295,15 +290,26 @@ namespace SunSync.Models
                 default:
                     chunkSize = ChunkUnit.U4096K; break;
             }
-            uploadManager.SetChunkUnit(chunkSize);
-            uploadManager.SetRecordFile(System.IO.Path.Combine(recordPath,recorderKey));
-            uploadManager.SetUploadProgressHandler(new UploadProgressHandler(delegate(long uploadBytes,long totalBytes )
-            {
-                Console.WriteLine("progress: " + uploadBytes + ", " + totalBytes);
-                double percent = uploadBytes * 1.0 / totalBytes;
-                this.syncProgressPage.updateSingleFileProgress(taskId, fileFullPath, fileKey, fileLength, percent);
-            }));
-          
+
+            string resumeFile = System.IO.Path.Combine(recordPath, recorderKey);
+            Config config = new Config();
+            config.ChunkSize = chunkSize;
+            config.UseCdnDomains = uploadByCdn;
+            config.PutThreshold = this.syncSetting.ChunkUploadThreshold;
+
+            UploadManager uploadManager = new UploadManager(config);
+
+            PutExtra putExtra = new PutExtra();
+            putExtra.ResumeRecordFile = resumeFile;
+
+            UploadProgressHandler progressHandler = new UploadProgressHandler(delegate (long uploadBytes, long totalBytes)
+             {
+                 Console.WriteLine("progress: " + uploadBytes + ", " + totalBytes);
+                 double percent = uploadBytes * 1.0 / totalBytes;
+                 this.syncProgressPage.updateSingleFileProgress(taskId, fileFullPath, fileKey, fileLength, percent);
+             });
+            putExtra.ProgressHandler = progressHandler;
+
             PutPolicy putPolicy = new PutPolicy();
             if (overwriteUpload)
             {
@@ -312,7 +318,7 @@ namespace SunSync.Models
             else
             {
                 putPolicy.Scope = this.syncSetting.SyncTargetBucket;
-            }         
+            }
             putPolicy.SetExpires(24 * 30 * 3600);
             //set file type
             putPolicy.FileType = this.syncSetting.FileType;
@@ -320,9 +326,9 @@ namespace SunSync.Models
             string uptoken = auth.CreateUploadToken(putPolicy.ToJsonString());
 
             this.syncProgressPage.updateUploadLog("开始上传文件 " + fileFullPath);
-           
-            HttpResult uploadResult=uploadManager.UploadFile(fileFullPath, fileKey, uptoken);
-          
+
+            HttpResult uploadResult = uploadManager.UploadFile(fileFullPath, fileKey, uptoken, putExtra);
+
             if (uploadResult.Code != 200)
             {
                 this.syncProgressPage.updateUploadLog("上传失败 " + fileFullPath + "，" + uploadResult.Text);

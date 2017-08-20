@@ -8,9 +8,7 @@ using SunSync.Models;
 using Qiniu.Util;
 using System.Threading;
 using System;
-using Qiniu.RS;
-using Qiniu.RS.Model;
-using Qiniu.IO.Model;
+using Qiniu.Storage;
 namespace SunSync
 {
     /// <summary>
@@ -76,7 +74,7 @@ namespace SunSync
                 return;
             }
             Mac mac = new Mac(this.account.AccessKey, this.account.SecretKey);
-            this.bucketManager = new BucketManager(mac);
+            this.bucketManager = new BucketManager(mac, new Config());
         }
 
         /// <summary>
@@ -101,8 +99,8 @@ namespace SunSync
                 this.IgnoreDirCheckBox.IsChecked = false;
                 this.SkipPrefixesTextBox.Text = "";
                 this.SkipSuffixesTextBox.Text = "";
-                this.ChunkDefaultSizeComboBox.SelectedIndex = 5; //512KB
-                this.ChunkUploadThresholdSlider.Value = 100;//100MB
+                this.ChunkDefaultSizeComboBox.SelectedIndex = 4; //2MB
+                this.ChunkUploadThresholdSlider.Value = 4;//4MB
                 this.ThreadCountSlider.Value = 10;
                 this.ThreadCountLabel.Content = "10";
                 this.UploadByCdnRadioButton.IsChecked = true;
@@ -144,7 +142,7 @@ namespace SunSync
         {
             DateTime start = System.DateTime.Now;
             //get new bucket list
-            BucketsResult bucketsResult = this.bucketManager.Buckets();
+            BucketsResult bucketsResult = this.bucketManager.Buckets(true);
             if (bucketsResult.Code==200)
             {
                 List<string> buckets = bucketsResult.Result;

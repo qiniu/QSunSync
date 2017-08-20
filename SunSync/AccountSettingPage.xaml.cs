@@ -7,8 +7,7 @@ using SunSync.Models;
 using System.IO;
 using System.Threading;
 using Qiniu.Util;
-using Qiniu.RS;
-using Qiniu.RS.Model;
+using Qiniu.Storage;
 namespace SunSync
 {
     /// <summary>
@@ -107,7 +106,10 @@ namespace SunSync
 
             //check ak & sk validity
             Mac mac = new Mac(account.AccessKey, account.SecretKey);
-            BucketManager bucketManager = new BucketManager(mac);
+            //use fixed zone to avoid the uc query
+            Config config = new Config();
+            config.Zone = Zone.ZONE_CN_East;
+            BucketManager bucketManager = new BucketManager(mac,config);
             StatResult statResult = bucketManager.Stat("NONE_EXIST_BUCKET", "NONE_EXIST_KEY");
 
 
