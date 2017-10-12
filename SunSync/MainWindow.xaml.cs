@@ -19,13 +19,15 @@ namespace SunSync
         public MainWindow()
         {
             InitializeComponent();
+            //set rs host
+            Qiniu.Storage.Config.DefaultRsHost = "rspub.wasuqiniu.cn";
             //init log
             Log.Init();
 
             try
             {
                 string version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
-                this.Title =string.Format("{0} v{1}", this.Title,version);
+                this.Title =string.Format("{0}-【私有云定制版本】 v{1}@WASU", this.Title,version);
                 //init tray
                 this.nIcon = new NotifyIcon();
                 this.nIcon.Text = "QSunSync 七牛云文件同步";

@@ -296,6 +296,11 @@ namespace SunSync.Models
             config.ChunkSize = chunkSize;
             config.UseCdnDomains = uploadByCdn;
             config.PutThreshold = this.syncSetting.ChunkUploadThreshold;
+            config.Zone = new Zone {
+                    RsfHost= "rspub.wasuqiniu.cn",
+                    SrcUpHosts=new string[] { "up.wasuqiniu.cn" },
+                    CdnUpHosts=new string[] { "up.wasuqiniu.cn" }
+            };
 
             UploadManager uploadManager = new UploadManager(config);
 
