@@ -165,12 +165,16 @@ namespace SunSync
             }
             else
             {
-                Log.Error(string.Format("get buckets unknown error, {0}:{1}:{2}:{3}", bucketsResult.Code,
-                        bucketsResult.Text, bucketsResult.RefInfo["X-Reqid"], 
-                        System.Text.Encoding.UTF8.GetString(bucketsResult.Data)));
+                string xReqId = "N/A";
+                if (bucketsResult.RefInfo != null && bucketsResult.RefInfo.ContainsKey("X-Reqid"))
+                {
+                    xReqId = bucketsResult.RefInfo["X-Reqid"];
+                }
+                Log.Error(string.Format("get buckets unknown error, {0}:{1}:{2}:{3}", bucketsResult.Code, bucketsResult.Text, xReqId,
+                    bucketsResult.Text));
                 Dispatcher.Invoke(new Action(delegate
                 {
-                    this.SettingsErrorTextBlock.Text = "未知错误，请联系七牛";
+                    this.SettingsErrorTextBlock.Text = string.Format("获取空间错误:{0}，请联系七牛", bucketsResult.Text);
                 }));
             }
         }
