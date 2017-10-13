@@ -108,11 +108,12 @@ namespace SunSync
             Mac mac = new Mac(account.AccessKey, account.SecretKey);
             //use fixed zone to avoid the uc query
             Config config = new Config();
-            config.Zone = Zone.ZONE_CN_East;
+            config.Zone = new Zone
+            {
+                RsHost = "rspub.wasuqiniu.cn",
+            };
             BucketManager bucketManager = new BucketManager(mac,config);
             StatResult statResult = bucketManager.Stat("NONE_EXIST_BUCKET", "NONE_EXIST_KEY");
-
-
             if (statResult.Code == 401)
             {
                 Log.Error("ak & sk wrong");

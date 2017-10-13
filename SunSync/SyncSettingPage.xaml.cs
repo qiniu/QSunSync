@@ -74,7 +74,13 @@ namespace SunSync
                 return;
             }
             Mac mac = new Mac(this.account.AccessKey, this.account.SecretKey);
-            this.bucketManager = new BucketManager(mac, new Config());
+            Config config = new Config();
+            config.Zone = new Zone
+            {
+                RsHost = "rspub.wasuqiniu.cn",
+            };
+
+            this.bucketManager = new BucketManager(mac, config);
         }
 
         /// <summary>

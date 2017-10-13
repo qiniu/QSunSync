@@ -107,7 +107,33 @@ namespace SunSync.Models
 
             //add prefix
             fileKey = this.syncSetting.SyncPrefix + fileKey;
+            bool uploadByCdn = true;
+            switch (this.syncSetting.UploadEntryDomain)
+            {
+                case 1:
+                    uploadByCdn = false; break;
+                default:
+                    uploadByCdn = true; break;
+            }
 
+            ChunkUnit chunkSize = ChunkUnit.U4096K;
+            switch (this.syncSetting.DefaultChunkSize)
+            {
+                case 0:
+                    chunkSize = ChunkUnit.U128K; break;
+                case 1:
+                    chunkSize = ChunkUnit.U256K; break;
+                case 2:
+                    chunkSize = ChunkUnit.U512K; break;
+                case 3:
+                    chunkSize = ChunkUnit.U1024K; break;
+                case 4:
+                    chunkSize = ChunkUnit.U2048K; break;
+                case 5:
+                    chunkSize = ChunkUnit.U4096K; break;
+                default:
+                    chunkSize = ChunkUnit.U4096K; break;
+            }
             //set upload params
 
             string myDocPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
@@ -119,6 +145,16 @@ namespace SunSync.Models
 
             bool overwriteUpload = false;
             Mac mac = new Mac(SystemConfig.ACCESS_KEY, SystemConfig.SECRET_KEY);
+            Config config = new Config();
+            config.ChunkSize = chunkSize;
+            config.UseCdnDomains = uploadByCdn;
+            config.PutThreshold = this.syncSetting.ChunkUploadThreshold;
+            config.Zone = new Zone
+            {
+                RsHost = "rspub.wasuqiniu.cn",
+                SrcUpHosts = new string[] { "up.wasuqiniu.cn" },
+                CdnUpHosts = new string[] { "up.wasuqiniu.cn" }
+            };
 
             //current file info
             System.IO.FileInfo fileInfo = new System.IO.FileInfo(fileFullPath);
@@ -132,7 +168,7 @@ namespace SunSync.Models
             if (syncSetting.CheckRemoteDuplicate)
             {
                 //check remotely
-                BucketManager bucketManager = new BucketManager(mac, new Config());
+                BucketManager bucketManager = new BucketManager(mac, config);
                 StatResult statResult = bucketManager.Stat(this.syncSetting.SyncTargetBucket, fileKey);
 
                 if (statResult.Result != null && !string.IsNullOrEmpty(statResult.Result.Hash))
@@ -263,45 +299,8 @@ namespace SunSync.Models
             //if file not exists or need to overwrite
             this.syncProgressPage.updateUploadLog("准备上传文件 " + fileFullPath);
 
-            bool uploadByCdn = true;
-            switch (this.syncSetting.UploadEntryDomain)
-            {
-                case 1:
-                    uploadByCdn = false; break;
-                default:
-                    uploadByCdn = true; break;
-            }
-
-            ChunkUnit chunkSize = ChunkUnit.U4096K;
-            switch (this.syncSetting.DefaultChunkSize)
-            {
-                case 0:
-                    chunkSize = ChunkUnit.U128K; break;
-                case 1:
-                    chunkSize = ChunkUnit.U256K; break;
-                case 2:
-                    chunkSize = ChunkUnit.U512K; break;
-                case 3:
-                    chunkSize = ChunkUnit.U1024K; break;
-                case 4:
-                    chunkSize = ChunkUnit.U2048K; break;
-                case 5:
-                    chunkSize = ChunkUnit.U4096K; break;
-                default:
-                    chunkSize = ChunkUnit.U4096K; break;
-            }
-
             string resumeFile = System.IO.Path.Combine(recordPath, recorderKey);
-            Config config = new Config();
-            config.ChunkSize = chunkSize;
-            config.UseCdnDomains = uploadByCdn;
-            config.PutThreshold = this.syncSetting.ChunkUploadThreshold;
-            config.Zone = new Zone {
-                    RsfHost= "rspub.wasuqiniu.cn",
-                    SrcUpHosts=new string[] { "up.wasuqiniu.cn" },
-                    CdnUpHosts=new string[] { "up.wasuqiniu.cn" }
-            };
-
+           
             UploadManager uploadManager = new UploadManager(config);
 
             PutExtra putExtra = new PutExtra();
