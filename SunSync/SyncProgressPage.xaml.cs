@@ -293,6 +293,13 @@ namespace SunSync
                         }
                     }
                 }
+
+                if (!this.cancelSignal && this.batchOpFiles.Count > 0)
+                {
+                    //finish the remained
+                    this.uploadFiles(this.batchOpFiles);
+                    this.batchOpFiles.Clear();
+                }
             }
             catch (Exception ex)
             {
@@ -304,9 +311,8 @@ namespace SunSync
         private void uploadFiles(List<string> filesToUpload)
         {
             this.uploadedBytes.Clear();
-            ManualResetEvent[] doneEvents = null;
             int taskMax = filesToUpload.Count;
-            doneEvents = new ManualResetEvent[taskMax];
+            ManualResetEvent[] doneEvents = new ManualResetEvent[taskMax];
             this.uploadInfos = new UploadInfo[taskMax];
             for (int taskId = 0; taskId < taskMax; taskId++)
             {
@@ -539,13 +545,6 @@ namespace SunSync
                 //upload
                 this.updateUploadLog(string.Format("开始同步{0}下所有文件...", localSyncDir));
                 this.processUpload(this.cacheFilePathDone);
-            }
-
-            if (!this.cancelSignal && this.batchOpFiles.Count > 0)
-            {
-                //finish the remained
-                this.uploadFiles(this.batchOpFiles);
-                this.batchOpFiles.Clear();
             }
 
             //set finish signal
@@ -813,7 +812,7 @@ namespace SunSync
                 ObservableCollection<UploadInfo> dataSource = new ObservableCollection<UploadInfo>();
                 foreach (UploadInfo info in this.uploadInfos)
                 {
-                    if (!string.IsNullOrEmpty(info.Progress))
+                    if (info!=null && !string.IsNullOrEmpty(info.Progress))
                     {
                         dataSource.Add(info);
                     }

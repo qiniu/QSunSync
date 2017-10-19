@@ -99,7 +99,7 @@ namespace SunSync
                 this.IgnoreDirCheckBox.IsChecked = false;
                 this.SkipPrefixesTextBox.Text = "";
                 this.SkipSuffixesTextBox.Text = "";
-                this.ChunkDefaultSizeComboBox.SelectedIndex = 4; //2MB
+                this.ChunkDefaultSizeComboBox.SelectedIndex = 5; //2MB
                 this.ChunkUploadThresholdSlider.Value = 4;//4MB
                 this.ThreadCountSlider.Value = 10;
                 this.ThreadCountLabel.Content = "10";

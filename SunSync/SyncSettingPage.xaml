@@ -128,7 +128,7 @@
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="5">
                                             <Label Content="同步的并发数" VerticalAlignment="Center" Width="110"></Label>
-                                            <Slider  Width="320" VerticalAlignment="Center" Margin="10 0" Minimum="1" Maximum="60"
+                                            <Slider  Width="320" VerticalAlignment="Center" Margin="10 0" Minimum="1" Maximum="64"
                                                      Name="ThreadCountSlider"
                                                       IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="ThreadCountChange_EventHandler"
                                                      />
