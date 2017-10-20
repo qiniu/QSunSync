@@ -153,11 +153,15 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="DomainsSettingPage.xaml.cs">
+      <DependentUpon>DomainsSettingPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="AccountSettingPage.xaml.cs">
       <DependentUpon>AccountSettingPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Models\Account.cs" />
     <Compile Include="Models\CachedHash.cs" />
+    <Compile Include="Models\Domains.cs" />
     <Compile Include="Models\FileUploader.cs" />
     <Compile Include="Models\Log.cs" />
     <Compile Include="Models\LogExporter.cs" />
@@ -185,6 +189,10 @@
     <Compile Include="SyncSettingPage.xaml.cs">
       <DependentUpon>SyncSettingPage.xaml</DependentUpon>
     </Compile>
+    <Page Include="DomainsSettingPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="AccountSettingPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>

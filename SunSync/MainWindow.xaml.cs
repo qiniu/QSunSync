@@ -13,6 +13,7 @@ namespace SunSync
         private NotifyIcon nIcon;
         private QuickStartPage quickStartPage;
         private AccountSettingPage accountSettingPage;
+        private DomainsSettingPage domainsSettingPage;
         private SyncSettingPage syncSettingPage;
         private SyncProgressPage syncProgressPage;
         private SyncResultPage syncResultPage;
@@ -47,6 +48,7 @@ namespace SunSync
             //init pages
             this.quickStartPage = new QuickStartPage(this);
             this.accountSettingPage = new AccountSettingPage(this);
+            this.domainsSettingPage = new DomainsSettingPage(this);
             this.syncSettingPage = new SyncSettingPage(this);
             this.syncProgressPage = new SyncProgressPage(this);
             this.syncResultPage = new SyncResultPage(this);
@@ -80,6 +82,11 @@ namespace SunSync
         internal void GotoAccountPage()
         {
             this.MainHostFrame.Content = this.accountSettingPage;
+        }
+
+        internal void GotoDomainsPage()
+        {
+            this.MainHostFrame.Content = this.domainsSettingPage;
         }
 
         //go to quick start page

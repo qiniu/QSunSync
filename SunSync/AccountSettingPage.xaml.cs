@@ -22,6 +22,7 @@ namespace SunSync
             InitializeComponent();
             this.mainWindow = mainWindow;
             this.loadAccountInfo();
+            this.SettingsErrorTextBlock.Text = "";
         }
 
         private void BackToHome_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -108,8 +109,21 @@ namespace SunSync
             Mac mac = new Mac(account.AccessKey, account.SecretKey);
             //use fixed zone to avoid the uc query
             Config config = new Config();
-            config.Zone = Zone.ZONE_CN_East;
-            BucketManager bucketManager = new BucketManager(mac,config);
+            //init domains
+            Domains domains = Domains.TryLoadDomains();
+            if (domains != null)
+            {
+                Qiniu.Storage.Config.DefaultRsHost = domains.RsDomain;
+                config.Zone = new Zone
+                {
+                    RsHost = domains.RsDomain,
+                };
+            }
+            else
+            {
+                config.Zone = Zone.ZONE_CN_East;
+            }
+            BucketManager bucketManager = new BucketManager(mac, config);
             StatResult statResult = bucketManager.Stat("NONE_EXIST_BUCKET", "NONE_EXIST_KEY");
 
 
@@ -126,16 +140,29 @@ namespace SunSync
                 Log.Info("ak & sk is valid");
                 Dispatcher.Invoke(new Action(delegate
                 {
-                    this.SettingsErrorTextBlock.Text = "";
+                    this.SettingsErrorTextBlock.Text = "AK & SK 设置正确！";
+                }));
+                Dispatcher.Invoke(new Action(delegate
+                {
                     this.mainWindow.GotoHomePage();
                 }));
             }
             else
             {
                 Log.Error("stat file network error, " + statResult.Text);
+                string message = null;
+                if (!string.IsNullOrEmpty(statResult.RefText))
+                {
+                    message = string.Format("验证帐号失败 {0}", statResult.RefText);
+                }
+                else
+                {
+                    message = "验证帐号失败，网络故障！";
+                }
+
                 Dispatcher.Invoke(new Action(delegate
                 {
-                    this.SettingsErrorTextBlock.Text = statResult.Text;
+                    this.SettingsErrorTextBlock.Text = message;
                 }));
             }
         }

@@ -118,7 +118,28 @@ namespace SunSync.Models
             }
 
             bool overwriteUpload = false;
+            bool uploadByCdn = true;
+            switch (this.syncSetting.UploadEntryDomain)
+            {
+                case 1:
+                    uploadByCdn = false; break;
+                default:
+                    uploadByCdn = true; break;
+            }
             Mac mac = new Mac(SystemConfig.ACCESS_KEY, SystemConfig.SECRET_KEY);
+            //set bucket manager and upload manager config
+            Config config = new Config();
+            config.UseCdnDomains = uploadByCdn;
+            config.PutThreshold = this.syncSetting.ChunkUploadThreshold;
+            if (!string.IsNullOrEmpty(SystemConfig.UP_DOMAIN) && !string.IsNullOrEmpty(SystemConfig.RS_DOMAIN))
+            {
+                config.Zone = new Zone
+                {
+                    RsHost = SystemConfig.RS_DOMAIN,
+                    SrcUpHosts = new string[] { SystemConfig.UP_DOMAIN },
+                    CdnUpHosts = new string[] { SystemConfig.UP_DOMAIN }
+                };
+            }
 
             //current file info
             System.IO.FileInfo fileInfo = new System.IO.FileInfo(fileFullPath);
@@ -132,7 +153,7 @@ namespace SunSync.Models
             if (syncSetting.CheckRemoteDuplicate)
             {
                 //check remotely
-                BucketManager bucketManager = new BucketManager(mac, new Config());
+                BucketManager bucketManager = new BucketManager(mac, config);
                 StatResult statResult = bucketManager.Stat(this.syncSetting.SyncTargetBucket, fileKey);
 
                 if (statResult.Result != null && !string.IsNullOrEmpty(statResult.Result.Hash))
@@ -263,21 +284,8 @@ namespace SunSync.Models
 
             //if file not exists or need to overwrite
             this.syncProgressPage.updateUploadLog("准备上传文件 " + fileFullPath);
-
-            bool uploadByCdn = true;
-            switch (this.syncSetting.UploadEntryDomain)
-            {
-                case 1:
-                    uploadByCdn = false; break;
-                default:
-                    uploadByCdn = true; break;
-            }
-
             string resumeFile = System.IO.Path.Combine(recordPath, recorderKey);
-            Config config = new Config();
-            config.UseCdnDomains = uploadByCdn;
-            config.PutThreshold = this.syncSetting.ChunkUploadThreshold;
-
+            
             UploadManager uploadManager = new UploadManager(config);
 
             PutExtra putExtra = new PutExtra();
@@ -332,7 +340,7 @@ namespace SunSync.Models
 
             if (uploadResult.Code != 200)
             {
-                this.syncProgressPage.updateUploadLog("上传失败 " + fileFullPath + "，" + uploadResult.Text);
+                this.syncProgressPage.updateUploadLog("上传失败 " + fileFullPath + "，" + uploadResult.RefText);
                 this.syncProgressPage.addFileUploadErrorLog(string.Format("{0}\t{1}\t{2}\t{3}", this.syncSetting.SyncTargetBucket,
                         fileFullPath, fileKey, uploadResult.Text + "" + uploadResult.RefText));
 

@@ -84,6 +84,12 @@ namespace SunSync
             this.mainWindow.GotoAccountPage();
         }
 
+
+        private void SetDomains_EventHandler(object sender, MouseButtonEventArgs e)
+        {
+            this.mainWindow.GotoDomainsPage();
+        }
+
         /// <summary>
         /// go to empty sync setting page, create new sync job
         /// </summary>

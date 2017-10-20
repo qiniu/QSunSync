@@ -25,6 +25,7 @@ namespace SunSync
         private MainWindow mainWindow;
 
         private Account account;
+        private Domains domains; 
         private SyncSetting syncSetting;
         private BucketManager bucketManager;
 
@@ -51,6 +52,19 @@ namespace SunSync
         /// <param name="e"></param>
         private void SyncSettingPageLoaded_EventHandler(object sender, RoutedEventArgs e)
         {
+            //set global domains
+            this.domains = Domains.TryLoadDomains();
+            if (this.domains != null)
+            {
+                SystemConfig.RS_DOMAIN = this.domains.RsDomain;
+                SystemConfig.UP_DOMAIN = this.domains.UpDomain;
+                if (!string.IsNullOrEmpty(this.domains.RsDomain))
+                {
+                    //set qiniu global rs host
+                    Qiniu.Storage.Config.DefaultRsHost = this.domains.RsDomain;
+                }
+            }
+            //init bucket manager
             this.initBucketManager();
             if (this.bucketManager != null)
             {
@@ -77,7 +91,20 @@ namespace SunSync
                 return;
             }
             Mac mac = new Mac(this.account.AccessKey, this.account.SecretKey);
-            this.bucketManager = new BucketManager(mac, new Config());
+            Config config =new Config();
+            if (this.domains != null)
+            {
+                Qiniu.Storage.Config.DefaultRsHost = domains.RsDomain;
+                config.Zone = new Zone
+                {
+                    RsHost = domains.RsDomain,
+                };
+            }
+            else
+            {
+                config.Zone = Zone.ZONE_CN_East;
+            }
+            this.bucketManager = new BucketManager(mac, config);
         }
 
         /// <summary>
@@ -148,7 +175,7 @@ namespace SunSync
             DateTime start = System.DateTime.Now;
             //get new bucket list
             BucketsResult bucketsResult = this.bucketManager.Buckets(true);
-            if (bucketsResult.Code==200)
+            if (bucketsResult.Code == 200)
             {
                 List<string> buckets = bucketsResult.Result;
                 Dispatcher.Invoke(new Action(delegate
@@ -158,7 +185,7 @@ namespace SunSync
                     {
                         this.SyncTargetBucketsComboBox.SelectedItem = this.syncSetting.SyncTargetBucket;
                     }
-                    Log.Info("load buckets last for "+  System.DateTime.Now.Subtract(start).TotalSeconds+" seconds");
+                    Log.Info("load buckets last for " + System.DateTime.Now.Subtract(start).TotalSeconds + " seconds");
                 }));
             }
             else if (bucketsResult.Code == 401)
@@ -177,9 +204,19 @@ namespace SunSync
                 }
                 Log.Error(string.Format("get buckets unknown error, {0}:{1}:{2}:{3}", bucketsResult.Code, bucketsResult.Text, xReqId,
                     bucketsResult.Text));
+                string message = null;
+                if (!string.IsNullOrEmpty(bucketsResult.RefText))
+                {
+                    message = string.Format("获取空间列表失败 {0}", bucketsResult.RefText);
+                }
+                else
+                {
+                    message = "获取空间列表失败，网络故障！";
+                }
+
                 Dispatcher.Invoke(new Action(delegate
                 {
-                    this.SettingsErrorTextBlock.Text = string.Format("获取空间错误:{0}，请联系七牛", bucketsResult.Text);
+                    this.SettingsErrorTextBlock.Text = message;
                 }));
             }
         }
