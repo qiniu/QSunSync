@@ -92,7 +92,7 @@ namespace SunSync
             }
             Mac mac = new Mac(this.account.AccessKey, this.account.SecretKey);
             Config config =new Config();
-            if (this.domains != null)
+            if (this.domains != null && !string.IsNullOrEmpty(domains.RsDomain))
             {
                 Qiniu.Storage.Config.DefaultRsHost = domains.RsDomain;
                 config.Zone = new Zone

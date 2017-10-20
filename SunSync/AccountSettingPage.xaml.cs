@@ -111,7 +111,7 @@ namespace SunSync
             Config config = new Config();
             //init domains
             Domains domains = Domains.TryLoadDomains();
-            if (domains != null)
+            if (domains != null && !string.IsNullOrEmpty(domains.RsDomain))
             {
                 Qiniu.Storage.Config.DefaultRsHost = domains.RsDomain;
                 config.Zone = new Zone
