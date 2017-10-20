@@ -16,8 +16,10 @@ namespace SunSync
     /// </summary>
     public partial class SyncSettingPage : Page
     {
+        private bool uiInited;
         //default chunk size
-        private int defaultChunkSizeIndex;
+        //from version 2.1.0, this variable stands for block upload thread count
+        private int defaultChunkSize;
         //upload entry domain
         private int uploadEntryDomain;
         private MainWindow mainWindow;
@@ -57,7 +59,8 @@ namespace SunSync
                 new Thread(new ThreadStart(this.reloadBuckets)).Start();
                 Thread.Sleep(10);
             }
-            this.initUIDefaults();   
+            this.initUIDefaults();
+            this.uiInited = true;
         }
 
         /// <summary>
@@ -99,7 +102,8 @@ namespace SunSync
                 this.IgnoreDirCheckBox.IsChecked = false;
                 this.SkipPrefixesTextBox.Text = "";
                 this.SkipSuffixesTextBox.Text = "";
-                this.ChunkDefaultSizeComboBox.SelectedIndex = 5; //2MB
+                this.ChunkDefaultSizeSlider.Value = 1; //1
+                this.ChunkDefaultSizeLabel.Content = "1";
                 this.ChunkUploadThresholdSlider.Value = 4;//4MB
                 this.ThreadCountSlider.Value = 10;
                 this.ThreadCountLabel.Content = "10";
@@ -122,7 +126,8 @@ namespace SunSync
                 this.ThreadCountSlider.Value = syncSetting.SyncThreadCount;
                 this.ThreadCountLabel.Content = syncSetting.SyncThreadCount.ToString();
                 this.ChunkUploadThresholdSlider.Value = syncSetting.ChunkUploadThreshold / 1024 / 1024;
-                this.ChunkDefaultSizeComboBox.SelectedIndex = syncSetting.DefaultChunkSize;
+                this.ChunkDefaultSizeSlider.Value = syncSetting.DefaultChunkSize;
+                this.ChunkDefaultSizeLabel.Content = syncSetting.DefaultChunkSize.ToString();
                 switch (syncSetting.UploadEntryDomain) {
                     case 0:
                         this.UploadByCdnRadioButton.IsChecked = true;
@@ -297,7 +302,7 @@ namespace SunSync
             syncSetting.OverwriteFile = this.OverwriteFileCheckBox.IsChecked.Value;
             syncSetting.SyncThreadCount = (int)this.ThreadCountSlider.Value;
             syncSetting.ChunkUploadThreshold = (int)this.ChunkUploadThresholdSlider.Value * 1024 * 1024;
-            syncSetting.DefaultChunkSize = this.defaultChunkSizeIndex;
+            syncSetting.DefaultChunkSize = this.defaultChunkSize;
             syncSetting.UploadEntryDomain = this.uploadEntryDomain;
 
             this.mainWindow.GotoSyncProgress(syncSetting);
@@ -319,34 +324,6 @@ namespace SunSync
             }
         }
 
-        private void ChunkDefaultSizeSelectChanged_EventHandler(object sender, SelectionChangedEventArgs e)
-        {
-            switch (this.ChunkDefaultSizeComboBox.SelectedIndex)
-            {
-                case 0:
-                    this.defaultChunkSizeIndex = 0; //128KB
-                    break;
-                case 1:
-                    this.defaultChunkSizeIndex = 1; //256KB
-                    break;
-                case 2:
-                    this.defaultChunkSizeIndex = 2; //512KB
-                    break;
-                case 3:
-                    this.defaultChunkSizeIndex = 3; // 1024KB
-                    break;
-                case 4:
-                    this.defaultChunkSizeIndex = 4; //2048KB
-                    break;
-                case 5:
-                    this.defaultChunkSizeIndex = 5; //4096KB
-                    break;
-                default:
-                    this.defaultChunkSizeIndex = 5;
-                    break;
-            }
-        }
-
         private void UploadByCdnRadioButton_Checked(object sender, RoutedEventArgs e)
         {
             this.uploadEntryDomain = 0;
@@ -359,18 +336,21 @@ namespace SunSync
 
         private void CheckRemoteDuplicateCheckBox_Checked(object sender, RoutedEventArgs e)
         {
-            System.Windows.Forms.MessageBox.Show("您选中这个选项是因为空间可能存在同名文件吗？如果您想覆盖这些同名文件，请在【高级设置】里面选中【覆盖空间中已有同名文件】的选项，否则默认情况下，不会帮您覆盖的！",
-                "提示",MessageBoxButtons.OK,MessageBoxIcon.Information);
+            if (this.uiInited)
+            {
+                System.Windows.Forms.MessageBox.Show("您选中这个选项是因为空间可能存在同名文件吗？如果您想覆盖这些同名文件，请在【高级设置】里面选中【覆盖空间中已有同名文件】的选项，否则默认情况下，不会帮您覆盖的！",
+                    "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
 
-        private void FileTypeCommon_Checked(object sender, RoutedEventArgs e)
+        private void ChunkDefaultSizeChange_EventHandler(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
 
-        }
-
-        private void FileTypeLowFrequency_Checked(object sender, RoutedEventArgs e)
-        {
-
+            this.defaultChunkSize = (int)this.ChunkDefaultSizeSlider.Value;
+            if (this.uiInited)
+            {
+                this.ChunkDefaultSizeLabel.Content = this.ChunkDefaultSizeSlider.Value.ToString();
+            }
         }
     }
 

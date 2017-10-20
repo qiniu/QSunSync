@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.30723.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.27004.2002
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SunSync", "SunSync\SunSync.csproj", "{1D91C666-3321-4ED9-9777-889CC4BAB795}"
 EndProject
@@ -17,8 +17,8 @@ Global
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{1D91C666-3321-4ED9-9777-889CC4BAB795}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{1D91C666-3321-4ED9-9777-889CC4BAB795}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1D91C666-3321-4ED9-9777-889CC4BAB795}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{1D91C666-3321-4ED9-9777-889CC4BAB795}.Debug|x64.Build.0 = Debug|Any CPU
+		{1D91C666-3321-4ED9-9777-889CC4BAB795}.Debug|x64.ActiveCfg = Debug|x64
+		{1D91C666-3321-4ED9-9777-889CC4BAB795}.Debug|x64.Build.0 = Debug|x64
 		{1D91C666-3321-4ED9-9777-889CC4BAB795}.Debug|x86.ActiveCfg = Debug|x86
 		{1D91C666-3321-4ED9-9777-889CC4BAB795}.Debug|x86.Build.0 = Debug|x86
 		{1D91C666-3321-4ED9-9777-889CC4BAB795}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -31,5 +31,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {541FD683-9BBC-4094-B0A2-209BB8F0F6B0}
 	EndGlobalSection
 EndGlobal

@@ -62,6 +62,31 @@ namespace SunSync
 
         private bool cancelSignal;
         private bool finishSignal;
+        private ManualResetEvent[] doneEvents;
+
+        public bool CancelSignal
+        {
+            set
+            {
+                this.cancelSignal = value;
+            }
+            get
+            {
+                return this.cancelSignal;
+            }
+        }
+
+        public bool FinishSignal
+        {
+            set
+            {
+                this.finishSignal = value;
+            }
+            get
+            {
+                return this.finishSignal;
+            }
+        }
 
         private int doneCount;
         private int totalCount;
@@ -312,19 +337,20 @@ namespace SunSync
         {
             this.uploadedBytes.Clear();
             int taskMax = filesToUpload.Count;
-            ManualResetEvent[] doneEvents = new ManualResetEvent[taskMax];
+            this.doneEvents = new ManualResetEvent[taskMax];
             this.uploadInfos = new UploadInfo[taskMax];
             for (int taskId = 0; taskId < taskMax; taskId++)
             {
                 this.uploadInfos[taskId] = new UploadInfo();
-                doneEvents[taskId] = new ManualResetEvent(false);
+                this.doneEvents[taskId] = new ManualResetEvent(false);
                 FileUploader uploader = new FileUploader(this.syncSetting, doneEvents[taskId], this, taskId);
                 ThreadPool.QueueUserWorkItem(new WaitCallback(uploader.uploadFile), filesToUpload[taskId]);
             }
 
             try
             {
-                WaitHandle.WaitAll(doneEvents);
+                WaitHandle.WaitAll(this.doneEvents);
+                Console.WriteLine("all upload tasks stops...");
             }
             catch (Exception ex)
             {
@@ -544,26 +570,25 @@ namespace SunSync
             {
                 //upload
                 this.updateUploadLog(string.Format("开始同步{0}下所有文件...", localSyncDir));
+                //receive cancel and finish signal
                 this.processUpload(this.cacheFilePathDone);
             }
 
-            //set finish signal
-            this.finishSignal = true;
+            //clean
             this.closeLogWriters();
             this.closeHashDb();
             this.closeSyncLogDb();
-            if (!this.cancelSignal)
-            {
-                //job auto finish, jump to result page
-                DateTime jobEnd = System.DateTime.Now;
-                this.mainWindow.GotoSyncResultPage(this.jobId, jobEnd - this.jobStart, this.syncSetting.OverwriteFile,
-                    this.fileSkippedCount, this.fileSkippedLogPath,
-                    this.fileExistsCount, this.fileExistsLogPath,
-                    this.fileOverwriteCount, this.fileOverwriteLogPath,
-                    this.fileNotOverwriteCount, this.fileNotOverwriteLogPath,
-                    this.fileUploadErrorCount, this.fileUploadErrorLogPath,
-                    this.fileUploadSuccessCount, this.fileUploadSuccessLogPath);
-            }
+
+            Thread.Sleep(2000);
+            //jump to result page
+            DateTime jobEnd = System.DateTime.Now;
+            this.mainWindow.GotoSyncResultPage(this.jobId, jobEnd - this.jobStart, this.syncSetting.OverwriteFile,
+                this.fileSkippedCount, this.fileSkippedLogPath,
+                this.fileExistsCount, this.fileExistsLogPath,
+                this.fileOverwriteCount, this.fileOverwriteLogPath,
+                this.fileNotOverwriteCount, this.fileNotOverwriteLogPath,
+                this.fileUploadErrorCount, this.fileUploadErrorLogPath,
+                this.fileUploadSuccessCount, this.fileUploadSuccessLogPath);
         }
 
         //halt or resume button click
@@ -572,19 +597,18 @@ namespace SunSync
             this.HaltActionButton.IsEnabled = false;
             if (this.cancelSignal)
             {
-                //reset
-                this.resetSyncStatus();
-                this.HaltActionButton.IsEnabled = true;
-                this.HaltActionButton.Content = "暂停";
-                Thread jobThread = new Thread(new ParameterizedThreadStart(this.runSyncJob));
-                jobThread.Start(true);
+                this.cancelSignal = false;
+                Dispatcher.Invoke(new Action(delegate
+                {
+                    this.HaltActionButton.IsEnabled = true;
+                    this.HaltActionButton.Content = "暂停";
+                    this.ManualFinishButton.IsEnabled = false;
+                }));
             }
             else
             {
                 this.cancelSignal = true;
-                this.closeHashDb();
-                this.closeSyncLogDb();
-                this.closeLogWriters();
+                //set button status
                 Dispatcher.Invoke(new Action(delegate
                 {
                     this.HaltActionButton.IsEnabled = true;
@@ -598,14 +622,7 @@ namespace SunSync
         //manual finish button click
         private void ManualFinishButton_EventHandler(object sender, RoutedEventArgs e)
         {
-            DateTime jobEnd = System.DateTime.Now;
-            this.mainWindow.GotoSyncResultPage(this.jobId, jobEnd - this.jobStart, this.syncSetting.OverwriteFile,
-               this.fileSkippedCount, this.fileSkippedLogPath,
-               this.fileExistsCount, this.fileExistsLogPath,
-               this.fileOverwriteCount, this.fileOverwriteLogPath,
-               this.fileNotOverwriteCount, this.fileNotOverwriteLogPath,
-               this.fileUploadErrorCount, this.fileUploadErrorLogPath,
-               this.fileUploadSuccessCount, this.fileUploadSuccessLogPath);
+            this.finishSignal = true;
         }
 
         //drop directory cache files

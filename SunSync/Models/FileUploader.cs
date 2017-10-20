@@ -205,6 +205,7 @@ namespace SunSync.Models
                         {
                             Log.Error(string.Format("insert ot update sync log error {0}", ex.Message));
                         }
+
                         this.doneEvent.Set();
                         return;
                     }
@@ -272,28 +273,8 @@ namespace SunSync.Models
                     uploadByCdn = true; break;
             }
 
-            ChunkUnit chunkSize = ChunkUnit.U4096K;
-            switch (this.syncSetting.DefaultChunkSize)
-            {
-                case 0:
-                    chunkSize = ChunkUnit.U128K; break;
-                case 1:
-                    chunkSize = ChunkUnit.U256K; break;
-                case 2:
-                    chunkSize = ChunkUnit.U512K; break;
-                case 3:
-                    chunkSize = ChunkUnit.U1024K; break;
-                case 4:
-                    chunkSize = ChunkUnit.U2048K; break;
-                case 5:
-                    chunkSize = ChunkUnit.U4096K; break;
-                default:
-                    chunkSize = ChunkUnit.U4096K; break;
-            }
-
             string resumeFile = System.IO.Path.Combine(recordPath, recorderKey);
             Config config = new Config();
-            config.ChunkSize = chunkSize;
             config.UseCdnDomains = uploadByCdn;
             config.PutThreshold = this.syncSetting.ChunkUploadThreshold;
 
@@ -301,6 +282,7 @@ namespace SunSync.Models
 
             PutExtra putExtra = new PutExtra();
             putExtra.ResumeRecordFile = resumeFile;
+            putExtra.BlockUploadThreads = this.syncSetting.DefaultChunkSize;
 
             UploadProgressHandler progressHandler = new UploadProgressHandler(delegate (long uploadBytes, long totalBytes)
              {
@@ -309,6 +291,25 @@ namespace SunSync.Models
                  this.syncProgressPage.updateSingleFileProgress(taskId, fileFullPath, fileKey, fileLength, percent);
              });
             putExtra.ProgressHandler = progressHandler;
+            putExtra.UploadController = new UploadController(delegate
+            {
+                if (this.syncProgressPage.FinishSignal)
+                {
+                    return UploadControllerAction.Aborted;
+                }
+                else
+                {
+
+                    if (this.syncProgressPage.CancelSignal)
+                    {
+                        return UploadControllerAction.Suspended;
+                    }
+                    else
+                    {
+                        return UploadControllerAction.Activated;
+                    }
+                }
+            });
 
             PutPolicy putPolicy = new PutPolicy();
             if (overwriteUpload)
@@ -385,8 +386,10 @@ namespace SunSync.Models
                         fileFullPath, fileKey));
                 this.syncProgressPage.updateTotalUploadProgress();
             }
+            Log.Info("upload finish for " + fileFullPath + ", " + uploadResult.RefText);
             this.doneEvent.Set();
             return;
+
         }
     }
 }

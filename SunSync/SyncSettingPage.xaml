@@ -108,15 +108,12 @@
                                 <GroupBox Header="高级参数" FontSize="16">
                                     <StackPanel Orientation="Vertical" Margin="5">
                                         <StackPanel Orientation="Horizontal" Margin="5">
-                                            <Label Content="分片默认大小" VerticalAlignment="Center" Width="110"></Label>
-                                            <ComboBox Width="320" VerticalAlignment="Center" Margin="10 0" Name="ChunkDefaultSizeComboBox" SelectionChanged="ChunkDefaultSizeSelectChanged_EventHandler">
-                                                <ComboBoxItem Content="128KB"/>
-                                                <ComboBoxItem Content="256KB"/>
-                                                <ComboBoxItem Content="512KB"/>
-                                                <ComboBoxItem Content="1MB"/>
-                                                <ComboBoxItem Content="2MB"/>
-                                                <ComboBoxItem Content="4MB"/>
-                                            </ComboBox>
+                                            <Label Content="分块的并发数" VerticalAlignment="Center" Width="110"></Label>
+                                            <Slider  Width="320" VerticalAlignment="Center" Margin="10 0" Minimum="1" Maximum="64"
+                                                     Name="ChunkDefaultSizeSlider"
+                                                      IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="ChunkDefaultSizeChange_EventHandler"
+                                                     />
+                                            <Label Name="ChunkDefaultSizeLabel" FontSize="10" VerticalContentAlignment="Center"></Label>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="5">
                                             <Label Content="分片上传阈值" VerticalAlignment="Center" Width="110"></Label>
@@ -127,7 +124,7 @@
                                             <Label Name="ChunkUploadThresholdLabel" FontSize="10" VerticalContentAlignment="Center">10MB</Label>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="5">
-                                            <Label Content="同步的并发数" VerticalAlignment="Center" Width="110"></Label>
+                                            <Label Content="文件的并发数" VerticalAlignment="Center" Width="110"></Label>
                                             <Slider  Width="320" VerticalAlignment="Center" Margin="10 0" Minimum="1" Maximum="64"
                                                      Name="ThreadCountSlider"
                                                       IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="ThreadCountChange_EventHandler"
