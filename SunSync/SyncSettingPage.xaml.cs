@@ -54,15 +54,19 @@ namespace SunSync
         {
             //set global domains
             this.domains = Domains.TryLoadDomains();
-            if (this.domains != null)
+            if (this.domains != null && !string.IsNullOrEmpty(this.domains.RsDomain) && 
+                !string.IsNullOrEmpty(this.domains.UpDomain))
             {
                 SystemConfig.RS_DOMAIN = this.domains.RsDomain;
                 SystemConfig.UP_DOMAIN = this.domains.UpDomain;
-                if (!string.IsNullOrEmpty(this.domains.RsDomain))
-                {
-                    //set qiniu global rs host
-                    Qiniu.Storage.Config.DefaultRsHost = this.domains.RsDomain;
-                }
+                //set qiniu global rs host
+                Qiniu.Storage.Config.DefaultRsHost = this.domains.RsDomain;
+            }
+            else
+            {
+                SystemConfig.RS_DOMAIN = "";
+                SystemConfig.UP_DOMAIN = "";
+                Qiniu.Storage.Config.DefaultRsHost = "rs.qiniu.com";
             }
             //init bucket manager
             this.initBucketManager();
@@ -102,6 +106,7 @@ namespace SunSync
             }
             else
             {
+                Qiniu.Storage.Config.DefaultRsHost = "rs.qiniu.com";
                 config.Zone = Zone.ZONE_CN_East;
             }
             this.bucketManager = new BucketManager(mac, config);
