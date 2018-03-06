@@ -346,6 +346,7 @@ namespace SunSync
             syncSetting.ChunkUploadThreshold = (int)this.ChunkUploadThresholdSlider.Value * 1024 * 1024;
             syncSetting.DefaultChunkSize = this.defaultChunkSize;
             syncSetting.UploadEntryDomain = this.uploadEntryDomain;
+            syncSetting.FileType = this.FileTypeComboBox.SelectedIndex;
 
             this.mainWindow.GotoSyncProgress(syncSetting);
         }
